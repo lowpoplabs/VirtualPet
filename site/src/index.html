@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>{{NAME}}: a pet that eats Wi-Fi and Bluetooth</title>
+<meta name="description" content="{{NAME}}: a free virtual pet for an ESP32-S3 touch watch. It feeds on the Wi-Fi networks and Bluetooth devices around you, and never connects to any of them.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="wrap top">
+  <a class="name" href="index.html">{{NAME}}</a>
+  <nav aria-label="Pages">
+    <a href="index.html" aria-current="page">The pet</a>
+    <a href="manual.html">Manual</a>
+    <a href="#install">Install</a>
+  </nav>
+</header>
+
+<main>
+<div class="wrap hero">
+  <div>
+    <h1>A pet that eats the signals around you</h1>
+    <p class="lead">The pet lives on a small touch watch. It feeds on the Wi-Fi networks and
+    Bluetooth devices it hears nearby, so where you take it decides what it eats, how it feels
+    and what it grows into.</p>
+    <div class="actions">
+      <a class="button" href="#install">Install it on a watch</a>
+      <a href="manual.html">Read the manual</a>
+    </div>
+  </div>
+
+  <div class="watch" id="hero-watch" role="img" aria-label="The hatchling on its watch, eating a network that drifts toward it">
+    <svg class="pet" id="hero-pet" viewBox="0 0 410 502" aria-hidden="true">
+      <text x="44" y="42" fill="#b8c0cc" font-family="Montserrat, sans-serif" font-size="20">09:41</text>
+      <g class="bob">
+        <rect x="154" y="150" width="14" height="70" rx="7" fill="#8cf2b0"/>
+        <rect x="242" y="150" width="14" height="70" rx="7" fill="#8cf2b0"/>
+        <circle cx="161" cy="146" r="15" fill="#ffe27a"/>
+        <circle cx="249" cy="146" r="15" fill="#ffe27a"/>
+        <rect x="113" y="196" width="184" height="168" rx="84" fill="#8cf2b0"/>
+        <rect x="170" y="318" width="70" height="34" rx="17" fill="#fff" opacity="0.2"/>
+        <rect class="eye" x="142" y="222" width="46" height="66" rx="23" fill="#fff"/>
+        <rect class="eye" x="222" y="222" width="46" height="66" rx="23" fill="#fff"/>
+        <rect class="eye" x="154" y="242" width="22" height="34" rx="11" fill="#10131a"/>
+        <rect class="eye" x="234" y="242" width="22" height="34" rx="11" fill="#10131a"/>
+        <path class="mouth-smile" d="M187 304 Q205 316 223 304" fill="none" stroke="#10131a" stroke-width="5" stroke-linecap="round"/>
+        <ellipse class="mouth-open" cx="205" cy="306" rx="15" ry="11" fill="#10131a" style="transform-box: fill-box; transform-origin: center"/>
+      </g>
+      <rect x="135" y="352" width="56" height="26" rx="13" fill="#8cf2b0"/>
+      <rect x="219" y="352" width="56" height="26" rx="13" fill="#8cf2b0"/>
+      <rect x="44" y="464" width="64" height="12" rx="6" fill="#232830"/>
+      <rect x="44" y="464" width="46" height="12" rx="6" fill="#8cf2b0"/>
+      <text x="116" y="476" fill="#b8c0cc" font-family="Montserrat, sans-serif" font-size="15">content</text>
+    </svg>
+  </div>
+</div>
+
+<section class="band" id="food">
+  <div class="wrap">
+    <h2>What it eats</h2>
+    <p>Every so often the pet listens. Each network or device it hears is a bite of food, and it
+    can eat the same one only once a day, so staying in one place gets dull and going out is a
+    feast. It likes variety, gets cravings, and feels queasy if it fills up on junk.</p>
+    <div class="diets">
+      <div class="diet">
+        <h3>Wi-Fi food</h3>
+        <ul>
+          <li>home and office networks</li>
+          <li>open networks</li>
+          <li>hidden networks</li>
+          <li>phone hotspots</li>
+          <li>car hotspots</li>
+          <li>printers</li>
+        </ul>
+      </div>
+      <div class="diet bluetooth">
+        <h3>Bluetooth food</h3>
+        <ul>
+          <li>phones</li>
+          <li>watches</li>
+          <li>earbuds</li>
+          <li>speakers</li>
+          <li>cars</li>
+          <li>trackers</li>
+          <li>TVs</li>
+          <li>crumbs it cannot identify</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="life">
+  <div class="wrap">
+    <h2>How it grows</h2>
+    <p>A whole life takes about twelve weeks, or six or three if you prefer it quicker. A stage
+    ends only when the pet has both lived its days and eaten its meals, so one left in a drawer
+    waits for you.</p>
+    <ol class="life">
+      <li>
+        <svg viewBox="0 0 70 88" aria-hidden="true"><ellipse cx="35" cy="46" rx="27" ry="36" fill="#f4ebd0" stroke="#10131a" stroke-width="3"/><circle cx="26" cy="36" r="6" fill="#8cf2b0"/><circle cx="45" cy="50" r="8" fill="#8cf2b0"/><circle cx="30" cy="64" r="5" fill="#8cf2b0"/></svg>
+        <h3>Egg</h3>
+        <p>Hatches after its first handful of meals, usually within the hour.</p>
+      </li>
+      <li>
+        <svg viewBox="0 0 80 88" aria-hidden="true"><rect x="24" y="12" width="5" height="22" rx="2.5" fill="#10131a"/><rect x="51" y="12" width="5" height="22" rx="2.5" fill="#10131a"/><circle cx="26.5" cy="11" r="7" fill="#ffe27a" stroke="#10131a" stroke-width="3"/><circle cx="53.5" cy="11" r="7" fill="#ffe27a" stroke="#10131a" stroke-width="3"/><rect x="8" y="26" width="64" height="58" rx="29" fill="#8cf2b0" stroke="#10131a" stroke-width="3"/><rect x="24" y="40" width="12" height="20" rx="6" fill="#fff"/><rect x="44" y="40" width="12" height="20" rx="6" fill="#fff"/><rect x="27" y="47" width="6" height="10" rx="3" fill="#10131a"/><rect x="47" y="47" width="6" height="10" rx="3" fill="#10131a"/></svg>
+        <h3>Hatchling</h3>
+        <p>About a week. Every pet starts out looking the same.</p>
+      </li>
+      <li>
+        <svg viewBox="0 0 92 88" aria-hidden="true"><rect x="28" y="6" width="5" height="26" rx="2.5" fill="#10131a"/><rect x="59" y="6" width="5" height="26" rx="2.5" fill="#10131a"/><circle cx="30.5" cy="8" r="7" fill="#ffe27a" stroke="#10131a" stroke-width="3"/><circle cx="61.5" cy="8" r="7" fill="#ffe27a" stroke="#10131a" stroke-width="3"/><rect x="6" y="22" width="80" height="62" rx="31" fill="#c6e68c" stroke="#10131a" stroke-width="3"/><rect x="28" y="38" width="13" height="22" rx="6.5" fill="#fff"/><rect x="51" y="38" width="13" height="22" rx="6.5" fill="#fff"/><rect x="31.5" y="46" width="6" height="11" rx="3" fill="#10131a"/><rect x="54.5" y="46" width="6" height="11" rx="3" fill="#10131a"/></svg>
+        <h3>Juvenile</h3>
+        <p>About two weeks. Its colour shifts toward whichever it eats more of, Wi-Fi or
+        Bluetooth.</p>
+      </li>
+      <li>
+        <svg viewBox="0 0 88 88" aria-hidden="true"><circle cx="44" cy="46" r="38" fill="#10131a"/><text x="44" y="62" text-anchor="middle" fill="#ffe27a" font-family="Fredoka, sans-serif" font-weight="600" font-size="46">?</text></svg>
+        <h3>Adult</h3>
+        <p>About nine weeks, as one of seven animals. Which one depends on its diet. We are not
+        going to show you.</p>
+      </li>
+    </ol>
+    <p style="margin-top: 2rem">When an adult has lived its full life it can retire to the farm, where
+    up to twelve old friends live on. It leaves an egg behind that takes after it, and the next
+    generation begins.</p>
+  </div>
+</section>
+
+<section class="band" id="privacy">
+  <div class="wrap two">
+    <div>
+      <h2>It listens. It never connects.</h2>
+      <p>The pet only hears what every phone and laptop nearby already hears: the names that
+      networks and devices announce about themselves.</p>
+    </div>
+    <ul class="plain">
+      <li>It never joins a network, pairs with a device, or sends anything to either.</li>
+      <li>It has no internet connection of its own and nothing leaves the watch.</li>
+      <li>A name may show on screen for a moment while the pet eats it. Names and addresses are
+      not saved.</li>
+      <li>What it keeps is counts of the kinds of food it has eaten, its badges, and scrambled
+      fingerprints of the places it knows, which cannot be turned back into networks.</li>
+      <li>The code is open, so anyone can check all of this.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="need">
+  <div class="wrap two">
+    <div>
+      <h2>What you need</h2>
+      <ul class="plain">
+        <li>A Waveshare ESP32-S3-Touch-AMOLED-2.06 watch. It is the only board supported so
+        far.</li>
+        <li>A USB-C cable that carries data, and a computer with Chrome or Edge.</li>
+        <li>Optional: a microSD card, formatted FAT32, if you want to change the pet's numbers
+        and name lists.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Where it lives best</h3>
+      <p>On a bag strap or in a pocket with a power bank, or on a desk plugged in, where the
+      screen stays on and dims. On its own battery it lasts roughly ten hours when carried, in
+      our testing so far, because listening costs power.</p>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="install">
+  <div class="wrap">
+    <h2>Install it</h2>
+    <p>The pet is installed from this page, straight from the browser. Nothing is installed on
+    your computer.</p>
+    <ol class="steps">
+      <li>Plug the watch into your computer.</li>
+      <li>Press the button below and pick the watch's port from the list. It usually has
+      "USB JTAG" or "serial" in its name.</li>
+      <li>Choose to erase the device the first time. When updating a watch that already has a
+      pet, do not erase, or the pet and its farm go too.</li>
+      <li>Wait about a minute. The watch restarts with a new egg.</li>
+      <li>Swipe up, open Settings and set the clock.</li>
+    </ol>
+    <div class="install-box">
+      <esp-web-install-button manifest="manifest.json">
+        <button slot="activate">Install {{NAME}}</button>
+        <p slot="unsupported">This browser cannot talk to the watch. Open this page in Chrome
+        or Edge on a computer.</p>
+        <p slot="not-allowed">Installing needs a secure page. Open this site over https.</p>
+      </esp-web-install-button>
+      <p class="note">Version {{VERSION}}. If no port appears, the cable may be charge-only. If
+      the port still stays missing, unplug the watch, hold its power button until the screen goes
+      dark, and plug it back in.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  <p>{{NAME}} is free for everyone, under the MIT licence. It is a hobby project and comes with
+  no promises. The installer uses <a href="https://esphome.github.io/esp-web-tools/">ESP Web
+  Tools</a>.</p>
+</footer>
+
+<script type="module" src="vendor/esp-web-tools/install-button.js"></script>
+<script src="pet.js"></script>
+</body>
+</html>

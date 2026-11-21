@@ -1,0 +1,209 @@
+/*
+ * The page is a pale tabletop; the watch's black screens sit on it.
+ * Colours are the pet's own: mint body, yellow antenna tips, ink eyes.
+ * Mint marks Wi-Fi and lilac marks Bluetooth wherever the two diets appear.
+ */
+:root {
+  --paper: #eef6f0;
+  --paper-deep: #dfeee3;
+  --ink: #10131a;
+  --ink-soft: #454d59;
+  --mint: #8cf2b0;
+  --mint-deep: #177a45;
+  --lilac: #c79bf2;
+  --lilac-deep: #6b3fa3;
+  --yellow: #ffe27a;
+  --bezel: #23272f;
+  --measure: 62ch;
+  --display: "Fredoka", "Trebuchet MS", sans-serif;
+  --body: "Montserrat", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 { font-size: clamp(2.5rem, 6.4vw, 4.5rem); letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.75rem, 3.6vw, 2.5rem); }
+h3 { font-size: 1.25rem; }
+
+p { margin: 0 0 1em; max-width: var(--measure); }
+p:last-child { margin-bottom: 0; }
+
+a { color: var(--mint-deep); text-underline-offset: 0.18em; }
+a:hover { color: var(--ink); }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
+
+.wrap { width: min(100% - 2.5rem, 68rem); margin-inline: auto; }
+
+/* ---- Top bar ---- */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.25rem 0; }
+.top { flex-wrap: wrap; }
+.top nav { gap: 0.4rem 1.25rem; }
+.top .name { white-space: nowrap; font-family: var(--display); font-weight: 600; font-size: 1.25rem; color: var(--ink); text-decoration: none; }
+.top nav { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.top nav a { color: var(--ink); text-decoration: none; font-weight: 500; }
+.top nav a:hover, .top nav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 3px; text-decoration-color: var(--mint); }
+
+/* ---- Hero ---- */
+.hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: clamp(1.5rem, 5vw, 4rem); align-items: center; padding: clamp(1.5rem, 5vw, 4rem) 0 clamp(3rem, 7vw, 6rem); }
+.hero p.lead { font-size: 1.25rem; line-height: 1.5; margin-top: 1.25rem; color: var(--ink-soft); }
+.hero .actions { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; margin-top: 2rem; }
+
+.button, esp-web-install-button button {
+  font: 600 1.0625rem var(--body);
+  background: var(--yellow);
+  color: var(--ink);
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1.6rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+.button:hover, esp-web-install-button button:hover { background: var(--ink); color: var(--yellow); }
+
+/* ---- The watch ---- */
+.watch {
+  position: relative;
+  width: min(100%, 21rem);
+  aspect-ratio: 410 / 502;
+  margin-inline: auto;
+  background: #000;
+  border: 0.7rem solid var(--bezel);
+  border-radius: 3.4rem;
+  overflow: hidden;
+}
+.watch img, .watch svg { display: block; width: 100%; height: 100%; }
+.watch.small { width: 13.5rem; border-width: 0.45rem; border-radius: 2.2rem; }
+
+.watch .morsel {
+  position: absolute;
+  left: 50%; top: 50%;
+  font: 500 0.8125rem var(--body);
+  white-space: nowrap;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--mint);
+  opacity: 0;
+  pointer-events: none;
+}
+.watch .morsel.bluetooth { background: var(--lilac); }
+.watch .morsel.go { animation: eaten 2.6s ease-in forwards; }
+@keyframes eaten {
+  0%   { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1); }
+  12%  { opacity: 1; }
+  80%  { opacity: 1; transform: translate(-50%, calc(-50% + 1.6rem)) scale(0.75); }
+  100% { opacity: 0; transform: translate(-50%, calc(-50% + 2.2rem)) scale(0.1); }
+}
+
+.pet .bob   { animation: bob 2.2s ease-in-out infinite alternate; }
+.pet .eye   { transform-box: fill-box; transform-origin: center; animation: blink 4.6s infinite; }
+.pet .mouth-open { opacity: 0; }
+.pet.munch .mouth-open { animation: chew 0.24s 3 alternate; }
+.pet.munch .mouth-smile { opacity: 0; }
+@keyframes bob   { to { transform: translateY(5px); } }
+@keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.08); } }
+@keyframes chew  { from { opacity: 1; transform: scaleY(0.3); } to { opacity: 1; transform: scaleY(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .pet .bob, .pet .eye, .watch .morsel.go, .pet.munch .mouth-open { animation: none; }
+}
+
+/* ---- Sections ---- */
+section { padding: clamp(2.5rem, 6vw, 4.5rem) 0; }
+section > .wrap > h2 { margin-bottom: 1.25rem; }
+.band { background: var(--paper-deep); }
+
+.diets { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+.diet { border-radius: 1.5rem; padding: 1.5rem 1.6rem; background: #fff; border-top: 0.6rem solid var(--mint); }
+.diet.bluetooth { border-top-color: var(--lilac); }
+.diet ul { margin: 0.9rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.diet li { background: color-mix(in srgb, var(--mint) 45%, white); border-radius: 999px; padding: 0.25rem 0.8rem; font-size: 0.9375rem; }
+.diet.bluetooth li { background: color-mix(in srgb, var(--lilac) 40%, white); }
+
+/* Growth is a real sequence, so it is drawn as one. */
+.life { list-style: none; margin: 2.25rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.life li { position: relative; padding-top: 6.5rem; }
+.life li svg { position: absolute; top: 0; left: 0; height: 5.5rem; width: auto; }
+.life li::before { content: ""; position: absolute; top: 5.9rem; left: 0; right: -1rem; height: 4px; border-radius: 2px; background: var(--ink); }
+.life li:last-child::before { right: 0; }
+.life h3 { margin-bottom: 0.3rem; }
+.life p { font-size: 0.9375rem; color: var(--ink-soft); }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(1.5rem, 5vw, 4rem); align-items: start; }
+
+.two h2, .two h3 { margin-bottom: 0.9rem; }
+.two h3 { font-size: 1.5rem; margin-top: 0.5rem; }
+
+.plain { margin: 0; padding-left: 1.2rem; max-width: var(--measure); }
+.plain li { margin-bottom: 0.5rem; }
+.plain li::marker { color: var(--mint-deep); }
+
+/* Installing is a sequence too. */
+.steps { counter-reset: step; list-style: none; margin: 1.5rem 0 0; padding: 0; max-width: var(--measure); }
+.steps li { counter-increment: step; position: relative; padding-left: 3rem; margin-bottom: 1.1rem; }
+.steps li::before { content: counter(step); position: absolute; left: 0; top: -0.1rem; width: 2rem; height: 2rem; border-radius: 50%; background: var(--ink); color: var(--paper); font: 600 1rem/2rem var(--display); text-align: center; }
+
+.install-box { margin-top: 2rem; padding: 1.6rem; border-radius: 1.5rem; background: var(--ink); color: var(--paper); max-width: 44rem; }
+.install-box p { color: #c9d2cc; }
+.install-box a { color: var(--mint); }
+.install-box .note { font-size: 0.9375rem; margin-top: 1rem; }
+
+footer { padding: 2.5rem 0 3.5rem; font-size: 0.9375rem; color: var(--ink-soft); }
+footer p { max-width: none; }
+
+/* ---- Manual ---- */
+.manual { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: clamp(1.5rem, 4vw, 3.5rem); padding-bottom: 4rem; }
+.manual aside { position: sticky; top: 1rem; align-self: start; max-height: calc(100vh - 2rem); overflow: auto; padding: 0.25rem 0.25rem 1rem; }
+.manual aside ol { list-style: none; margin: 0; padding: 0; }
+.manual aside a { display: block; padding: 0.3rem 0; color: var(--ink); text-decoration: none; font-weight: 500; }
+.manual aside a:hover { text-decoration: underline; text-decoration-thickness: 3px; text-decoration-color: var(--mint); }
+.manual article > header { padding: 1rem 0 0.5rem; }
+.manual article section { padding: 2rem 0 0.5rem; border-top: 4px solid var(--ink); margin-top: 2rem; }
+.manual article section:first-of-type { border-top: 0; margin-top: 0; }
+.manual h2 { font-size: 1.9rem; margin-bottom: 1rem; }
+.manual h3 { margin: 1.6rem 0 0.5rem; }
+.manual figure { margin: 1.5rem 0; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+.manual figcaption { flex: 1 1 14rem; color: var(--ink-soft); font-size: 0.9375rem; max-width: 30ch; }
+
+table { border-collapse: collapse; width: 100%; max-width: 46rem; margin: 1rem 0 1.25rem; }
+th, td { text-align: left; padding: 0.55rem 0.9rem 0.55rem 0; border-bottom: 2px solid var(--paper-deep); vertical-align: top; }
+th { font-family: var(--display); font-weight: 600; border-bottom-color: var(--ink); }
+td:first-child { font-weight: 600; white-space: nowrap; }
+
+code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.92em; background: var(--paper-deep); padding: 0.1em 0.35em; border-radius: 0.3em; }
+pre { background: var(--ink); color: var(--paper); padding: 1rem 1.2rem; border-radius: 1rem; overflow-x: auto; max-width: 46rem; }
+pre code { background: none; padding: 0; color: inherit; }
+
+.tip { border-left: 0.5rem solid var(--yellow); padding: 0.2rem 0 0.2rem 1rem; margin: 1.25rem 0; max-width: var(--measure); }
+
+@media (max-width: 52rem) {
+  .hero, .two { grid-template-columns: minmax(0, 1fr); }
+  .hero .watch { order: -1; width: min(72%, 17rem); }
+  .life { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 2rem; }
+  .life li::before { right: 0; }
+  .manual { grid-template-columns: minmax(0, 1fr); }
+  .manual aside { position: static; max-height: none; border-bottom: 4px solid var(--ink); padding-bottom: 1rem; }
+  .manual aside ol { columns: 2; }
+  td:first-child { white-space: normal; }
+}

@@ -1,0 +1,23 @@
+dependencies:
+  idf: ">=5.5"
+
+  # Keep in step with the LVGL tag in sim/CMakeLists.txt.
+  lvgl/lvgl:
+    version: "9.5.0"
+    public: true
+
+  # Exactly one board support package is pulled in, chosen by Kconfig.
+  # Both expose the same bsp_* calls, which is all board_bsp.c uses.
+  waveshare/esp32_s3_touch_amoled_2_06:
+    version: "^2.0.0"
+    rules:
+      - if: "$CONFIG{PET_BOARD_WATCH_206} == True"
+
+  waveshare/esp32_s3_touch_amoled_2_16:
+    version: "^2.0.1"
+    rules:
+      - if: "$CONFIG{PET_BOARD_SQUARE_216} == True"
+
+  # Lends the memory card to a computer as a USB drive (see card_share.c).
+  espressif/esp_tinyusb:
+    version: "^1.7.0"

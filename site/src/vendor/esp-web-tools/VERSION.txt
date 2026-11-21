@@ -1,0 +1,10 @@
+ESP Web Tools 10.5.2, the browser installer by the ESPHome project.
+https://github.com/esphome/esp-web-tools   Apache License 2.0 (see LICENSE)
+
+These files are the package's dist/web folder, unchanged, from
+https://registry.npmjs.org/esp-web-tools/-/esp-web-tools-10.5.2.tgz
+sha512-i5qsHv1bnrb/9gmKEN7qIaDTMOMy6OctrgFVXStrU2s79erY2Z7IKydveNk0eDhQTarfwyR4eXspOUIF6kYawg==
+
+To move to a newer release: npm pack esp-web-tools@VERSION, check the hash
+against "npm view esp-web-tools@VERSION dist.integrity", replace the .js
+files here with the new dist/web, and update this note.

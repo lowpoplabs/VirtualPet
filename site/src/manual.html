@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>{{NAME}} manual</title>
+<meta name="description" content="{{NAME}} manual. How to look after your pet: the screens, feeding, growing up, places, badges, the farm, settings and the memory card.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="wrap top">
+  <a class="name" href="index.html">{{NAME}}</a>
+  <nav aria-label="Pages">
+    <a href="index.html">The pet</a>
+    <a href="manual.html" aria-current="page">Manual</a>
+    <a href="index.html#install">Install</a>
+  </nav>
+</header>
+
+<div class="wrap manual">
+  <aside>
+    <nav aria-label="Manual sections">
+      <ol>
+        <li><a href="#around">Getting around</a></li>
+        <li><a href="#home">The home screen</a></li>
+        <li><a href="#feeding">Feeding</a></li>
+        <li><a href="#moods">Moods and character</a></li>
+        <li><a href="#growing">Growing up</a></li>
+        <li><a href="#places">Places</a></li>
+        <li><a href="#badges">Badges</a></li>
+        <li><a href="#farm">Retiring to the farm</a></li>
+        <li><a href="#settings">Settings</a></li>
+        <li><a href="#power">Power and the screen</a></li>
+        <li><a href="#card">The memory card</a></li>
+        <li><a href="#trouble">When something is wrong</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <article>
+    <header>
+      <h1>Manual</h1>
+      <p class="lead" style="margin-top: 1rem; color: var(--ink-soft)">Everything the pet does, and how to
+      look after it. You do not need any of this to start: install it, carry it about, and see
+      what happens.</p>
+    </header>
+
+    <section id="around">
+      <h2>Getting around</h2>
+      <p>The pet is always on the home screen. Everything else is one swipe away.</p>
+      <table>
+        <tr><th>Do this</th><th>To see</th></tr>
+        <tr><td>Swipe left</td><td>Diet: the week's food by group, how far along it is in its stage, and what it is drifting toward</td></tr>
+        <tr><td>Swipe right</td><td>Journal: today's entry, then the last seven days</td></tr>
+        <tr><td>Swipe up</td><td>Menu: food-dex, badges, places, farm, pet card and settings</td></tr>
+        <tr><td>Swipe down</td><td>Recent finds: the last eight meals, as kinds of food</td></tr>
+        <tr><td>Hold the pet</td><td>Its card: name, stage, generation, age and traits</td></tr>
+        <tr><td>Tap the pet</td><td>A pat. It cheers the pet up, though only every so often</td></tr>
+      </table>
+      <p>To go back, swipe the opposite way or tap the title at the top. A screen left alone
+      returns to the pet by itself.</p>
+      <figure>
+        <div class="watch small"><img src="img/menu.png" alt="The menu: six tiles for food-dex, badges, places, farm, pet and settings" width="410" height="502" loading="lazy"></div>
+        <figcaption>The menu. Each tile says where things stand, and turns amber when something
+        needs you: a new badge, a pet ready to retire.</figcaption>
+      </figure>
+    </section>
+
+    <section id="home">
+      <h2>The home screen</h2>
+      <figure>
+        <div class="watch small"><img src="img/home.png" alt="The home screen with a hatchling, the time, the battery, a stomach bar and its mood" width="410" height="502" loading="lazy"></div>
+        <figcaption>The time and battery at the top. Along the bottom, the stomach bar, how the
+        pet feels, and a bell when it wants something.</figcaption>
+      </figure>
+      <ul class="plain">
+        <li><strong>Stomach bar.</strong> It drains slowly all day and turns amber when the pet
+        is hungry.</li>
+        <li><strong>Mood.</strong> One word: happy, content, bored, hungry, sleepy or queasy.</li>
+        <li><strong>The bell.</strong> The pet has a craving, or it is ready to retire. Its card
+        says which.</li>
+        <li><strong>The line above the bar.</strong> What it has just found, a badge it has
+        earned, or a place it has arrived at. It fades after a few seconds.</li>
+      </ul>
+    </section>
+
+    <section id="feeding">
+      <h2>Feeding</h2>
+      <p>You feed the pet by taking it places. It listens for Wi-Fi networks and Bluetooth
+      devices, and each one it hears is food.</p>
+      <ul class="plain">
+        <li><strong>Once a day each.</strong> The same network or device can be eaten once a
+        day. At home it soon runs out of anything new; a walk through town is a feast.</li>
+        <li><strong>Meals.</strong> Finds are saved up and eaten together in an eating moment,
+        with a chew and, if sound is on, a little noise.</li>
+        <li><strong>Variety matters.</strong> The same food over and over is worth less each
+        time, and too much junk in a day makes the pet queasy.</li>
+        <li><strong>Cravings.</strong> Now and then it wants one particular food. The bell
+        shows, and its card names the food. Finding it is worth extra.</li>
+        <li><strong>Going hungry.</strong> A pet left empty for a long time turns scrawny and
+        flickers. Feed it and it recovers.</li>
+      </ul>
+      <h3>How often it listens</h3>
+      <table>
+        <tr><th>When</th><th>It listens</th></tr>
+        <tr><td>Plugged in</td><td>Every 30 seconds</td></tr>
+        <tr><td>On battery, carried</td><td>Every minute</td></tr>
+        <tr><td>On battery, still</td><td>Every three minutes, then every five once it has not moved for ten</td></tr>
+        <tr><td>Quiet hours</td><td>Every 15 minutes. The pet is asleep</td></tr>
+      </table>
+      <p>The food-dex in the menu lists every kind of food and how many of each the pet has
+      tasted. Filling it earns a badge.</p>
+      <figure>
+        <div class="watch small"><img src="img/diet.png" alt="The diet screen with a bar chart of the week's food and progress through the current stage" width="410" height="502" loading="lazy"></div>
+        <figcaption>The diet screen: the week's food by group, and how many days and meals
+        the current stage still needs.</figcaption>
+      </figure>
+    </section>
+
+    <section id="moods">
+      <h2>Moods and character</h2>
+      <p>The pet decides for itself what to do from one moment to the next: look around, sniff
+      the air, play, nap, or grumble when it is hungry or queasy. How it feels shows in its eyes
+      and mouth.</p>
+      <p>Every egg hatches with two traits out of six: lazy, greedy, curious, playful, shy or
+      cheerful. They nudge what it likes doing, so no two pets behave quite alike. They are on
+      its card.</p>
+      <p>The journal keeps a short entry for each day: how much it ate, anything rare it found,
+      where it went, and when it grew.</p>
+    </section>
+
+    <section id="growing">
+      <h2>Growing up</h2>
+      <table>
+        <tr><th>Stage</th><th>Lasts</th><th>What happens</th></tr>
+        <tr><td>Egg</td><td>Under an hour</td><td>Hatches after its first five meals</td></tr>
+        <tr><td>Hatchling</td><td>About a week</td><td>Every pet looks the same</td></tr>
+        <tr><td>Juvenile</td><td>About two weeks</td><td>Becomes a Grazer if it ate mostly Wi-Fi, a Hunter if mostly Bluetooth</td></tr>
+        <tr><td>Adult</td><td>About nine weeks</td><td>Becomes one of seven animals, decided by its diet</td></tr>
+      </table>
+      <p>A stage ends when the pet has both lived its days and eaten its meals. Time alone is
+      not enough, so a pet that has been in a drawer picks up where it left off.</p>
+      <p>A Grazer can grow into three animals and a Hunter into three others. Which one depends
+      on what it ate most of, and for Grazers on whether its food came from one place or from
+      all over. A seventh animal is for a pet with a truly balanced diet. The diet screen says
+      what yours is drifting toward, without spoiling what that looks like.</p>
+      <h3>Life speed</h3>
+      <p>In Settings, "Life speed" sets how long a whole life takes: about 12 weeks on slow,
+      6 on medium and 3 on fast. It changes only how quickly the pet grows. Hunger and mood
+      stay on real time, and changing it never makes the pet older than it was.</p>
+    </section>
+
+    <section id="places">
+      <h2>Places</h2>
+      <p>The pet learns where it spends its time from the fixed networks around it, such as
+      routers and printers.</p>
+      <ul class="plain">
+        <li><strong>Habitats.</strong> Ten minutes among the same networks makes a habitat. It
+        remembers twelve. The one with the most time is home. Open Places in the menu to see
+        them and give each a name.</li>
+        <li><strong>Outings.</strong> Settling somewhere new, or visiting somewhere that is not
+        home, lifts its mood and goes in the journal.</li>
+        <li><strong>Place badges.</strong> A network whose name gives the place away counts as
+        a visit: coffee shops, hotels, stores, restaurants, airports, planes, trains, libraries,
+        campuses, hospitals, museums and parks. It has to stay a few minutes; driving past does
+        not count. One visit is bronze, three different ones silver, ten gold.</li>
+        <li><strong>Off the grid.</strong> An hour with no signals at all while being carried
+        earns a badge of its own, with silver at three hours and gold at eight.</li>
+      </ul>
+      <p class="tip">The built-in lists of place names lean toward chains in the United States.
+      You can replace them with your own from the memory card.</p>
+      <p>A shop next door to where you are sitting can count too. The pet cannot tell which
+      door you walked through.</p>
+    </section>
+
+    <section id="badges">
+      <h2>Badges</h2>
+      <p>There are 32 badges: for first times, for big days, for filling the food-dex, for
+      places, and for raising generations. The Badges screen lists the ones you have first,
+      then the rest with how to earn each.</p>
+      <p>Badges belong to you, not to one pet. They carry on from each pet to the next.</p>
+    </section>
+
+    <section id="farm">
+      <h2>Retiring to the farm</h2>
+      <p>When an adult has lived its full life it is ready to retire. The bell shows, its card
+      says so, and the Farm tile turns amber. Then it waits for you. Nothing happens until you
+      decide.</p>
+      <ol class="steps">
+        <li>Swipe up and open Farm.</li>
+        <li>Tap "Retire".</li>
+        <li>Hold the button until it fills, about three seconds.</li>
+      </ol>
+      <p>The pet says goodbye and leaves for the farm, and an egg arrives in its place.</p>
+      <table>
+        <tr><th>Carries on</th><th>Starts fresh</th></tr>
+        <tr><td style="font-weight: 400; white-space: normal">The farm, your badges, your habitats and place badges, and your settings</td>
+            <td>The name, the diet and its history, the food-dex and the journal</td></tr>
+      </table>
+      <ul class="plain">
+        <li>The egg is the next generation. It takes one of its parent's two traits and gets
+        one of its own.</li>
+        <li>The farm holds twelve retired pets. Tap one to see its name, what it became, its
+        generation, how long it lived and how much it ate.</li>
+        <li>When a thirteenth retires, the oldest moves on. It is still counted.</li>
+      </ul>
+    </section>
+
+    <section id="settings">
+      <h2>Settings</h2>
+      <p>Swipe up, then Settings. Each row has a minus and a plus.</p>
+      <table>
+        <tr><th>Setting</th><th>What it does</th></tr>
+        <tr><td>Name</td><td>Names the pet, up to twelve letters</td></tr>
+        <tr><td>Brightness</td><td>20% to 100%</td></tr>
+        <tr><td>Sound</td><td>All sounds, rare ones only, or off</td></tr>
+        <tr><td>Volume</td><td>1 to 5</td></tr>
+        <tr><td>Quiet from, until</td><td>The hours the pet sleeps. It makes no sound and listens less</td></tr>
+        <tr><td>Clock hour, minute</td><td>Sets the time</td></tr>
+        <tr><td>Screen</td><td>When plugged in: "stays on" for a desk, "sleeps" for a bag with a power bank</td></tr>
+        <tr><td>Pet</td><td>"paused" stops its time and its listening, for when it sits on a shelf</td></tr>
+        <tr><td>Life speed</td><td>Slow, medium or fast</td></tr>
+        <tr><td>Wrist raise</td><td>On battery, whether turning the screen toward you lights it</td></tr>
+        <tr><td>Card</td><td>"computer" lends the memory card to a computer over the cable</td></tr>
+        <tr><td>Dev log</td><td>For tuning. See the memory card section before turning it on</td></tr>
+        <tr><td>Start over</td><td>Replaces the pet with a new egg and clears everything, the farm included. Settings stay</td></tr>
+      </table>
+    </section>
+
+    <section id="power">
+      <h2>Power and the screen</h2>
+      <ul class="plain">
+        <li><strong>Plugged in.</strong> The screen stays on and dims when left alone, unless
+        you set Screen to "sleeps".</li>
+        <li><strong>On battery.</strong> The screen goes dark after 15 seconds. Touch it, press
+        the side button, or turn it toward you to light it.</li>
+        <li><strong>On a wrist.</strong> Turning the screen toward you happens all day, and
+        each time costs battery. Set "Wrist raise" to off to make the battery last longer.</li>
+        <li><strong>Low battery.</strong> The pet gets drowsy and listens less. When it is
+        nearly flat it saves itself, so nothing is lost.</li>
+        <li><strong>Switched off.</strong> Time stands still for the pet while the watch is
+        off. It wakes exactly as it was.</li>
+      </ul>
+      <p>Once a minute the whole picture shifts by a few pixels. That is on purpose: it stops
+      the screen from wearing unevenly.</p>
+    </section>
+
+    <section id="card">
+      <h2>The memory card</h2>
+      <p>The pet works without a card. With one, formatted FAT32, you can change its numbers
+      and name lists by editing plain text files in the card's <code>pet</code> folder.</p>
+      <table>
+        <tr><th>File</th><th>What it changes</th></tr>
+        <tr><td><code>tuning.txt</code></td><td>Stomach, mood, cravings, how long each stage lasts</td></tr>
+        <tr><td><code>foods.txt</code></td><td>What each kind of food is worth</td></tr>
+        <tr><td><code>food-names.txt</code></td><td>The names that make something a car, a hotspot, a printer, earbuds, a speaker, a watch or a TV</td></tr>
+        <tr><td><code>place-names.txt</code></td><td>The network names that count toward place badges</td></tr>
+      </table>
+      <ol class="steps">
+        <li>In Settings, set Card to "computer". The card shows up on your computer as a
+        drive.</li>
+        <li>In the <code>pet</code> folder, each file has a copy ending in
+        <code>-defaults.txt</code> that holds the built-in values with notes. Copy one to the
+        plain name, such as <code>place-names.txt</code>, and edit the copy.</li>
+        <li>Eject the drive, then set Card back to "pet". The watch restarts and reads your
+        file.</li>
+      </ol>
+      <p>Lists look like this. Anything after a <code>#</code> is a note to yourself.</p>
+<pre><code>coffee = costa coffee, costa_wifi   # one chain and its spellings
+coffee_word = cafe, tea room        # general words, once a day
+earbuds = AirPods, Buds, "QC "      # quotes keep the space at the end</code></pre>
+      <p>If a file has a mistake the pet ignores that whole file, carries on with its built-in
+      values, and tells you the file and line on the home screen when it starts.</p>
+      <h3>The dev log</h3>
+      <p>With a card in, the pet keeps a log of the kinds of food it finds, for tuning. With
+      "Dev log" set to "names" it also writes the name of every network and device it hears.
+      That is the one case where names are stored. Leave it off unless you are tuning, keep
+      that file private, and turn it off and delete the log before the watch goes to anyone
+      else. Addresses are never written either way.</p>
+    </section>
+
+    <section id="trouble">
+      <h2>When something is wrong</h2>
+      <table>
+        <tr><th>What you see</th><th>What to do</th></tr>
+        <tr><td>No port when installing</td><td>Try another cable; many only charge. Then unplug the watch, hold its power button until the screen goes dark, and plug it back in</td></tr>
+        <tr><td>The watch is a drive, not a port</td><td>Card is set to "computer". Eject it and set Card back to "pet"</td></tr>
+        <tr><td>The time is wrong</td><td>Set Clock hour and Clock minute in Settings</td></tr>
+        <tr><td>A message naming a file at start-up</td><td>That settings file has a mistake on the line shown. Fix it or delete the file</td></tr>
+        <tr><td>It never eats at home</td><td>It has eaten everything there today. Take it out, or wait until tomorrow</td></tr>
+        <tr><td>You want to update</td><td>Install again from this site and do not erase. The pet and its farm are kept</td></tr>
+      </table>
+      <p>One more thing. There is a hidden way to peek at every animal the pet can become.
+      Finding it is up to you.</p>
+    </section>
+  </article>
+</div>
+
+<footer class="wrap">
+  <p>{{NAME}} is free for everyone, under the MIT licence. It is a hobby project and comes with
+  no promises.</p>
+</footer>
+</body>
+</html>

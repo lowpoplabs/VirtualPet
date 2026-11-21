@@ -1,0 +1,18 @@
+menu "VirtualPet"
+
+    choice PET_BOARD
+        prompt "Target board"
+        default PET_BOARD_WATCH_206
+        help
+            Picks the Waveshare board support package. Set by
+            sdkconfig.defaults.watch / sdkconfig.defaults.square; build with
+            firmware/build.ps1 rather than changing it by hand.
+
+        config PET_BOARD_WATCH_206
+            bool "ESP32-S3-Touch-AMOLED-2.06 (watch, 410x502)"
+
+        config PET_BOARD_SQUARE_216
+            bool "ESP32-S3-Touch-AMOLED-2.16 (board, 480x480)"
+    endchoice
+
+endmenu

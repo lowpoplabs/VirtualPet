@@ -1,0 +1,27 @@
+build/
+build-*/
+sim/build/
+firmware/build*/
+firmware/managed_components/
+firmware/sdkconfig
+firmware/sdkconfig.watch
+firmware/sdkconfig.square
+firmware/sdkconfig.*-debug
+foodlog*.csv
+firmware/sdkconfig.old
+firmware/dependencies.lock
+*.bmp
+.vscode/
+releases/
+
+# Private or local: device backups (hold the pet and its place prints), photos, simulator saves
+backup/
+*.jpg
+*.bin
+*.bin.cfg
+*.png
+.claude/
+
+# The web site: its pictures are kept, its built output is not
+!site/src/img/*.png
+site/out/
