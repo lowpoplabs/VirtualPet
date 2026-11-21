@@ -372,8 +372,9 @@ current stage stay as they were, and only time from then on runs at the
 new speed. The same holds when `growth_speed` in `tuning.txt` changes,
 because the save records the speed the pet was living at.
 
-Preview of every form (hidden): hold the "Settings" title at the top of
-the settings screen. The home screen then draws the pet as each stage and
+Preview of every form (hidden): with Dev log set to "names", hold the
+"Settings" title at the top of the settings screen. With Dev log off the
+hold does nothing, so nobody spoils the forms by accident. The home screen then draws the pet as each stage and
 form in turn, eleven in all, moving on at each tap, with the name on the
 line under it. It ends after the last one, or after a minute left alone.
 Only the drawing changes; the pet itself is untouched. Nothing on screen

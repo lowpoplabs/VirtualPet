@@ -4,6 +4,12 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.2.1 - 2026-11-21
+
+### Changed
+- The hidden preview of every form (hold the Settings title) now opens only while Dev log is
+  on, so a stray hold cannot spoil the forms.
+
 ## 0.2.0 - 2026-11-21
 
 ### Added

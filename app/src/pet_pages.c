@@ -134,13 +134,14 @@ static void back_cb(lv_event_t *e)
 }
 
 /*
- * Holding the Settings title opens the preview of every form. Nothing on
- * screen says so: the forms are meant to be a surprise.
+ * Holding the Settings title opens the preview of every form, but only
+ * while Dev log is on: the forms are meant to be a surprise, so a stray
+ * hold must not spoil them. Nothing on screen says so.
  */
 static void title_hold_cb(lv_event_t *e)
 {
     LV_UNUSED(e);
-    if (s_current == PAGE_SETTINGS && s_host->preview) {
+    if (s_current == PAGE_SETTINGS && s_host->preview && s_host->settings->dev_log) {
         pet_pages_open(PAGE_HOME);
         s_host->preview();
     }
