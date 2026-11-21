@@ -13,7 +13,7 @@ repository and the firmware are still called VirtualPet. The design is in
 By **LowPopLabs**.
 
 <!-- lpl:links -->
-**[Download v0.3.2](https://github.com/lowpoplabs/VirtualPet/releases/latest)** · **[Install](https://lowpoplabs.github.io/VirtualPet/)** · **[Changelog](CHANGELOG.md)** · **[Ko-fi](https://ko-fi.com/lowpoplabs)**
+**[Download v0.4.0](https://github.com/lowpoplabs/VirtualPet/releases/latest)** · **[Install](https://lowpoplabs.github.io/VirtualPet/)** · **[Changelog](CHANGELOG.md)** · **[Ko-fi](https://ko-fi.com/lowpoplabs)**
 <!-- /lpl:links -->
 
 ## Install
