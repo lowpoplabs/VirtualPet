@@ -20,6 +20,7 @@
 
 #define LV_FONT_MONTSERRAT_14 1
 #define LV_FONT_MONTSERRAT_20 1
+#define LV_FONT_MONTSERRAT_28 1     /* titles when "Text size" is large */
 #define LV_FONT_DEFAULT &lv_font_montserrat_20
 
 /* LVGL is linked statically; stop MSVC treating its fonts as DLL imports. */

@@ -621,7 +621,7 @@ void pet_app_button(void)
 /* ---- Settings ----------------------------------------------------------- */
 
 #define SETTINGS_MAGIC   0x53
-#define SETTINGS_VERSION 5      /* 1 had no volume: 8 bytes. 2 no dev log: 9. 3 no life speed: 10. 4 no raise: 11 */
+#define SETTINGS_VERSION 6      /* 1 had no volume: 8 bytes. 2 no dev log: 9. 3 no life speed: 10. 4 no raise: 11. 5 no text size: 12 */
 
 /* Growth speed for each choice of "Life speed": a whole life in 12, 6 and 3 weeks. */
 static const float LIFE_SPEED[LIFE_SPEED_COUNT] = {
@@ -631,18 +631,20 @@ static const float LIFE_SPEED[LIFE_SPEED_COUNT] = {
 static void settings_save(void)
 {
     if (s_hal && s_hal->save_settings) {
-        const uint8_t b[12] = {SETTINGS_MAGIC, SETTINGS_VERSION, s_set.brightness, s_set.sound,
+        const uint8_t b[13] = {SETTINGS_MAGIC, SETTINGS_VERSION, s_set.brightness, s_set.sound,
                                s_set.quiet_start, s_set.quiet_end, s_set.carry, s_set.paused,
-                               s_set.volume, s_set.dev_log, s_set.life_speed, s_set.raise_off};
+                               s_set.volume, s_set.dev_log, s_set.life_speed, s_set.raise_off,
+                               s_set.text_large};
         s_hal->save_settings(b, sizeof(b));
     }
 }
 
 static void settings_load(void)
 {
-    uint8_t b[12] = {0};
+    uint8_t b[13] = {0};
     size_t len = s_hal->load_settings ? s_hal->load_settings(b, sizeof(b)) : 0;
-    bool v5 = len == 12 && b[1] == 5;
+    bool v6 = len == 13 && b[1] == 6;
+    bool v5 = (len == 12 && b[1] == 5) || v6;
     bool v1 = len == 8 && b[1] == 1, v2 = len == 9 && b[1] == 2, v4 = (len == 11 && b[1] == 4) || v5;
     bool v3 = (len == 10 && b[1] == 3) || v4;
     if (b[0] != SETTINGS_MAGIC || (!v1 && !v2 && !v3)) {
@@ -655,6 +657,7 @@ static void settings_load(void)
                                  .dev_log = v3 && b[9] != 0,
                                  .life_speed = (v4 && b[10] < LIFE_SPEED_COUNT) ? b[10] : LIFE_SLOW,
                                  .raise_off = v5 && b[11] != 0,
+                                 .text_large = v6 && b[12] != 0,
                                  .speed_fixed = s_set.speed_fixed};
     }
 }
@@ -686,6 +689,14 @@ static void rebase_pet(void (*between)(int32_t), int32_t arg)
     }
     if (len == 0 || !pet_load(&s_pet, &tune, buf, len, s_hal->now_s())) {
         LV_LOG_WARN("could not carry the pet across a time change");
+    }
+}
+
+/* The one small line on the home screen follows "Text size" too. */
+static void text_size_apply(void)
+{
+    if (s_mood) {
+        lv_obj_set_style_text_font(s_mood, s_set.text_large ? &lv_font_montserrat_20 : &lv_font_montserrat_14, 0);
     }
 }
 
@@ -740,6 +751,10 @@ static void on_setting(pet_setting_id_t what, int dir)
         break;
     case SET_RAISE:
         s_set.raise_off = !s_set.raise_off;
+        break;
+    case SET_TEXT:
+        s_set.text_large = !s_set.text_large;
+        text_size_apply();
         break;
     case SET_LIFE_SPEED: {
         int v = s_set.life_speed + dir;
@@ -1237,7 +1252,7 @@ void pet_app_start(const pet_hal_t *hal)
     lv_obj_set_style_bg_color(s_stomach, lv_color_hex(COLOR_ACCENT), LV_PART_INDICATOR);
 
     s_mood = lv_label_create(bottom);
-    lv_obj_set_style_text_font(s_mood, &lv_font_montserrat_14, 0);
+    text_size_apply();
     lv_obj_align(s_mood, LV_ALIGN_LEFT_MID, 72, -4);
 
     /* The pet wants something: a bell. Tapping it opens the card, which says what. */

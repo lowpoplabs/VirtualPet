@@ -4,6 +4,16 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.3.0 - 2026-11-21
+
+### Added
+- **Text size:** a Settings row, "normal" or "large". Large sets every page, the name
+  keyboard and the stage label on the home screen in bigger letters, and rows grow to suit.
+
+### Fixed
+- A long badge description now wraps onto a second line, and a long status on a menu tile
+  is cut short with dots; both used to run off the edge.
+
 ## 0.2.1 - 2026-11-21
 
 ### Changed

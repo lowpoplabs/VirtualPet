@@ -380,7 +380,7 @@ line under it. It ends after the last one, or after a minute left alone.
 Only the drawing changes; the pet itself is untouched. Nothing on screen
 points to it, because the forms are meant to be a surprise.
 
-Settings: name, brightness, sound, volume, quiet hours, clock, screen
+Settings: name, brightness, text size, sound, volume, quiet hours, clock, screen
 (stays on or sleeps), pause, life speed, wrist raise, card and dev log, and "Start over" at
 the bottom, which after a three second hold replaces the pet and all it
 had with a new egg (settings stay). "Card: computer" lends the memory
@@ -390,6 +390,11 @@ restarts) before flashing. If the port ever stays missing, unplug the
 cable, hold the power button until the screen goes dark, and plug it back
 in (the watch has no reset button; a full power-off is what clears it). They are stored apart from the pet. The clock setting
 changes hours and minutes only, not the date.
+
+Text size: "large" sets every page in the next size of letters up (20
+for 14, 28 for 20), for reading without glasses. Rows grow to suit and
+the long pages scroll further. The pet and the clock on the home screen
+stay as they are.
 
 From stage 7, the burn-in guard, the motion sensor and sleep on battery
 are in, and so are the settings files on the card for numbers and name

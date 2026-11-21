@@ -47,12 +47,36 @@ static lv_obj_t *filled(lv_obj_t *parent, int32_t w, int32_t h, uint32_t color, 
     return o;
 }
 
+/*
+ * "Text size" in the settings. Large sets the pages in the next size of
+ * letters up, 20 for 14 and 28 for 20, for eyes that want their reading
+ * glasses at the small one.
+ */
+static bool large(void)
+{
+    return s_host && s_host->settings->text_large;
+}
+
+/* A height or an offset that has to follow the small letters: 14 becomes 20. */
+static int32_t tx(int32_t n)
+{
+    return large() ? (n * 10 + 3) / 7 : n;
+}
+
+static const lv_font_t *font(bool big)
+{
+    if (large()) {
+        return big ? &lv_font_montserrat_28 : &lv_font_montserrat_20;
+    }
+    return big ? &lv_font_montserrat_20 : &lv_font_montserrat_14;
+}
+
 static lv_obj_t *text(lv_obj_t *parent, const char *str, uint32_t color, bool big)
 {
     lv_obj_t *l = lv_label_create(parent);
     lv_label_set_text(l, str);
     lv_obj_set_style_text_color(l, lv_color_hex(color), 0);
-    lv_obj_set_style_text_font(l, big ? &lv_font_montserrat_20 : &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(l, font(big), 0);
     return l;
 }
 
@@ -153,7 +177,7 @@ static lv_obj_t *page_begin(const char *title, bool scrolls)
     lv_obj_add_flag(s_page, LV_OBJ_FLAG_CLICKABLE);     /* taps stop here, not on the pet below */
 
     lv_obj_t *t = text(s_page, title, COLOR_TEXT, true);
-    lv_obj_align(t, LV_ALIGN_TOP_MID, 0, 16);
+    lv_obj_align(t, LV_ALIGN_TOP_MID, 0, large() ? 12 : 16);
     lv_obj_add_flag(t, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_ext_click_area(t, 16);
     lv_obj_add_event_cb(t, back_cb, LV_EVENT_CLICKED, NULL);
@@ -221,7 +245,7 @@ static void build_diet(void)
             week[g] += d->group_pts[g];
         }
     }
-    lv_obj_t *chart = row(body, CHART_H + 24);
+    lv_obj_t *chart = row(body, CHART_H + tx(24));
     int32_t col_w = s_body_w / 7;
     for (int i = 0; i < 7; i++) {
         uint32_t day = today - 6 + (uint32_t)i;
@@ -244,7 +268,7 @@ static void build_diet(void)
         }
         static const char *const LETTER[7] = {"S", "M", "T", "W", "T", "F", "S"};
         lv_obj_t *l = text(chart, LETTER[(day + 4) % 7], i == 6 ? COLOR_ACCENT : COLOR_DIM, false);
-        lv_obj_set_pos(l, x + 8, CHART_H + 6);
+        lv_obj_set_pos(l, x + (large() ? 6 : 8), CHART_H + 6);
     }
 
     /* Key, and what has been missing: the point of the chart. */
@@ -257,7 +281,7 @@ static void build_diet(void)
         lv_obj_t *item = box(key, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
         lv_obj_set_style_margin_right(item, 8, 0);
         lv_obj_align(filled(item, 10, 10, GROUP_COLOR[g], 5), LV_ALIGN_LEFT_MID, 0, 0);
-        lv_obj_set_pos(text(item, pet_group_name((pet_group_t)g), COLOR_TEXT, false), 16, 0);
+        lv_obj_align(text(item, pet_group_name((pet_group_t)g), COLOR_TEXT, false), LV_ALIGN_LEFT_MID, 16, 0);
     }
     int len = 0;
     buf[0] = '\0';
@@ -340,7 +364,7 @@ static void build_recent(void)
     }
     for (int i = 0; i < n; i++) {
         const pet_recent_t *r = &s_host->recent[i];
-        lv_obj_t *line = row(body, 24);
+        lv_obj_t *line = row(body, tx(24));
         snprintf(buf, sizeof(buf), "%02d:%02d", (int)(r->time % 86400 / 3600),
                  (int)(r->time % 3600 / 60));
         lv_obj_align(text(line, buf, COLOR_DIM, false), LV_ALIGN_LEFT_MID, 0, 0);
@@ -353,7 +377,7 @@ static void build_recent(void)
             snprintf(buf + len, sizeof(buf) - (size_t)len, "  %s", r->new_food ? "new!" : "craving");
         }
         lv_obj_align(text(line, buf, r->new_food ? COLOR_ACCENT : COLOR_TEXT, false),
-                     LV_ALIGN_LEFT_MID, 56, 0);
+                     LV_ALIGN_LEFT_MID, tx(56), 0);
 
         snprintf(buf, sizeof(buf), "+%.1f", (double)r->value);
         lv_obj_align(text(line, buf, COLOR_DIM, false), LV_ALIGN_RIGHT_MID, 0, 0);
@@ -521,16 +545,20 @@ static void build_menu(void)
         lv_obj_add_event_cb(tile, menu_cb, LV_EVENT_CLICKED, (void *)(uintptr_t)ITEMS[i].page);
 
         lv_obj_t *icon = box(tile, 56, 56);
-        lv_obj_align(icon, LV_ALIGN_TOP_LEFT, 14, 12);
+        lv_obj_align(icon, LV_ALIGN_TOP_LEFT, 14, large() ? 6 : 12);
         menu_icon(icon, ITEMS[i].page);
 
         char status[32];
         uint32_t color = COLOR_DIM;
         menu_status(ITEMS[i].page, status, sizeof(status), &color);
         lv_obj_align(text(tile, ITEMS[i].label, COLOR_TEXT, true), LV_ALIGN_BOTTOM_LEFT, 14,
-                     status[0] ? -30 : -14);
+                     status[0] ? (large() ? -34 : -30) : -14);
         if (status[0]) {
-            lv_obj_align(text(tile, status, color, false), LV_ALIGN_BOTTOM_LEFT, 14, -10);
+            /* A long name is cut short with dots, not run off the tile. */
+            lv_obj_t *st = text(tile, status, color, false);
+            lv_label_set_long_mode(st, LV_LABEL_LONG_DOT);
+            lv_obj_set_size(st, w - 22, lv_font_get_line_height(font(false)));
+            lv_obj_align(st, LV_ALIGN_BOTTOM_LEFT, 14, large() ? -8 : -10);
         }
     }
 }
@@ -555,7 +583,7 @@ static void build_dex(void)
             text(body, i == 0 ? "Wi-Fi" : "Bluetooth", COLOR_TEXT, true);
         }
         bool known = pet->tasted[i] > 0;
-        lv_obj_t *line = row(body, 24);
+        lv_obj_t *line = row(body, tx(24));
         lv_obj_t *dot = filled(line, 14, 14,
                                known ? GROUP_COLOR[pet_food_group((food_type_t)i)] : 0x232830, 7);
         lv_obj_align(dot, LV_ALIGN_LEFT_MID, 0, 0);
@@ -571,6 +599,25 @@ static void build_dex(void)
 }
 
 /* ---- Badges ------------------------------------------------------------- */
+
+/*
+ * One badge: its mark, its name, and under that how it is earned. The
+ * second line wraps when it is too long for the screen, and the row grows
+ * to hold it. Returns the mark, for a tick to go in.
+ */
+static lv_obj_t *badge_row(lv_obj_t *body, uint32_t mark_color, const char *name, uint32_t name_color,
+                           const char *how)
+{
+    lv_obj_t *line = row(body, LV_SIZE_CONTENT);
+    lv_obj_set_style_min_height(line, tx(42), 0);
+    lv_obj_t *mark = filled(line, 30, 30, mark_color, 15);
+    lv_obj_set_pos(mark, 0, (tx(42) - 30) / 2);
+    lv_obj_set_pos(text(line, name, name_color, false), 42, 2);
+    lv_obj_t *l = text(line, how, COLOR_DIM, false);
+    lv_obj_set_width(l, s_body_w - 42 - 6);
+    lv_obj_set_pos(l, 42, tx(21));
+    return mark;
+}
 
 static void build_badges(void)
 {
@@ -595,17 +642,11 @@ static void build_badges(void)
             if (has != (pass == 0)) {
                 continue;
             }
-            lv_obj_t *line = row(body, 42);
-            lv_obj_t *mark = filled(line, 30, 30, has ? COLOR_ACCENT : COLOR_PANEL, 15);
-            lv_obj_align(mark, LV_ALIGN_LEFT_MID, 0, 0);
+            lv_obj_t *mark = badge_row(body, has ? COLOR_ACCENT : COLOR_PANEL, pet_badge_name((pet_badge_t)b),
+                                       has ? COLOR_TEXT : COLOR_DIM, pet_badge_how((pet_badge_t)b));
             if (has) {
                 lv_obj_center(text(mark, LV_SYMBOL_OK, 0x10141A, false));
             }
-            lv_obj_align(text(line, pet_badge_name((pet_badge_t)b), has ? COLOR_TEXT : COLOR_DIM,
-                              false),
-                         LV_ALIGN_TOP_LEFT, 42, 2);
-            lv_obj_align(text(line, pet_badge_how((pet_badge_t)b), COLOR_DIM, false),
-                         LV_ALIGN_TOP_LEFT, 42, 21);
         }
     }
 
@@ -617,15 +658,6 @@ static void build_badges(void)
         bool grid = k == PLACE_KIND_COUNT;
         int count = grid ? 0 : pet->places.kind[k].count;
         int tier = grid ? pet->places.offgrid_tier : place_tier(count);
-        lv_obj_t *line = row(body, 42);
-        lv_obj_t *mark = filled(line, 30, 30, TIER_COLOR[tier], 15);
-        lv_obj_align(mark, LV_ALIGN_LEFT_MID, 0, 0);
-        if (tier) {
-            lv_obj_center(text(mark, LV_SYMBOL_OK, 0x10141A, false));
-        }
-        lv_obj_align(text(line, grid ? "Off the grid" : place_kind_name((place_kind_t)k),
-                          tier ? COLOR_TEXT : COLOR_DIM, false),
-                     LV_ALIGN_TOP_LEFT, 42, 2);
         if (!tier) {
             snprintf(buf, sizeof(buf), "%s", grid ? "an hour with no signal at all"
                                                   : place_kind_how((place_kind_t)k));
@@ -634,7 +666,11 @@ static void build_badges(void)
         } else {
             snprintf(buf, sizeof(buf), "%s, %d so far", place_tier_name(tier), count);
         }
-        lv_obj_align(text(line, buf, COLOR_DIM, false), LV_ALIGN_TOP_LEFT, 42, 21);
+        lv_obj_t *mark = badge_row(body, TIER_COLOR[tier], grid ? "Off the grid" : place_kind_name((place_kind_t)k),
+                                   tier ? COLOR_TEXT : COLOR_DIM, buf);
+        if (tier) {
+            lv_obj_center(text(mark, LV_SYMBOL_OK, 0x10141A, false));
+        }
     }
     gap(body, 4);
     para(body, "Silver at 3, gold at 10. Only the kind of place is kept, never its name.", COLOR_DIM);
@@ -677,7 +713,7 @@ static void build_places(void)
             if (!h->prints || (i == home) != (pass == 0)) {
                 continue;
             }
-            lv_obj_t *line = row(body, 46);
+            lv_obj_t *line = row(body, tx(46));
             places_label(pl, i, label, sizeof(label));
             if (i == home && h->name[0]) {
                 snprintf(buf, sizeof(buf), "%s (home)", label);
@@ -693,7 +729,7 @@ static void build_places(void)
                 snprintf(buf, sizeof(buf), "%d visit%s, %d h", h->visits, h->visits == 1 ? "" : "s",
                          (int)((h->minutes + 30) / 60));
             }
-            lv_obj_align(text(line, buf, COLOR_DIM, false), LV_ALIGN_TOP_LEFT, 0, 23);
+            lv_obj_align(text(line, buf, COLOR_DIM, false), LV_ALIGN_TOP_LEFT, 0, tx(23));
             lv_obj_align(button(line, 56, 38, LV_SYMBOL_EDIT, place_name_cb, (void *)(intptr_t)i),
                          LV_ALIGN_RIGHT_MID, 0, 0);
         }
@@ -894,7 +930,7 @@ static void build_farm(void)
 
 static void fact(lv_obj_t *body, const char *what, const char *value)
 {
-    lv_obj_t *line = row(body, 24);
+    lv_obj_t *line = row(body, tx(24));
     lv_obj_align(text(line, what, COLOR_DIM, false), LV_ALIGN_LEFT_MID, 0, 0);
     lv_obj_align(text(line, value, COLOR_TEXT, false), LV_ALIGN_RIGHT_MID, 0, 0);
 }
@@ -975,7 +1011,8 @@ static lv_obj_t *s_value[SET_COUNT];
 static lv_obj_t *s_name_value;
 
 static const char *const SETTING_LABEL[SET_COUNT] = {
-    [SET_BRIGHTNESS] = "Brightness", [SET_SOUND] = "Sound", [SET_VOLUME] = "Volume",
+    [SET_BRIGHTNESS] = "Brightness", [SET_TEXT] = "Text size",
+    [SET_SOUND] = "Sound", [SET_VOLUME] = "Volume",
     [SET_CARD] = "Card", [SET_DEV_LOG] = "Dev log",
     [SET_QUIET_START] = "Quiet from", [SET_QUIET_END] = "Quiet until",
     [SET_HOUR] = "Clock hour", [SET_MINUTE] = "Clock minute",
@@ -989,6 +1026,7 @@ static void setting_text(pet_setting_id_t id, char *buf, size_t cap)
     uint32_t now = s_host->now();
     switch (id) {
     case SET_BRIGHTNESS:  snprintf(buf, cap, "%d%%", s->brightness); break;
+    case SET_TEXT:        snprintf(buf, cap, "%s", s->text_large ? "large" : "normal"); break;
     case SET_SOUND:       snprintf(buf, cap, "%s", s->sound == 0 ? "off" : (s->sound == 1 ? "rare" : "all")); break;
     case SET_VOLUME:      snprintf(buf, cap, "%d of 5", s->volume); break;
     case SET_CARD:        snprintf(buf, cap, "%s", s->card_shared ? "computer" : "pet"); break;
@@ -1023,7 +1061,18 @@ static void settings_refresh(void)
 static void setting_cb(lv_event_t *e)
 {
     intptr_t code = (intptr_t)lv_event_get_user_data(e);
+    bool was_large = large();
     s_host->change((pet_setting_id_t)(code / 2), (code & 1) ? 1 : -1);
+    if (large() != was_large) {
+        /* Every row changes size: draw the page again, with this row still in sight. */
+        pet_pages_open(PAGE_SETTINGS);
+        if (s_value[SET_TEXT]) {
+            lv_obj_t *line = lv_obj_get_parent(s_value[SET_TEXT]);
+            lv_obj_update_layout(lv_obj_get_parent(line));
+            lv_obj_scroll_to_view(line, LV_ANIM_OFF);
+        }
+        return;
+    }
     settings_refresh();
 }
 
@@ -1258,7 +1307,7 @@ static void build_name(void)
     lv_obj_set_style_bg_color(kb, lv_color_hex(0x232830), LV_PART_ITEMS | LV_STATE_CHECKED);
     lv_obj_set_style_text_color(kb, lv_color_hex(COLOR_TEXT), LV_PART_ITEMS);
     lv_obj_set_style_text_color(kb, lv_color_hex(COLOR_ACCENT), LV_PART_ITEMS | LV_STATE_CHECKED);
-    lv_obj_set_style_text_font(kb, &lv_font_montserrat_14, LV_PART_ITEMS);
+    lv_obj_set_style_text_font(kb, font(false), LV_PART_ITEMS);
     lv_obj_set_style_pad_gap(kb, 4, 0);
     lv_keyboard_set_textarea(kb, s_name_box);
     lv_obj_add_event_cb(kb, name_done_cb, LV_EVENT_READY, NULL);
