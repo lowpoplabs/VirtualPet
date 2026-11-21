@@ -9,6 +9,7 @@ simulator, the site and the release zip carry the same number.
 ### Added
 - **Version in Settings:** the foot of the settings screen says which version the watch is
   running, so it can be compared with the one on the install page.
+- **Ko-fi link** at the foot of the web site's two pages.
 
 ## 0.1.0 - 2026-11-21
 
