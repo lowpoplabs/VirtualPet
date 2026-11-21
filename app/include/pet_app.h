@@ -87,6 +87,8 @@ typedef struct {
      * setting.
      */
     void (*set_dev_log)(bool names);
+    /* The version this was built as, such as "0.1.1", for the settings screen. NULL shows none. */
+    const char *version;
     /*
      * Settings files (pet_config.h), kept where the owner can edit them: on
      * the memory card. read_file fills buf with the named file's text and

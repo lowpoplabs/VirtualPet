@@ -1102,6 +1102,14 @@ static void build_settings(void)
     gap(body, 8);
     button(body, s_body_w, 44, "Start over...", reset_cb, NULL);
     gap(body, 8);
+    /* Which build this is, for when the owner asks whether there is a newer one. */
+    if (s_host->version && s_host->version[0]) {
+        char buf[48];
+        snprintf(buf, sizeof(buf), "Baandwidth Farms %.20s", s_host->version);
+        lv_obj_t *l = para(body, buf, COLOR_DIM);
+        lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
+        gap(body, 8);
+    }
 }
 
 /* ---- Starting over, and retiring ---------------------------------------- */

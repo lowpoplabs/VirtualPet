@@ -225,6 +225,9 @@ static pet_hal_t s_hal = {
     .set_brightness = sim_brightness,
     .adjust_clock = sim_adjust_clock,
     .set_dev_log = sim_set_dev_log,
+#ifdef PET_VERSION
+    .version = PET_VERSION,
+#endif
 };
 
 /* ---- Demo feeder: something random turns up now and then ------------- */

@@ -65,6 +65,10 @@ add_executable(pet_replay pet_replay.c log_reader.c)
 target_link_libraries(pet_replay PRIVATE pet_app)
 
 add_executable(virtualpet_sim main.c log_reader.c screenshot.c)
+# The simulator carries the firmware's version, from the same file.
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/../firmware/version.txt PET_VERSION LIMIT_COUNT 1)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../firmware/version.txt)
+target_compile_definitions(virtualpet_sim PRIVATE PET_VERSION="${PET_VERSION}")
 target_link_libraries(virtualpet_sim PRIVATE pet_app lvgl SDL2::SDL2main SDL2::SDL2-static)
 
 # Artwork check: one picture of the pet in a chosen stage, form, mood and action.

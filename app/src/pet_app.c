@@ -1261,6 +1261,7 @@ void pet_app_start(const pet_hal_t *hal)
         .pet = &s_pet, .settings = &s_set, .recent = s_recent, .recent_count = &s_recent_count,
         .can_set_clock = hal->adjust_clock != NULL, .can_share_card = hal->share_card != NULL,
         .can_dev_log = hal->set_dev_log != NULL,
+        .version = hal->version,
         .now = hal->now_s,
         .change = on_setting, .renamed = on_renamed, .start_over = on_start_over,
         .preview = on_preview, .retire = on_retire,

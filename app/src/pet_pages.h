@@ -88,6 +88,7 @@ typedef struct {
     bool can_set_clock;
     bool can_share_card;
     bool can_dev_log;
+    const char *version;            /* shown at the foot of the settings; NULL = not known */
     uint32_t (*now)(void);
     /* The owner pressed - (dir -1) or + (dir +1) on a setting. The app applies and keeps it. */
     void (*change)(pet_setting_id_t what, int dir);

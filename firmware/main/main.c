@@ -306,6 +306,7 @@ static bool hal_write_file(const char *name, const char *text, size_t len)
 }
 
 static pet_hal_t s_hal = {
+    /* .version is filled in at start: it comes from firmware/version.txt by way of the build. */
     .battery_percent = hal_battery,
     .usb_powered = hal_usb,
     .motion = hal_motion,
@@ -674,6 +675,7 @@ void app_main(void)
     if (err == ESP_OK) {
         if (board_lvgl_lock(1000)) {
             s_hal.set_dev_log = hal_set_dev_log;
+            s_hal.version = esp_app_get_description()->version;
             if (board_card_can_lend()) {
                 s_hal.share_card = hal_share_card;
             }

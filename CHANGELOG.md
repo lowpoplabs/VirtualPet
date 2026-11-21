@@ -4,6 +4,12 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.1.1 - 2026-11-21
+
+### Added
+- **Version in Settings:** the foot of the settings screen says which version the watch is
+  running, so it can be compared with the one on the install page.
+
 ## 0.1.0 - 2026-11-21
 
 First public release. Tested on the Waveshare ESP32-S3-Touch-AMOLED-2.06 watch; the firmware
