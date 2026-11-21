@@ -86,6 +86,11 @@ int main(void)
         CHECK(place_match_name("Five Guys", &k, &b) && k == PLACE_RESTAURANT && b != 0 && b != taco, "another");
         CHECK(place_match_name("Luigi's Pizza", &k, &b) && k == PLACE_RESTAURANT && b == 0,
               "a restaurant by a general word");
+        CHECK(place_match_name("Elmwood Fire Dept Guest", &k, &b) && k == PLACE_SAFETY && b == 0,
+              "a fire station");
+        CHECK(place_match_name("OakCountySheriff", &k, &b) && k == PLACE_SAFETY, "a sheriff's office");
+        CHECK(!place_match_name("Police Surveillance Van 4", &k, &b) && !place_match_name("Firefly", &k, &b),
+              "but not a joke name, nor a word that only starts the same");
         CHECK(!place_match_name("Guys Win", &k, &b), "half a chain's name is not the chain");
         CHECK(place_match_name("eduroam", &k, &b) && k == PLACE_UNIVERSITY, "campus");
         CHECK(place_match_name("gogoinflight", &k, &b) && k == PLACE_INFLIGHT, "in the air");

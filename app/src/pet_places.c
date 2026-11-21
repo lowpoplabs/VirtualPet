@@ -43,6 +43,7 @@ static const struct {
     [PLACE_MUSEUM]     = {"Museums", "visit a museum", "museum"},
     [PLACE_PARK]       = {"Parks", "find a park visitor center", "park"},
     [PLACE_RESTAURANT] = {"Restaurants", "eat out", "restaurant"},
+    [PLACE_SAFETY]     = {"Public safety", "visit a fire or police station", "safety"},
 };
 
 /*
@@ -193,6 +194,20 @@ static const struct {
     {PLACE_RESTAURANT, GEN, "diner"},       {PLACE_RESTAURANT, GEN, "burger"},
     {PLACE_RESTAURANT, GEN, "taqueria"},    {PLACE_RESTAURANT, GEN, "bistro"},
     {PLACE_RESTAURANT, GEN, "bbq"},
+
+    /*
+     * Fire, police and rescue. Whole phrases only: "fire" and "police" by
+     * themselves turn up in too many joke names on home networks.
+     */
+    {PLACE_SAFETY, GEN, "fire dep"},        {PLACE_SAFETY, GEN, "firedep"},
+    {PLACE_SAFETY, GEN, "fire station"},    {PLACE_SAFETY, GEN, "firestation"},
+    {PLACE_SAFETY, GEN, "firehouse"},       {PLACE_SAFETY, GEN, "fire house"},
+    {PLACE_SAFETY, GEN, "fire rescue"},     {PLACE_SAFETY, GEN, "fire-rescue"},
+    {PLACE_SAFETY, GEN, "fire district"},   {PLACE_SAFETY, GEN, "volunteer fire"},
+    {PLACE_SAFETY, GEN, "police dep"},      {PLACE_SAFETY, GEN, "policedep"},
+    {PLACE_SAFETY, GEN, "police station"},  {PLACE_SAFETY, GEN, "sheriff"},
+    {PLACE_SAFETY, GEN, "public safety"},   {PLACE_SAFETY, GEN, "publicsafety"},
+    {PLACE_SAFETY, GEN, "rescue squad"},    {PLACE_SAFETY, GEN, "ambulance"},
 };
 
 #define NAMES_COUNT ((int)(sizeof(NAMES) / sizeof(NAMES[0])))

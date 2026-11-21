@@ -53,6 +53,7 @@ typedef enum {
     PLACE_MUSEUM,
     PLACE_PARK,
     PLACE_RESTAURANT,
+    PLACE_SAFETY,       /* fire, police and rescue stations */
     PLACE_KIND_COUNT,   /* the order is part of the save format: add new ones at the end */
 } place_kind_t;
 

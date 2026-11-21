@@ -149,7 +149,7 @@ Badges belong to the owner and carry across generations. Each pet also keeps its
 | --- | --- |
 | Device types | First of each food, all Wi-Fi foods, all Bluetooth foods, full food-dex |
 | Quantities | 100 phones eaten, 1,000 meals, 50 foods in one day |
-| Places | Coffee shops, hotels, stores, airports, in-flight Wi-Fi, trains, libraries, universities, hospitals, museums |
+| Places | Coffee shops, hotels, stores, airports, in-flight Wi-Fi, trains, libraries, universities, hospitals, museums, parks, restaurants, public safety (fire, police and rescue stations) |
 | Parks | Named visitor-center networks where they exist, as top-tier badges |
 | Off the grid | No signals for an hour while walking, with wilderness tiers |
 | Rarity | First car, three rare foods in one day, a hidden network worth 5 |

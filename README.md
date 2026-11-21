@@ -181,8 +181,7 @@ After each Wi-Fi scan the pet looks at the fixed networks around it
   staying, not driving past), is
   checked against the place name lists: coffee shops, hotels, stores,
   airports, planes, trains, libraries, campuses, hospitals, museums,
-  restaurants and
-  parks. Each chain counts once; a general word such as "library" counts
+  restaurants, parks and public safety (fire, police and rescue stations). Each chain counts once; a general word such as "library" counts
   once a day. Bronze at 1, silver at 3, gold at 10. The built-in lists
   lean toward US chains; `place-names.txt` on the card replaces them
   (see Settings files).

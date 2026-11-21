@@ -4,6 +4,14 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.3.1 - 2026-11-21
+
+### Added
+- **Public safety places:** fire, police and rescue stations count toward a new place badge.
+  They are matched by whole phrases such as "fire dept" and "sheriff", so a joke name on a
+  home network does not count.
+- **Site:** a "What's next" section on the home page.
+
 ## 0.3.0 - 2026-11-21
 
 ### Added
