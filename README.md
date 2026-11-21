@@ -245,13 +245,15 @@ The pet's numbers can be changed without rebuilding, from plain-text files
 in the `pet` folder on the memory card:
 
 - `tuning.txt`: stomach, mood, cravings, stage lengths, the speed
-  multiplier (`growth_speed = 2016` runs a life in an hour) and the
-  evolution thresholds. A `growth_speed` line here wins over the "Life
+  multiplier (`growth_speed = 2016` runs a life in an hour), the
+  evolution thresholds, and how strongly each personality trait pulls
+  (`lazy_nap = 2` means a lazy pet is twice as drawn to a nap). A `growth_speed` line here wins over the "Life
   speed" setting, which then reads "by file".
 - `foods.txt`: what each food type is worth.
 - `food-names.txt`: the names that make a network or device a car, a
   hotspot, a printer, earbuds, a speaker, a watch or a TV.
 - `place-names.txt`: the network names that count toward place badges.
+- `journal.txt`: the sentences the pet writes its journal from.
 
 In the first two each line is `name = number`; anything after a `#` is a
 comment, and lines left out keep their built-in value. At every start the
@@ -285,8 +287,26 @@ back to "pet", which restarts and reads it. In the simulator, `--card DIR`
 points at a folder standing in for the card's `pet` folder. The checks are
 in `sim/pet_config_test.c`.
 
-Quiet hours stay in the settings screen. Still built in, to move to files
-later: personality traits, journal text and badge definitions.
+The journal file is one sentence to a line, since sentences have commas
+in them: `list = one sentence`, with as many lines for a list as it has
+sentences.
+
+```
+quiet = Hardly a nibble all day.
+quiet = Thin times.
+best = Oh, {food}! Lovely.     # {food} is where the food's name goes
+```
+
+There are 21 lists, each for one thing a day can be (a quiet day, a new
+place, a first taste, the closing line for each trait); `journal-defaults.txt`
+names them all. Sentences are 60 letters at most and in plain letters
+only, because the screen's font has no accented ones. The three lists
+that name a food (`new_food`, `best`, `mostly`) need `{food}` once in
+every sentence, and no other list may have it.
+
+Quiet hours stay in the settings screen. Badges stay built in: each one
+is a rule in the code, so a file could only rename them. Traits are the
+same six, but how strongly each one pulls is in `tuning.txt`.
 `pet_replay` does not read the card files yet; it classifies with the
 built-in name lists.
 

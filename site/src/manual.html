@@ -256,10 +256,11 @@
       and name lists by editing plain text files in the card's <code>pet</code> folder.</p>
       <table>
         <tr><th>File</th><th>What it changes</th></tr>
-        <tr><td><code>tuning.txt</code></td><td>Stomach, mood, cravings, how long each stage lasts</td></tr>
+        <tr><td><code>tuning.txt</code></td><td>Stomach, mood, cravings, how long each stage lasts, how strongly each trait pulls</td></tr>
         <tr><td><code>foods.txt</code></td><td>What each kind of food is worth</td></tr>
         <tr><td><code>food-names.txt</code></td><td>The names that make something a car, a hotspot, a printer, earbuds, a speaker, a watch or a TV</td></tr>
         <tr><td><code>place-names.txt</code></td><td>The network names that count toward place badges</td></tr>
+        <tr><td><code>journal.txt</code></td><td>The sentences the pet writes its journal from</td></tr>
       </table>
       <ol class="steps">
         <li>In Settings, set Card to "computer". The card shows up on your computer as a
@@ -274,6 +275,12 @@
 <pre><code>coffee = costa coffee, costa_wifi   # one chain and its spellings
 coffee_word = cafe, tea room        # general words, once a day
 earbuds = AirPods, Buds, "QC "      # quotes keep the space at the end</code></pre>
+      <p>The journal file is one sentence to a line. Write <code>{food}</code> where the
+      food's name should go, in the three lists that name one. Sentences are plain letters
+      only, up to 60 of them; the screen cannot show accents.</p>
+<pre><code>quiet = Hardly a nibble all day.
+quiet = Thin times.
+best = Oh, {food}! Lovely.</code></pre>
       <p>If a file has a mistake the pet ignores that whole file, carries on with its built-in
       values, and tells you the file and line on the home screen when it starts.</p>
       <h3>The dev log</h3>

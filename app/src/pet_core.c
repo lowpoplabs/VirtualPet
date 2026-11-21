@@ -53,6 +53,19 @@ pet_tuning_t pet_tuning_default(void)
         .visit_mood = 3,
         .prism_max_share = 0.25f,
         .prism_min_types = 10,
+        .greedy_grumble_at = 0.35f,
+        .lazy_nap = 2.0f,
+        .lazy_idle = 1.5f,
+        .lazy_play = 0.5f,
+        .greedy_grumble = 1.5f,
+        .greedy_sniff = 1.5f,
+        .curious_look = 2.0f,
+        .curious_sniff = 1.5f,
+        .playful_play = 2.0f,
+        .shy_play_less = 0.6f,
+        .shy_idle_more = 1.0f,
+        .cheerful_play = 1.3f,
+        .cheerful_grumble = 0.5f,
     };
 }
 

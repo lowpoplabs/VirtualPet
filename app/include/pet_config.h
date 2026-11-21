@@ -30,6 +30,7 @@ extern "C" {
 /* Room for any of the files, and for the built-in copy of one. */
 #define PET_CONFIG_FOOD_NAMES_FILE  "food-names.txt"
 #define PET_CONFIG_PLACE_NAMES_FILE "place-names.txt"
+#define PET_CONFIG_JOURNAL_FILE     "journal.txt"
 #define PET_CONFIG_TEXT_MAX    8192
 
 typedef struct {
@@ -77,6 +78,16 @@ bool pet_config_food_names(const char *text, pet_config_error_t *err);
 bool pet_config_place_names(const char *text, pet_config_error_t *err);
 size_t pet_config_food_names_text(char *buf, size_t cap);
 size_t pet_config_place_names_text(char *buf, size_t cap);
+
+/*
+ * The journal's sentences: "list = one sentence" on each line, as many
+ * lines for a list as it has sentences. A list the text leaves out keeps
+ * its built-in sentences; one it gives is replaced. Applied directly
+ * (pet_journal_set), and kept until the next call. NULL or empty text goes
+ * back to the built-in sentences.
+ */
+bool pet_config_journal(const char *text, pet_config_error_t *err);
+size_t pet_config_journal_text(char *buf, size_t cap);
 
 #ifdef __cplusplus
 }

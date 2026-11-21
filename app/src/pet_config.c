@@ -69,6 +69,24 @@ static const entry_t TUNING[] = {
      "Prism: no food group above this share of the diet"},
     {"prism_min_types", K_INT, TUNE(prism_min_types), 1, 1, FOOD_TYPE_COUNT,
      "Prism: at least this many food types tasted"},
+
+    /* Personality. The pull toward an action is multiplied by these: 1 changes nothing. */
+    {"greedy_grumble_at", K_FLOAT, TUNE(greedy_grumble_at), 1, 0.05f, 1,
+     "greedy: grumbles below this share of a full stomach (others at 0.2)"},
+    {"lazy_nap", K_FLOAT, TUNE(lazy_nap), 1, 0, 10, "lazy: napping, times this"},
+    {"lazy_idle", K_FLOAT, TUNE(lazy_idle), 1, 0, 10, "lazy: standing about"},
+    {"lazy_play", K_FLOAT, TUNE(lazy_play), 1, 0, 10, "lazy: playing"},
+    {"greedy_grumble", K_FLOAT, TUNE(greedy_grumble), 1, 0, 10, "greedy: grumbling"},
+    {"greedy_sniff", K_FLOAT, TUNE(greedy_sniff), 1, 0, 10, "greedy: sniffing for food"},
+    {"curious_look", K_FLOAT, TUNE(curious_look), 1, 0, 10, "curious: looking around"},
+    {"curious_sniff", K_FLOAT, TUNE(curious_sniff), 1, 0, 10, "curious: sniffing"},
+    {"playful_play", K_FLOAT, TUNE(playful_play), 1, 0, 10, "playful: playing"},
+    {"shy_play_less", K_FLOAT, TUNE(shy_play_less), 1, 0, 1,
+     "shy: share of its play it gives up where it is busiest"},
+    {"shy_idle_more", K_FLOAT, TUNE(shy_idle_more), 1, 0, 5,
+     "shy: how much more it stands still there (1 = twice as much)"},
+    {"cheerful_play", K_FLOAT, TUNE(cheerful_play), 1, 0, 10, "cheerful: playing"},
+    {"cheerful_grumble", K_FLOAT, TUNE(cheerful_grumble), 1, 0, 10, "cheerful: grumbling"},
 };
 #define TUNING_COUNT ((int)(sizeof(TUNING) / sizeof(TUNING[0])))
 
@@ -813,6 +831,203 @@ size_t pet_config_place_names_text(char *buf, size_t cap)
             }
         }
         end_line(&o);
+    }
+    return o.full ? 0 : o.n;
+}
+
+/* ---- Journal sentences ----------------------------------------------------
+ * "list = one sentence", a sentence to a line: sentences have commas in
+ * them, so they cannot share a line the way names do. Read twice, like the
+ * name lists: once to check and count, once to keep.
+ */
+
+static char *s_journal_pool;
+static const char **s_journal_lines;
+
+/*
+ * One pass over the text. With pool and lines NULL it only checks and
+ * counts; otherwise it copies each sentence into pool and points lines at
+ * them, grouped by list in the order of first[].
+ */
+static bool journal_pass(const char *text, int count[JOURNAL_LIST_COUNT], size_t *bytes, char *pool,
+                         const char **lines, const int first[JOURNAL_LIST_COUNT],
+                         pet_config_error_t *err)
+{
+    int line_no = 0, placed[JOURNAL_LIST_COUNT] = {0};
+    size_t used = 0;
+    if (strncmp(text, "\xEF\xBB\xBF", 3) == 0) {
+        text += 3;
+    }
+    while (*text) {
+        const char *end = strchr(text, '\n');
+        size_t len = end ? (size_t)(end - text) : strlen(text);
+        char line[200];
+        line_no++;
+        if (len >= sizeof(line)) {
+            fail(err, line_no, "line too long");
+            return false;
+        }
+        memcpy(line, text, len);
+        line[len] = '\0';
+        text += len + (end ? 1 : 0);
+
+        char *name = line;
+        while (is_space(*name)) {
+            name++;
+        }
+        if (!*name || *name == '#') {
+            continue;       /* a sentence may hold a #, so only a whole line is a comment */
+        }
+        char *eq = strchr(name, '=');
+        if (!eq) {
+            fail(err, line_no, "expected list = sentence");
+            return false;
+        }
+        char *tail = eq;
+        while (tail > name && is_space(tail[-1])) {
+            tail--;
+        }
+        *tail = '\0';
+        int list = -1;
+        for (int i = 0; i < JOURNAL_LIST_COUNT && list < 0; i++) {
+            if (strcmp(name, pet_journal_list_key((pet_journal_list_t)i)) == 0) {
+                list = i;
+            }
+        }
+        if (list < 0) {
+            fail(err, line_no, "%.24s: no such list", name);
+            return false;
+        }
+
+        char *text_start = eq + 1;
+        while (is_space(*text_start)) {
+            text_start++;
+        }
+        size_t n = strlen(text_start);
+        while (n > 0 && is_space(text_start[n - 1])) {
+            n--;
+        }
+        text_start[n] = '\0';
+        if (n == 0) {
+            fail(err, line_no, "%.24s: the sentence is missing", name);
+            return false;
+        }
+        if (n > JOURNAL_SENTENCE_MAX) {
+            fail(err, line_no, "%.24s: too long, %d letters at most", name, JOURNAL_SENTENCE_MAX);
+            return false;
+        }
+        for (size_t i = 0; i < n; i++) {
+            unsigned char c = (unsigned char)text_start[i];
+            if (c < 0x20 || c > 0x7E) {
+                fail(err, line_no, "%.24s: a letter the screen cannot show", name);
+                return false;
+            }
+        }
+        /* The blank is where the food goes: once where one is named, never elsewhere. */
+        int blanks = 0;
+        for (const char *b = strstr(text_start, JOURNAL_BLANK); b; b = strstr(b + 1, JOURNAL_BLANK)) {
+            blanks++;
+        }
+        bool wants = pet_journal_list_names_food((pet_journal_list_t)list);
+        if (wants && blanks != 1) {
+            fail(err, line_no, "%.24s: needs %s in it, once", name, JOURNAL_BLANK);
+            return false;
+        }
+        if (!wants && blanks != 0) {
+            fail(err, line_no, "%.24s: %s does not belong in this list", name, JOURNAL_BLANK);
+            return false;
+        }
+
+        if (pool) {
+            memcpy(pool + used, text_start, n + 1);
+            lines[first[list] + placed[list]++] = pool + used;
+        } else {
+            count[list]++;
+        }
+        used += n + 1;
+    }
+    if (bytes) {
+        *bytes = used;
+    }
+    return true;
+}
+
+bool pet_config_journal(const char *text, pet_config_error_t *err)
+{
+    pet_config_error_t local = {0};
+    if (err) {
+        *err = local;
+    } else {
+        err = &local;
+    }
+    for (int i = 0; i < JOURNAL_LIST_COUNT; i++) {
+        pet_journal_set((pet_journal_list_t)i, NULL, 0);
+    }
+    free(s_journal_pool);
+    free((void *)s_journal_lines);
+    s_journal_pool = NULL;
+    s_journal_lines = NULL;
+    if (!text || !*text) {
+        return true;
+    }
+
+    int count[JOURNAL_LIST_COUNT] = {0}, first[JOURNAL_LIST_COUNT], total = 0;
+    size_t bytes = 0;
+    if (!journal_pass(text, count, &bytes, NULL, NULL, NULL, err)) {
+        return false;
+    }
+    for (int i = 0; i < JOURNAL_LIST_COUNT; i++) {
+        first[i] = total;
+        total += count[i];
+    }
+    if (total == 0) {
+        return true;        /* nothing but comments: the built-in sentences stay */
+    }
+    char *pool = malloc(bytes + 1);
+    const char **lines = malloc((size_t)total * sizeof(*lines));
+    if (!pool || !lines || !journal_pass(text, NULL, NULL, pool, lines, first, err)) {
+        free(pool);
+        free((void *)lines);
+        if (!err->why[0]) {
+            fail(err, 0, "not enough memory");
+        }
+        return false;
+    }
+    for (int i = 0; i < JOURNAL_LIST_COUNT; i++) {
+        if (count[i]) {
+            pet_journal_set((pet_journal_list_t)i, lines + first[i], count[i]);
+        }
+    }
+    s_journal_pool = pool;
+    s_journal_lines = lines;
+    return true;
+}
+
+size_t pet_config_journal_text(char *buf, size_t cap)
+{
+    out_t o = {.buf = buf, .cap = cap};
+    add(&o,
+        "# What the pet writes in its journal.\n"
+        "# Each day's entry is put together from these sentences: one for how the\n"
+        "# day went, one for what stood out, and one for how it felt.\n"
+        "#\n"
+        "# These are the built-in sentences. To change some, copy this file to\n"
+        "# %s in the same folder and edit the copy. Each line is\n"
+        "#     list = one sentence\n"
+        "# and a list has as many lines as it has sentences. A list you leave out\n"
+        "# keeps its built-in sentences; one you give is replaced. Sentences can be\n"
+        "# up to %d letters, in plain letters only: the screen cannot show accents.\n"
+        "# In new_food, best and mostly, write %s where the food goes, once.\n"
+        "# A line that starts with # is a note. If the copy has a mistake the pet\n"
+        "# ignores all of it and says which line.\n",
+        PET_CONFIG_JOURNAL_FILE, JOURNAL_SENTENCE_MAX, JOURNAL_BLANK);
+    for (int i = 0; i < JOURNAL_LIST_COUNT; i++) {
+        const char *const *lines;
+        int n = pet_journal_builtin((pet_journal_list_t)i, &lines);
+        add(&o, "\n# %s\n", pet_journal_list_when((pet_journal_list_t)i));
+        for (int k = 0; k < n; k++) {
+            add(&o, "%s = %s\n", pet_journal_list_key((pet_journal_list_t)i), lines[k]);
+        }
     }
     return o.full ? 0 : o.n;
 }

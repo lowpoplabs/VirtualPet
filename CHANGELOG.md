@@ -4,6 +4,19 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.2.0 - 2026-11-21
+
+### Added
+- **`journal.txt` on the card:** the sentences the pet writes its journal from can be
+  replaced, a list at a time. One sentence to a line; `{food}` marks where a food is named.
+  `journal-defaults.txt` is written beside it with the built-in sentences.
+- **Trait numbers in `tuning.txt`:** how strongly each personality trait pulls the pet
+  toward napping, playing, sniffing and the rest, thirteen numbers in all.
+
+### Changed
+- Badge definitions stay built in. The plan had them moving to the card, but each badge is a
+  rule in the code, so a file could only have renamed them.
+
 ## 0.1.1 - 2026-11-21
 
 ### Added

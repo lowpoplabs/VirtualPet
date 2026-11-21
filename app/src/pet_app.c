@@ -1131,12 +1131,16 @@ static void config_load(void)
         if (config_read(PET_CONFIG_PLACE_NAMES_FILE, text) && !pet_config_place_names(text, &err)) {
             config_warn(PET_CONFIG_PLACE_NAMES_FILE, &err);
         }
+        if (config_read(PET_CONFIG_JOURNAL_FILE, text) && !pet_config_journal(text, &err)) {
+            config_warn(PET_CONFIG_JOURNAL_FILE, &err);
+        }
         config_reference("tuning-defaults.txt", ref, pet_config_tuning_text(ref, PET_CONFIG_TEXT_MAX), text);
         config_reference("foods-defaults.txt", ref, pet_config_foods_text(ref, PET_CONFIG_TEXT_MAX), text);
         config_reference("food-names-defaults.txt", ref,
                          pet_config_food_names_text(ref, PET_CONFIG_TEXT_MAX), text);
         config_reference("place-names-defaults.txt", ref,
                          pet_config_place_names_text(ref, PET_CONFIG_TEXT_MAX), text);
+        config_reference("journal-defaults.txt", ref, pet_config_journal_text(ref, PET_CONFIG_TEXT_MAX), text);
     }
     if (ref) {
         lv_free(ref);

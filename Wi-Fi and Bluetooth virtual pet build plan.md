@@ -247,7 +247,8 @@ The motion sensor is combined with how fast nearby networks change. Battery mode
 
 Anything a contributor might want to change lives in plain-text files on the microSD card, in a format such as JSON.
 
-- **On the card:** food definitions and name patterns, food values, evolution thresholds, stage lengths and the speed multiplier, personality traits, journal text fragments, badge definitions and place-name patterns. The art is not on the card (see Art).
+- **On the card:** food name patterns, food values, evolution thresholds, stage lengths and the speed multiplier, how strongly each personality trait pulls, the journal's sentences, and place-name patterns. The art is not on the card (see Art).
+- **Not on the card, by decision:** badge definitions and the kinds of food and trait themselves. Each is a rule in the code, so a file could only rename them, and that was not worth a file.
 - **In the firmware:** a built-in copy of the defaults, so the pet works with no card or a broken file.
 - **Validation:** a file with an error falls back to the defaults and shows a small warning, so a typo cannot break the pet.
 - **Regional lists:** the starter place patterns will lean toward US chains, and others can add their own.

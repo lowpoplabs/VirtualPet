@@ -33,6 +33,119 @@ int main(void)
           "comments and blank lines only");
     CHECK(err.why[0] == '\0', "and no complaint");
 
+    /* ---- Personality numbers are tuning numbers like any other ---- */
+    CHECK(pet_config_tuning("lazy_nap = 3\nshy_play_less = 0.25\n", &t, &err) && t.lazy_nap == 3 &&
+              t.shy_play_less == 0.25f && t.curious_look == def.curious_look,
+          "trait numbers land, and the others keep their built-in value");
+    CHECK(!pet_config_tuning("shy_play_less = 1.5\n", &t, &err) && err.line == 1 && same_tuning(&t, &def),
+          "one out of range spoils the file, as any number does");
+
+    /* ---- The journal's sentences ---- */
+    {
+        pet_t pet;
+        pet_init(&pet, NULL, 100 * 86400, 3);
+        pet_day_t day = {.day = 500, .foods = 5, .types = 2, .best = FOOD_TYPE_COUNT};
+        char entry[160];
+        const char *const *lines;
+
+        CHECK(pet_config_journal(NULL, &err), "no journal file: fine");
+        pet_journal_entry(&pet, &day, true, entry, sizeof(entry));
+        bool builtin = false;
+        for (int i = 0, n = pet_journal_builtin(JOURNAL_QUIET, &lines); i < n; i++) {
+            builtin = builtin || !strcmp(entry, lines[i]);
+        }
+        CHECK(builtin, "and a slow day reads as one of the built-in sentences");
+
+        const char *mine = "# my own words\r\n"
+                           "quiet = Hardly a bite, all day.\r\n"
+                           "  quiet =   Thin times.  \n"
+                           "best = Oh, {food}! Lovely.\n";
+        CHECK(pet_config_journal(mine, &err), "a good journal file");
+        if (err.why[0]) {
+            printf("  line %d: %s\n", err.line, err.why);
+        }
+        pet_journal_entry(&pet, &day, true, entry, sizeof(entry));
+        CHECK(!strcmp(entry, "Hardly a bite, all day.") || !strcmp(entry, "Thin times."),
+              "a list it gives is replaced: commas stay, spaces at the ends go");
+        bool both = false, first = false, second = false;
+        for (uint32_t d = 1; d < 60; d++) {
+            day.day = d;
+            pet_journal_entry(&pet, &day, true, entry, sizeof(entry));
+            first = first || !strcmp(entry, "Hardly a bite, all day.");
+            second = second || !strcmp(entry, "Thin times.");
+        }
+        both = first && second;
+        CHECK(both, "and each of its sentences gets used");
+
+        /* A list it leaves out keeps its built-in sentences. */
+        day.foods = 0;
+        pet_journal_entry(&pet, &day, false, entry, sizeof(entry));
+        builtin = false;
+        for (int i = 0, n = pet_journal_builtin(JOURNAL_NOTHING, &lines); i < n; i++) {
+            builtin = builtin || !strcmp(entry, lines[i]);
+        }
+        CHECK(builtin, "a list left out keeps its built-in sentences");
+
+        /* The blank is filled with the food. */
+        bool filled = false;
+        for (uint32_t d = 1; d < 200 && !filled; d++) {
+            pet_day_t b = {.day = d, .foods = 20, .types = 3, .best = FOOD_BLE_SPEAKER};
+            pet_journal_entry(&pet, &b, true, entry, sizeof(entry));
+            filled = strstr(entry, "Oh, a speaker! Lovely.") != NULL;
+            CHECK(!strstr(entry, "{food}"), "no blank is ever left showing");
+        }
+        CHECK(filled, "a sentence that names a food has it filled in");
+
+        static const struct {
+            const char *text;
+            int line;
+            const char *says;
+        } BAD[] = {
+            {"quite = A slow day.\n", 1, "no such list"},
+            {"quiet = Fine.\nquiet\n", 2, "expected list = sentence"},
+            {"quiet = \n", 1, "sentence is missing"},
+            {"quiet = This sentence goes on and on and on, far past what one line of the journal can hold.\n",
+             1, "too long"},
+            {"best = The best bit was lovely.\n", 1, "needs {food}"},
+            {"best = {food} and {food}.\n", 1, "needs {food}"},
+            {"quiet = Just {food} today.\n", 1, "does not belong"},
+            {"quiet = Caf\xC3\xA9 day.\n", 1, "cannot show"},
+        };
+        for (size_t i = 0; i < sizeof(BAD) / sizeof(BAD[0]); i++) {
+            bool ok = pet_config_journal(BAD[i].text, &err);
+            day.day = 500;
+            day.foods = 5;
+            pet_journal_entry(&pet, &day, true, entry, sizeof(entry));
+            builtin = false;
+            for (int k = 0, n = pet_journal_builtin(JOURNAL_QUIET, &lines); k < n; k++) {
+                builtin = builtin || !strcmp(entry, lines[k]);
+            }
+            if (ok || err.line != BAD[i].line || !strstr(err.why, BAD[i].says) || !builtin) {
+                printf("FAILED: bad journal %d: ok=%d line=%d why=\"%s\" builtin=%d\n", (int)i, ok, err.line,
+                       err.why, builtin);
+                s_failed++;
+            }
+        }
+
+        /* The built-in copy is a valid file, and reads back as the built-in sentences. */
+        char *buf = malloc(PET_CONFIG_TEXT_MAX);
+        size_t n = pet_config_journal_text(buf, PET_CONFIG_TEXT_MAX);
+        CHECK(n > 0 && n < PET_CONFIG_TEXT_MAX - 1, "the journal reference fits");
+        printf("  (journal reference: %d of %d bytes)\n", (int)n, PET_CONFIG_TEXT_MAX);
+        char before[160];
+        pet_config_journal(NULL, &err);
+        pet_day_t b = {.day = 77, .foods = 30, .types = 4, .best = FOOD_BLE_TV, .new_foods = 1};
+        pet_journal_entry(&pet, &b, false, before, sizeof(before));
+        CHECK(pet_config_journal(buf, &err), "and is a valid file");
+        if (err.why[0]) {
+            printf("  line %d: %s\n", err.line, err.why);
+        }
+        pet_journal_entry(&pet, &b, false, entry, sizeof(entry));
+        CHECK(!strcmp(entry, before), "that changes nothing");
+        free(buf);
+        pet_config_journal(NULL, &err);
+    }
+
     /* ---- A good file ---- */
     CHECK(pet_config_tuning("\xEF\xBB\xBF# speed run\r\n"
                             "growth_speed = 2016   # a life in an hour\r\n"

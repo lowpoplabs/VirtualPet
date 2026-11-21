@@ -63,6 +63,20 @@ typedef struct {
     float visit_mood;           /* ...and for arriving somewhere that is not home */
     float prism_max_share;      /* Prism: no food group above this share of the diet */
     int prism_min_types;        /* ...and at least this many food types tasted */
+
+    /*
+     * Personality: how each trait bends what the pet feels like doing. Each
+     * is what the pull toward that action is multiplied by, so 1 leaves it
+     * as it was, 2 doubles it and 0.5 halves it.
+     */
+    float greedy_grumble_at;    /* a greedy pet grumbles once it is below this share of a full stomach (others: 0.2) */
+    float lazy_nap, lazy_idle, lazy_play;
+    float greedy_grumble, greedy_sniff;
+    float curious_look, curious_sniff;
+    float playful_play;
+    float shy_play_less;        /* how much of its play a shy pet gives up where it is busiest, 0 to 1 */
+    float shy_idle_more;        /* how much more it stands still there: 1 = twice as much */
+    float cheerful_play, cheerful_grumble;
 } pet_tuning_t;
 
 pet_tuning_t pet_tuning_default(void);
@@ -380,6 +394,51 @@ uint32_t pet_take_new_badges(pet_t *pet);
  */
 void pet_journal_entry(const pet_t *pet, const pet_day_t *day, bool in_progress,
                        char *out, size_t cap);
+
+/*
+ * The journal's sentences are in lists, one for each thing a day can be.
+ * The last six follow pet_trait_t, in its order.
+ */
+typedef enum {
+    JOURNAL_NOTHING_YET,    /* today so far, with nothing eaten */
+    JOURNAL_NOTHING,
+    JOURNAL_QUIET,
+    JOURNAL_NORMAL,
+    JOURNAL_BUSY,
+    JOURNAL_GREW,
+    JOURNAL_NEW_PLACE,
+    JOURNAL_DROVE,
+    JOURNAL_NEW_FOOD,       /* names a food */
+    JOURNAL_BEST,           /* names a food */
+    JOURNAL_WENT_OUT,
+    JOURNAL_MOSTLY,         /* names a kind of food */
+    JOURNAL_QUEASY,
+    JOURNAL_HUNGRY,
+    JOURNAL_CRAVING,
+    JOURNAL_LAZY,           /* the closing line, by trait */
+    JOURNAL_GREEDY,
+    JOURNAL_CURIOUS,
+    JOURNAL_PLAYFUL,
+    JOURNAL_SHY,
+    JOURNAL_CHEERFUL,
+    JOURNAL_LIST_COUNT,
+} pet_journal_list_t;
+
+#define JOURNAL_BLANK        "{food}"   /* where a sentence that names a food says it */
+#define JOURNAL_SENTENCE_MAX 60         /* letters in one sentence */
+
+const char *pet_journal_list_key(pet_journal_list_t list);      /* "quiet": its name in a settings file */
+const char *pet_journal_list_when(pet_journal_list_t list);     /* when it is used, in a few words */
+bool pet_journal_list_names_food(pet_journal_list_t list);      /* its sentences hold JOURNAL_BLANK once */
+
+/* The built-in sentences of a list. Returns how many. */
+int pet_journal_builtin(pet_journal_list_t list, const char *const **lines);
+
+/*
+ * Replaces a list's sentences. They (and their text) must stay alive.
+ * NULL or a count of 0 goes back to the built-in ones.
+ */
+void pet_journal_set(pet_journal_list_t list, const char *const *lines, int count);
 
 /* ---- Saving ----------------------------------------------------------- */
 

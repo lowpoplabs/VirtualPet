@@ -89,6 +89,44 @@ int main(void)
         CHECK(n[ACT_LOOK] < m[ACT_LOOK], "less likely to repeat itself");
     }
 
+    /* ---- How strongly a trait pulls comes from the tuning numbers ---- */
+    {
+        pet_senses_t s = calm;
+        float plain[ACT_COUNT], lazy[ACT_COUNT], tuned[ACT_COUNT];
+        pet_action_scores(&s, plain);
+        s.traits = BIT(TRAIT_LAZY);
+        pet_action_scores(&s, lazy);
+        CHECK(lazy[ACT_NAP] == plain[ACT_NAP] * 2.0f && lazy[ACT_PLAY] == plain[ACT_PLAY] * 0.5f,
+              "with no tuning given, the built-in numbers");
+
+        pet_tuning_t tune = pet_tuning_default();
+        tune.lazy_nap = 1;
+        tune.lazy_idle = 1;
+        tune.lazy_play = 1;
+        s.tune = &tune;
+        pet_action_scores(&s, tuned);
+        CHECK(!memcmp(tuned, plain, sizeof(plain)), "a trait tuned to 1 changes nothing");
+        tune.lazy_nap = 5;
+        pet_action_scores(&s, tuned);
+        CHECK(tuned[ACT_NAP] == plain[ACT_NAP] * 5.0f, "and tuned up, it pulls harder");
+
+        /* A greedy pet's grumbling starts where its number says. */
+        s = calm;
+        s.traits = BIT(TRAIT_GREEDY);
+        s.fullness = 0.5f;
+        s.tune = &tune;
+        pet_action_scores(&s, tuned);
+        CHECK(tuned[ACT_GRUMBLE] == 0, "half full: a greedy pet is not grumbling yet");
+        tune.greedy_grumble_at = 0.8f;
+        pet_action_scores(&s, tuned);
+        CHECK(tuned[ACT_GRUMBLE] > 0, "unless it is told to start sooner");
+
+        /* And a pet carries its own numbers to the picker. */
+        pet_t pet;
+        pet_init(&pet, &tune, 1000, 5);
+        CHECK(pet_senses(&pet, ACT_IDLE).tune == &pet.tune, "a pet's senses carry its tuning");
+    }
+
     /* ---- Traits change behaviour ---- */
     {
         pet_senses_t s = calm;

@@ -43,6 +43,8 @@ typedef struct {
     bool underfed;
     uint8_t traits;     /* bit per pet_trait_t */
     pet_action_t previous;
+    /* How strongly each trait bends the scores. NULL uses the built-in numbers. */
+    const pet_tuning_t *tune;
 } pet_senses_t;
 
 typedef pet_action_t (*pet_picker_t)(const pet_senses_t *senses, uint32_t random);

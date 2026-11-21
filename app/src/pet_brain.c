@@ -20,8 +20,10 @@ static bool has(const pet_senses_t *s, pet_trait_t t)
 
 void pet_action_scores(const pet_senses_t *s, float score[ACT_COUNT])
 {
+    const pet_tuning_t builtin = s->tune ? *s->tune : pet_tuning_default();
+    const pet_tuning_t *t = &builtin;
     /* A greedy pet starts complaining well before it is actually hungry. */
-    float hungry_line = has(s, TRAIT_GREEDY) ? 0.35f : 0.2f;
+    float hungry_line = has(s, TRAIT_GREEDY) ? t->greedy_grumble_at : 0.2f;
     float hunger = s->fullness < hungry_line ? 1.0f - s->fullness / hungry_line : 0;
 
     score[ACT_IDLE] = 3.0f;
@@ -40,29 +42,29 @@ void pet_action_scores(const pet_senses_t *s, float score[ACT_COUNT])
 
     /* Personality bends the scores. */
     if (has(s, TRAIT_LAZY)) {
-        score[ACT_NAP] *= 2.0f;
-        score[ACT_IDLE] *= 1.5f;
-        score[ACT_PLAY] *= 0.5f;
+        score[ACT_NAP] *= t->lazy_nap;
+        score[ACT_IDLE] *= t->lazy_idle;
+        score[ACT_PLAY] *= t->lazy_play;
     }
     if (has(s, TRAIT_GREEDY)) {
-        score[ACT_GRUMBLE] *= 1.5f;
-        score[ACT_SNIFF] *= 1.5f;
+        score[ACT_GRUMBLE] *= t->greedy_grumble;
+        score[ACT_SNIFF] *= t->greedy_sniff;
     }
     if (has(s, TRAIT_CURIOUS)) {
-        score[ACT_LOOK] *= 2.0f;
-        score[ACT_SNIFF] *= 1.5f;
+        score[ACT_LOOK] *= t->curious_look;
+        score[ACT_SNIFF] *= t->curious_sniff;
     }
     if (has(s, TRAIT_PLAYFUL)) {
-        score[ACT_PLAY] *= 2.0f;
+        score[ACT_PLAY] *= t->playful_play;
     }
     if (has(s, TRAIT_SHY)) {
         /* Goes quiet when there is a lot going on. */
-        score[ACT_PLAY] *= 1.0f - 0.6f * s->busy;
-        score[ACT_IDLE] *= 1.0f + s->busy;
+        score[ACT_PLAY] *= 1.0f - t->shy_play_less * s->busy;
+        score[ACT_IDLE] *= 1.0f + t->shy_idle_more * s->busy;
     }
     if (has(s, TRAIT_CHEERFUL)) {
-        score[ACT_PLAY] *= 1.3f;
-        score[ACT_GRUMBLE] *= 0.5f;
+        score[ACT_PLAY] *= t->cheerful_play;
+        score[ACT_GRUMBLE] *= t->cheerful_grumble;
     }
 
     /* Doing the same thing twice running looks mechanical. Standing and sleeping are exempt. */
@@ -127,6 +129,7 @@ pet_senses_t pet_senses(const pet_t *pet, pet_action_t previous)
         .underfed = pet->is_static,
         .traits = pet->traits,
         .previous = previous,
+        .tune = &pet->tune,
     };
 }
 
