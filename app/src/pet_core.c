@@ -497,6 +497,9 @@ uint32_t pet_scan(pet_t *pet, const pet_scan_t *scan, place_kind_t *badge_kind)
     if (ev & (PLACE_EV_BADGE | PLACE_EV_OFFGRID)) {
         pet->today.flags |= DAY_BADGE_PLACE;
     }
+    if (scan->motion == 3) {
+        pet->today.flags |= DAY_RODE;
+    }
     return ev;
 }
 

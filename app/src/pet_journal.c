@@ -103,7 +103,7 @@ static const struct {
     [JOURNAL_BUSY]        = LIST("busy", false, "a day of more than 80 foods", BUSY),
     [JOURNAL_GREW]        = LIST("grew", false, "the day it hatched, grew or changed form", GREW),
     [JOURNAL_NEW_PLACE]   = LIST("new_place", false, "it settled somewhere new", NEW_PLACE),
-    [JOURNAL_DROVE]       = LIST("drove", false, "it ate a car", DROVE),
+    [JOURNAL_DROVE]       = LIST("drove", false, "it rode in a car, or ate one", DROVE),
     [JOURNAL_NEW_FOOD]    = LIST("new_food", true, "it tasted a food for the first time", NEW_FOOD),
     [JOURNAL_BEST]        = LIST("best", true, "the best thing it found", BEST),
     [JOURNAL_WENT_OUT]    = LIST("went_out", false, "it left home", WENT_OUT),
@@ -237,7 +237,7 @@ void pet_journal_entry(const pet_t *pet, const pet_day_t *d, bool in_progress,
         len = add(out, cap, len, pick(JOURNAL_GREW, r2));
     } else if (d->flags & DAY_NEW_PLACE) {
         len = add(out, cap, len, pick(JOURNAL_NEW_PLACE, r2));
-    } else if (d->group_pts[GROUP_CARS] > 0 || d->best == FOOD_WIFI_CAR) {
+    } else if ((d->flags & DAY_RODE) || d->group_pts[GROUP_CARS] > 0 || d->best == FOOD_WIFI_CAR) {
         len = add(out, cap, len, pick(JOURNAL_DROVE, r2));
     } else if (d->new_foods > 0 && d->best < FOOD_TYPE_COUNT) {
         len = add_about(out, cap, len, pick(JOURNAL_NEW_FOOD, r2), a_food((food_type_t)d->best));

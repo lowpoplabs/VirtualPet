@@ -643,7 +643,7 @@ static uint32_t track_quiet(pet_places_t *p, const pet_scan_t *scan, uint32_t no
     }
     if (p->quiet_scans < UINT16_MAX) {
         p->quiet_scans++;
-        p->quiet_carried = (uint16_t)(p->quiet_carried + (scan->motion == 2));
+        p->quiet_carried = (uint16_t)(p->quiet_carried + (scan->motion >= 2));
     }
     if (scan->motion != 0 && p->quiet_carried * 2 < p->quiet_scans) {
         return 0;                   /* silent, but mostly lying still */

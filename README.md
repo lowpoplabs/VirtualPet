@@ -108,12 +108,11 @@ way. The card must be FAT32.
 
 Two kinds of row are there for tuning, whichever way the setting is:
 
-- `motion`, after every scan: whether the device was carried or lay still
-  since the last one, the average shake (thousandths of g between
-  readings), steps a minute, and the number of readings. A walk shows as
-  a strong shake with a rhythm of steps, a drive as a small steady shake
-  with none, a desk as nothing. The pet does not use these yet; they are
-  to find out whether a walk can be told from a drive.
+- `motion`, after every scan: whether the device was carried, rode in a
+  vehicle or lay still since the last one, the average shake (thousandths
+  of g between readings), steps a minute, and the number of readings. A
+  walk shows as a strong shake with a rhythm of steps, a drive as a small
+  steady shake with none, a desk as nothing.
 - `heard`: a network that was already eaten, heard at least 8 dB more
   strongly than before. A network is logged when eaten, which is usually
   from a distance, so this is what shows how close it really came. It
@@ -212,6 +211,12 @@ times a second) tells three things:
   being carried, every three minutes otherwise, and every five once it has
   lain still for ten minutes. Plugged in it scans every 30 seconds
   regardless.
+- **Riding.** A ride in a car, a bus or a train is told from a walk: a
+  small steady shake (25 to 90) with fewer than 50 steps a minute, while
+  the scan hears at most 12 networks and none stronger than -75 dBm, for
+  two scans in a row. A walk shakes harder, a desk hardly at all, and a
+  wrist at a desk has its own strong network close by. A day with a ride
+  can say so in the journal. It does not change how often the pet scans.
 - **Off the grid** only counts while carried (see Places).
 
 Once a minute the pet's area and the two strips shift a few pixels along a

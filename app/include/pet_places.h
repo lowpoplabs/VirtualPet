@@ -130,7 +130,7 @@ typedef struct {
     uint8_t matches;
     uint16_t wifi_heard;                /* everything, for "off the grid" */
     uint16_t ble_heard;
-    /* Motion since the last scan: 0 = no sensor, 1 = lay still, 2 = was carried. */
+    /* Motion since the last scan: 0 = no sensor, 1 = lay still, 2 = was carried, 3 = rode in a vehicle. */
     uint8_t motion;
 } pet_scan_t;
 

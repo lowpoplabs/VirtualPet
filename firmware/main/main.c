@@ -252,6 +252,7 @@ static RTC_NOINIT_ATTR raise_stats_t s_raise;
 /* How the device is being carried. Fed by the housekeeping task, read by the others. */
 static pet_motion_t s_motion;
 static pet_gait_t s_gait;       /* how it moved since the last scan, for the log */
+static pet_ride_t s_ride;       /* whether those stretches add up to a ride */
 static sensing_cycle_t s_last_cycle;    /* what the latest scan heard, for the same row */
 static bool s_motion_ok;
 
@@ -573,7 +574,11 @@ static void on_scan(const pet_scan_t *scan)
         /* The other task is still adding readings; a reading lost here does not matter. */
         int samples, shake, steps;
         pet_gait_take(&s_gait, &samples, &shake, &steps);
-        const char *state = with_motion.motion == 2 ? "carried" : "still";
+        if (pet_ride_scan(&s_ride, with_motion.motion == 2, shake, steps, s_last_cycle.wifi_seen,
+                          s_last_cycle.wifi_best)) {
+            with_motion.motion = 3;
+        }
+        const char *state = with_motion.motion == 3 ? "riding" : (with_motion.motion == 2 ? "carried" : "still");
         ESP_LOGI(TAG, "motion: %s, shake %d mg, %d steps a minute (%d readings); scan: %d prints, %d names, best %d dBm",
                  state, shake, steps, samples, s_last_cycle.prints, s_last_cycle.matches,
                  s_last_cycle.wifi_best);

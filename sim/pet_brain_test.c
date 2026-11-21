@@ -89,6 +89,43 @@ int main(void)
         CHECK(n[ACT_LOOK] < m[ACT_LOOK], "less likely to repeat itself");
     }
 
+    /* ---- Riding: told from walking and from sitting ---- */
+    {
+        pet_ride_t r = {0};
+        /* A drive: a small shake, a few false steps, faint networks or none. */
+        CHECK(!pet_ride_scan(&r, true, 43, 25, 3, -88), "one scan that looks like a ride is not one yet");
+        CHECK(pet_ride_scan(&r, true, 47, 28, 0, 0), "a second in a row is");
+        CHECK(pet_ride_scan(&r, true, 62, 40, 1, -89), "and it goes on");
+        CHECK(!pet_ride_scan(&r, true, 178, 89, 0, 0), "getting out and walking ends it");
+        CHECK(!pet_ride_scan(&r, true, 64, 35, 6, -83), "and getting back in starts the count again");
+        CHECK(pet_ride_scan(&r, true, 43, 19, 1, -85), "riding once more");
+
+        /* Things that are not rides, however long they last. */
+        static const struct {
+            bool carried;
+            int shake, steps, heard, best;
+            const char *what;
+        } NOT[] = {
+            {true, 130, 95, 4, -85, "a walk down a quiet street"},
+            {false, 3, 0, 5, -66, "lying on a desk"},
+            {true, 15, 8, 50, -76, "standing in a queue in a shop"},
+            {true, 40, 10, 6, -62, "on a wrist at a desk, its own network close by"},
+            {true, 45, 20, 55, -80, "ambling round a big shop"},
+            {true, 76, 59, 2, -90, "a slow walk"},
+        };
+        for (size_t i = 0; i < sizeof(NOT) / sizeof(NOT[0]); i++) {
+            pet_ride_t n = {0};
+            bool ride = false;
+            for (int k = 0; k < 5; k++) {
+                ride = ride || pet_ride_scan(&n, NOT[i].carried, NOT[i].shake, NOT[i].steps, NOT[i].heard, NOT[i].best);
+            }
+            if (ride) {
+                printf("FAIL: taken for a ride: %s\n", NOT[i].what);
+                failures++;
+            }
+        }
+    }
+
     /* ---- How strongly a trait pulls comes from the tuning numbers ---- */
     {
         pet_senses_t s = calm;

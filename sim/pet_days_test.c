@@ -146,6 +146,22 @@ int main(void)
         CHECK(strstr(a, "drive") || strstr(a, "fast") || strstr(a, "ars") || strstr(a, "rushed"),
               "a day with a car mentions the drive");
 
+        /* A ride it felt, with no car to eat, reads the same way; and a scan that rode marks the day. */
+        pet_day_t rode = {.day = 501, .foods = 40, .meals = 9, .types = 4, .best = FOOD_TYPE_COUNT,
+                          .flags = DAY_RODE};
+        rode.group_pts[GROUP_NETWORKS] = 100;
+        pet_journal_entry(&p, &rode, false, a, sizeof(a));
+        CHECK(strstr(a, "drive") || strstr(a, "fast") || strstr(a, "ars") || strstr(a, "rushed"),
+              "a day with a ride mentions it too");
+        pet_scan_t ride = {.motion = 3};
+        pet_scan(&p, &ride, NULL);
+        CHECK(p.today.flags & DAY_RODE, "a scan taken while riding marks the day");
+        pet_t walker;
+        pet_init(&walker, NULL, T0, 3);
+        pet_scan_t walk = {.motion = 2};
+        pet_scan(&walker, &walk, NULL);
+        CHECK(!(walker.today.flags & DAY_RODE), "one taken while walking does not");
+
         d.flags = DAY_QUEASY;
         pet_journal_entry(&p, &d, false, a, sizeof(a));
         CHECK(strstr(a, "junk") || strstr(a, "tummy") || strstr(a, "open networks"),

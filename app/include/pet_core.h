@@ -169,6 +169,7 @@ typedef struct {
 #define DAY_NEW_PLACE 0x10  /* settled somewhere it had never been */
 #define DAY_OUT     0x20    /* spent time somewhere that is not home */
 #define DAY_BADGE_PLACE 0x40 /* earned a place badge */
+#define DAY_RODE    0x80    /* rode in a car, a bus or a train */
 
 #define PET_HISTORY_DAYS 7  /* finished days kept, newest first */
 #define PET_NAME_MAX     13 /* with the ending zero */

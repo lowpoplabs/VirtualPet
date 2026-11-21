@@ -124,6 +124,34 @@ bool pet_motion_take_moved(pet_motion_t *m)
     return moved;
 }
 
+/* ---- Riding ------------------------------------------------------------- */
+
+/*
+ * From a morning's log with the device in a jacket pocket: a car seat
+ * shook it 33 to 64 with 13 to 40 false steps a minute; walking 105 to 310
+ * with 70 to 150 steps; lying still 2 to 4. On the road a scan heard at
+ * most 9 networks, none better than -78 dBm.
+ */
+#define RIDE_SHAKE_MIN   25
+#define RIDE_SHAKE_MAX   90
+#define RIDE_STEPS_MAX   50
+#define RIDE_HEARD_MAX   12
+#define RIDE_WIFI_BEST   (-75)  /* a network stronger than this is a building, not a road */
+#define RIDE_SCANS       2
+
+bool pet_ride_scan(pet_ride_t *r, bool carried, int shake, int steps_per_min, int wifi_heard, int wifi_best)
+{
+    bool looks = carried && shake >= RIDE_SHAKE_MIN && shake <= RIDE_SHAKE_MAX &&
+                 steps_per_min < RIDE_STEPS_MAX && wifi_heard <= RIDE_HEARD_MAX &&
+                 (wifi_best == 0 || wifi_best < RIDE_WIFI_BEST);
+    if (!looks) {
+        r->run = 0;
+    } else if (r->run < RIDE_SCANS) {
+        r->run++;
+    }
+    return r->run >= RIDE_SCANS;
+}
+
 /* ---- Gait --------------------------------------------------------------- */
 
 #define STEP_UP_MG    70    /* the pull must rise this far above its average to start a step */

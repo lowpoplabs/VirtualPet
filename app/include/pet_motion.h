@@ -79,6 +79,28 @@ void pet_gait_sample(pet_gait_t *g, int x, int y, int z, uint32_t ms);
  */
 void pet_gait_take(pet_gait_t *g, int *samples, int *shake, int *steps_per_min);
 
+/*
+ * Riding: in a car, a bus or a train, as against walking or sitting. Fed
+ * once per scan with that stretch's gait and what the scan heard.
+ *
+ * A ride is a small steady shake with no step rhythm, while the networks
+ * around are few and faint. A walk shakes far harder; a desk hardly at
+ * all; and a wrist at a desk, which shakes about as much as a car seat,
+ * has its own strong network close by. Two scans in a row must agree, so
+ * a pause in a walk is not a ride.
+ */
+typedef struct {
+    uint8_t run;    /* scans in a row that looked like a ride */
+} pet_ride_t;
+
+/*
+ * carried: it moved at all since the last scan. shake and steps_per_min
+ * are from pet_gait_take(). wifi_heard is how many networks the scan
+ * heard, and wifi_best the strongest in dBm (0 if none). Returns true
+ * while it is riding.
+ */
+bool pet_ride_scan(pet_ride_t *r, bool carried, int shake, int steps_per_min, int wifi_heard, int wifi_best);
+
 #ifdef __cplusplus
 }
 #endif

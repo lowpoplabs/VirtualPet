@@ -4,6 +4,14 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.3.2 - 2026-11-21
+
+### Added
+- **Riding:** the pet can tell a ride in a car, bus or train from a walk. A ride is a small
+  steady shake with no step rhythm while the networks around are few and faint, for two
+  scans in a row. A day with a ride can say so in the journal (the `drove` sentences), and
+  the food log's motion rows say "riding". Scanning is unchanged.
+
 ## 0.3.1 - 2026-11-21
 
 ### Added
