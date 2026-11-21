@@ -87,6 +87,9 @@ static const entry_t TUNING[] = {
      "shy: how much more it stands still there (1 = twice as much)"},
     {"cheerful_play", K_FLOAT, TUNE(cheerful_play), 1, 0, 10, "cheerful: playing"},
     {"cheerful_grumble", K_FLOAT, TUNE(cheerful_grumble), 1, 0, 10, "cheerful: grumbling"},
+
+    {"favourite_weight", K_FLOAT, TUNE(favourite_weight), 1, 1, 10,
+     "the favourite food picked on the Pet card counts this many times over toward its form"},
 };
 #define TUNING_COUNT ((int)(sizeof(TUNING) / sizeof(TUNING[0])))
 

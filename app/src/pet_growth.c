@@ -56,6 +56,25 @@ void pet_group_points(const pet_t *pet, float points[GROUP_COUNT])
     }
 }
 
+/*
+ * The group points as the form sees them: the owner's favourite counts
+ * several times over. Only the form looks at these; the diet chart, the
+ * card and Prism (which is about what it really ate) use the plain ones.
+ */
+static void form_points(const pet_t *pet, float g[GROUP_COUNT])
+{
+    pet_group_points(pet, g);
+    if (pet->favourite >= 1 && pet->favourite <= PET_FAVOURITE_MAX) {
+        g[pet->favourite - 1] *= pet->tune.favourite_weight >= 1 ? pet->tune.favourite_weight : 1;
+    }
+}
+
+/*
+ * Wi-Fi or Bluetooth. Odds and ends (crumbs, trackers, TVs) count on the
+ * Bluetooth side. A food eaten again in one day is worth half each time,
+ * so a day gives about twice a food's value however much of it there is,
+ * and without them the Bluetooth side has too few kinds to keep up.
+ */
 static pet_form_t juvenile_form(const float g[GROUP_COUNT])
 {
     float wifi = g[GROUP_NETWORKS] + g[GROUP_SCAVENGE];
@@ -63,8 +82,10 @@ static pet_form_t juvenile_form(const float g[GROUP_COUNT])
     return wifi >= ble ? FORM_GRAZER : FORM_HUNTER;
 }
 
-static bool is_prism(const pet_t *pet, const float g[GROUP_COUNT])
+static bool is_prism(const pet_t *pet)
 {
+    float g[GROUP_COUNT];
+    pet_group_points(pet, g);
     float total = 0, biggest = 0;
     for (int i = 0; i < GROUP_COUNT; i++) {
         total += g[i];
@@ -82,7 +103,7 @@ static bool is_prism(const pet_t *pet, const float g[GROUP_COUNT])
 
 static pet_form_t adult_form(const pet_t *pet, pet_form_t branch, const float g[GROUP_COUNT])
 {
-    if (is_prism(pet, g)) {
+    if (is_prism(pet)) {
         return FORM_PRISM;
     }
     if (branch == FORM_HUNTER) {
@@ -124,7 +145,7 @@ static pet_form_t adult_form(const pet_t *pet, pet_form_t branch, const float g[
 pet_form_t pet_form_leaning(const pet_t *pet)
 {
     float g[GROUP_COUNT];
-    pet_group_points(pet, g);
+    form_points(pet, g);
     switch (pet->stage) {
     case STAGE_EGG:
     case STAGE_HATCHLING: return juvenile_form(g);
@@ -234,7 +255,7 @@ void pet_grow(pet_t *pet)
     }
 
     float g[GROUP_COUNT];
-    pet_group_points(pet, g);
+    form_points(pet, g);
     switch (pet->stage) {
     case STAGE_EGG:
         pet->stage = STAGE_HATCHLING;

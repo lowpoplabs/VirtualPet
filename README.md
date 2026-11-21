@@ -404,6 +404,18 @@ From stage 7, the burn-in guard, the motion sensor and sleep on battery
 are in, and so are the settings files on the card for numbers and name
 lists. Stage 8, generations, is in too (see Retirement and the farm).
 Still to come: the remaining card files.
+Favourite food: while the pet is still growing, a button on its card
+("Favourite: none") lets the owner pick one food group: networks,
+hotspots, music, cars or phones. Food of that group counts five times
+over (`favourite_weight` in `tuning.txt`) when the form is decided, and
+for nothing else: meals, mood, the diet chart and Prism all see the real
+diet. It is there for places that are nearly all Wi-Fi or nearly all
+Bluetooth, where the other side's forms would be out of reach. A food
+eaten again in one day is worth half each time, so a day gives about
+twice a food's value however much of it is about; it is the kinds of
+food that decide a form, not the crowds, and a favourite has to be found
+at least now and then to count.
+
 The pet is drawn by code in smooth shapes, not pixel-art sprites as the
 plan first had it: the hatchling's look is the style, and each form is
 being designed one at a time in it. The animals are the adult forms. A

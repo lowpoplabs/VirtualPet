@@ -9,7 +9,9 @@
 #include "pet_core.h"
 
 #define PET_SAVE_MAGIC   0x54455056u   /* "VPET" */
-#define PET_SAVE_VERSION 7
+#define PET_SAVE_VERSION 8
+/* Before the owner could pick a favourite food. */
+#define PET_SAVE_VERSION_NO_FAVOURITE 7
 /* Version 6 had no generation or farm. It is still read: a first-generation pet with an empty farm. */
 #define PET_SAVE_VERSION_NO_FARM 6
 /* Version 5 did not say what growth speed the pet was living at. It is still read. */
@@ -269,6 +271,7 @@ size_t pet_save(const pet_t *pet, uint8_t *buf, size_t cap)
     put_places(&c, &pet->places);
     put_f32(&c, pet->tune.growth_speed > 0 ? pet->tune.growth_speed : 1);
     put_farm(&c, pet);
+    put(&c, &pet->favourite, 1);
     if (!c.ok) {
         return 0;
     }
@@ -298,7 +301,8 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
         return false;
     }
     uint32_t version = get_u32(&c);
-    if ((version != PET_SAVE_VERSION && version != PET_SAVE_VERSION_NO_FARM &&
+    if ((version != PET_SAVE_VERSION && version != PET_SAVE_VERSION_NO_FAVOURITE &&
+         version != PET_SAVE_VERSION_NO_FARM &&
          version != PET_SAVE_VERSION_NO_SPEED &&
          version != PET_SAVE_VERSION_CHAIN_BITS &&
          version != PET_SAVE_VERSION_NO_PLACES &&
@@ -372,6 +376,12 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
     float saved_speed = version > PET_SAVE_VERSION_NO_SPEED ? get_f32(&c) : speed;
     if (version > PET_SAVE_VERSION_NO_FARM && !get_farm(&c, &p)) {
         return false;
+    }
+    if (version > PET_SAVE_VERSION_NO_FAVOURITE) {
+        get(&c, &p.favourite, 1);
+        if (p.favourite > PET_FAVOURITE_MAX) {
+            return false;
+        }
     }
     if (!c.ok || c.p != c.end || stage >= STAGE_COUNT || form >= FORM_COUNT ||
         p.stage_meal_base > p.meals || !(saved_speed > 0 && saved_speed <= 1e6f)) {

@@ -136,7 +136,7 @@ The core hook is that going somewhere new feeds the pet something it cannot get 
 - **Live reactions:** the pet sniffs when food appears, perks up in busy places and gets bored at home.
 - **Cravings:** it asks for something it is short on, such as "wants something musical". Satisfying a craving gives a bigger boost than a normal meal.
 - **Diet readout:** a chart of the week's food, so gaps are obvious.
-- **Evolution nudges:** during the juvenile stage, hints show which adult form it is drifting toward.
+- **Evolution nudges:** during the juvenile stage, hints show which adult form it is drifting toward. The owner can nudge back: a favourite food group picked on the pet's card counts several times over toward the form, so every form stays within reach where there is nearly all Wi-Fi or nearly all Bluetooth.
 - **Journal:** an end-of-day entry in the pet's voice, such as "went for a drive today".
 - **Food-dex:** every food type ever eaten, with silhouettes for the undiscovered ones.
 - **Habitats:** the pet recognizes home versus somewhere new from the mix of networks around it, and the owner can name a habitat when it is discovered.

@@ -4,6 +4,15 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.0 - 2026-11-21
+
+### Added
+- **Favourite food:** while the pet is growing, a button on its card picks one food group
+  (networks, hotspots, music, cars or phones). That group counts five times over when the
+  form is decided (`favourite_weight` in `tuning.txt`), so an owner where there is nearly
+  all Wi-Fi or nearly all Bluetooth can still steer what the pet grows into. Meals, mood,
+  the diet chart and Prism are unaffected. Saves from earlier versions load with no favourite.
+
 ## 0.3.2 - 2026-11-21
 
 ### Added

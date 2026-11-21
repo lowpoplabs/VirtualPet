@@ -40,6 +40,21 @@ static void live(pet_t *p, int days, const food_type_t *foods, int n_foods, int 
 }
 
 /* Raises a pet to adulthood on one diet and reports what it became. */
+/* The same, for an owner who has picked a favourite food (0 for none). */
+static pet_form_t raise_favouring(const food_type_t *foods, int n, int per_day, uint8_t favourite,
+                                  pet_form_t *juvenile)
+{
+    pet_t p;
+    pet_init(&p, NULL, T0, 99);
+    p.favourite = favourite;
+    live(&p, 8, foods, n, per_day);
+    if (juvenile) {
+        *juvenile = p.form;
+    }
+    live(&p, 15, foods, n, per_day);
+    return p.stage == STAGE_ADULT ? p.form : FORM_NONE;
+}
+
 static pet_form_t raise(const food_type_t *foods, int n, int per_day, pet_form_t *juvenile)
 {
     pet_t p;
@@ -145,6 +160,60 @@ int main(void)
 
         const food_type_t crumbs[] = {FOOD_BLE_UNKNOWN, FOOD_BLE_TRACKER, FOOD_BLE_TV};
         CHECK(raise(crumbs, 3, 12, NULL) == FORM_GLOWBUG, "a Hunter with no speciality: Glowbug");
+
+        /* ---- The owner's favourite food counts several times over toward the form ---- */
+        {
+            /* Mostly Wi-Fi, with the owner's own earbuds heard now and then. */
+            const food_type_t flat[] = {FOOD_WIFI_SECURED, FOOD_WIFI_SECURED, FOOD_WIFI_WPA3, FOOD_BLE_EARBUDS};
+            pet_form_t branch;
+            pet_form_t plain = raise_favouring(flat, 4, 12, 0, &branch);
+            CHECK(branch == FORM_GRAZER && (plain == FORM_HOMEBODY || plain == FORM_ROAMER),
+                  "no favourite: a Wi-Fi flat raises a Wi-Fi pet");
+            CHECK(raise_favouring(flat, 4, 12, GROUP_MUSIC + 1, &branch) == FORM_SINGER && branch == FORM_HUNTER,
+                  "music as its favourite: the same flat raises a Singer");
+
+            /* Among Hunters, phones are everywhere and cars are few. */
+            /* A second helping of a food in one day is worth half, so it is kinds that count, not crowds. */
+            const food_type_t street[] = {FOOD_BLE_PHONE, FOOD_BLE_WATCH, FOOD_BLE_PHONE, FOOD_BLE_WATCH,
+                                          FOOD_BLE_PHONE, FOOD_BLE_WATCH, FOOD_BLE_PHONE, FOOD_BLE_WATCH,
+                                          FOOD_BLE_PHONE, FOOD_BLE_WATCH, FOOD_BLE_PHONE, FOOD_BLE_WATCH,
+                                          FOOD_BLE_PHONE, FOOD_BLE_WATCH, FOOD_BLE_PHONE, FOOD_BLE_CAR};
+            pet_form_t street_plain = raise_favouring(street, 16, 16, 0, NULL);
+            pet_form_t street_cars = raise_favouring(street, 16, 16, GROUP_CARS + 1, NULL);
+            if (street_plain != FORM_GLOWBUG || street_cars != FORM_RACER) {
+                printf("  (street: plain %s, favouring cars %s)\n", pet_form_name(street_plain),
+                       pet_form_name(street_cars));
+            }
+            CHECK(street_plain == FORM_GLOWBUG, "no favourite: phones win");
+            CHECK(street_cars == FORM_RACER, "cars as its favourite: a Racer");
+
+            /* It bends the form only: the pet's real diet, and Prism, are untouched. */
+            pet_t p;
+            pet_init(&p, NULL, T0, 5);
+            meal(&p, FOOD_WIFI_SECURED, 1);
+            meal(&p, FOOD_BLE_EARBUDS, 2);
+            float before[GROUP_COUNT], after[GROUP_COUNT];
+            pet_group_points(&p, before);
+            p.favourite = GROUP_MUSIC + 1;
+            pet_group_points(&p, after);
+            CHECK(!memcmp(before, after, sizeof(before)), "the diet itself reads the same with a favourite");
+
+            /* A favourite with no weight, or one out of range, changes nothing. */
+            pet_tuning_t tune = pet_tuning_default();
+            tune.favourite_weight = 1;
+            pet_init(&p, &tune, T0, 99);
+            p.favourite = GROUP_MUSIC + 1;
+            live(&p, 8, flat, 4, 12);
+            CHECK(p.form == FORM_GRAZER, "a weight of 1 is no favour at all");
+
+            /* It is saved with the pet, and a new egg starts with none. */
+            uint8_t buf[PET_SAVE_MAX];
+            pet_t q;
+            p.favourite = GROUP_CARS + 1;
+            size_t len = pet_save(&p, buf, sizeof(buf));
+            CHECK(len > 0 && pet_load(&q, NULL, buf, len, p.now) && q.favourite == GROUP_CARS + 1,
+                  "the favourite is kept across a save");
+        }
 
         /* A juvenile's branch holds: a Grazer that turns to Bluetooth late stays on the Wi-Fi side. */
         pet_t p;

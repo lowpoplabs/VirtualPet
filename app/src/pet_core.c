@@ -66,6 +66,7 @@ pet_tuning_t pet_tuning_default(void)
         .shy_idle_more = 1.0f,
         .cheerful_play = 1.3f,
         .cheerful_grumble = 0.5f,
+        .favourite_weight = 5.0f,
     };
 }
 

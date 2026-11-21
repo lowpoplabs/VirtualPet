@@ -932,7 +932,33 @@ static void fact(lv_obj_t *body, const char *what, const char *value)
 {
     lv_obj_t *line = row(body, tx(24));
     lv_obj_align(text(line, what, COLOR_DIM, false), LV_ALIGN_LEFT_MID, 0, 0);
-    lv_obj_align(text(line, value, COLOR_TEXT, false), LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_align(text(line, value, COLOR_TEXT, false), LV_ALIGN_RIGHT_MID, -8, 0);    /* clear of the scrollbar */
+}
+
+/*
+ * The owner's pick of favourite food, on the card while the pet is still
+ * growing. Short names, so the button fits at either text size.
+ */
+static lv_obj_t *s_favourite_label;
+
+static void favourite_text(char *buf, size_t cap)
+{
+    static const char *const SHORT[PET_FAVOURITE_MAX + 1] = {
+        "none", "networks", "hotspots", "music", "cars", "phones",
+    };
+    uint8_t f = s_host->pet->favourite;
+    snprintf(buf, cap, "Favourite: %s", SHORT[f <= PET_FAVOURITE_MAX ? f : 0]);
+}
+
+static void favourite_cb(lv_event_t *e)
+{
+    LV_UNUSED(e);
+    pet_t *pet = s_host->pet;
+    pet->favourite = (uint8_t)((pet->favourite + 1) % (PET_FAVOURITE_MAX + 1));
+    s_host->renamed();      /* kept with the pet, like its name */
+    char buf[32];
+    favourite_text(buf, sizeof(buf));
+    lv_label_set_text(s_favourite_label, buf);
 }
 
 static void build_info(void)
@@ -999,6 +1025,14 @@ static void build_info(void)
     earned += pet->places.offgrid_tier > 0;
     snprintf(buf, sizeof(buf), "%d of %d", earned, BADGE_COUNT + PLACE_KIND_COUNT + 1);
     fact(body, "badges", buf);
+    if (pet->stage < STAGE_ADULT) {
+        gap(body, 4);
+        favourite_text(buf, sizeof(buf));
+        lv_obj_t *b = button(body, s_body_w, 44, buf, favourite_cb, NULL);
+        s_favourite_label = lv_obj_get_child(b, 0);
+        para(body, "Tap to choose. Its favourite food counts for more in what it grows into, "
+                   "which helps where there is mostly Wi-Fi or mostly Bluetooth about.", COLOR_DIM);
+    }
     if (pet->is_static) {
         gap(body, 4);
         para(body, "Underfed: it needs a good few meals to recover.", COLOR_WARN);

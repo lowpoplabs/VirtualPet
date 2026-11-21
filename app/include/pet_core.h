@@ -77,6 +77,9 @@ typedef struct {
     float shy_play_less;        /* how much of its play a shy pet gives up where it is busiest, 0 to 1 */
     float shy_idle_more;        /* how much more it stands still there: 1 = twice as much */
     float cheerful_play, cheerful_grumble;
+
+    /* How many times over the owner's pick of favourite food counts toward the form. */
+    float favourite_weight;
 } pet_tuning_t;
 
 pet_tuning_t pet_tuning_default(void);
@@ -283,7 +286,18 @@ typedef struct {
     /* The line it comes from: which generation this is (1 = the first egg), and the farm. */
     uint16_t generation;
     pet_farm_t farm;
+
+    /*
+     * The food the owner has said is its favourite: 0 for none, otherwise a
+     * pet_group_t plus one (never GROUP_OTHER). Food of that group counts
+     * for more when the pet's form is decided, and for nothing else, so an
+     * owner in a place that is nearly all Wi-Fi or all Bluetooth can still
+     * steer what it grows into.
+     */
+    uint8_t favourite;
 } pet_t;
+
+#define PET_FAVOURITE_MAX GROUP_OTHER   /* the largest value pet_t.favourite takes */
 
 void pet_init(pet_t *pet, const pet_tuning_t *tune, uint32_t now, uint32_t seed);
 
