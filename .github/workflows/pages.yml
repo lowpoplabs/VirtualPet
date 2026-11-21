@@ -1,0 +1,45 @@
+# Publishes the web site (about page, manual, browser installer) to GitHub Pages.
+#
+# The firmware is built on a developer's machine, not here, so the site is
+# taken from the latest release zip: its installer/ folder is the built site
+# with the firmware beside it. The site therefore always offers exactly the
+# firmware that was released. Runs when a release is published, or by hand.
+name: Publish the installer site
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Fetch the latest release zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern 'BaandwidthFarms-*.zip' --dir dl
+          unzip -q dl/*.zip -d unpacked
+          test -f unpacked/installer/index.html
+          test -f unpacked/installer/manifest.json
+          test -f unpacked/installer/firmware/virtualpet.bin
+          cat unpacked/installer/manifest.json
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: unpacked/installer
+      - id: deployment
+        uses: actions/deploy-pages@v4

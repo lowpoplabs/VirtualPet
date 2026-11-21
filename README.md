@@ -18,14 +18,17 @@ By **LowPopLabs**.
 
 ## Install
 
-For the Waveshare ESP32-S3-Touch-AMOLED-2.06 watch. Download the zip from the
-latest release and unzip it; `INSTALL.txt` inside has both ways in full.
+For the Waveshare ESP32-S3-Touch-AMOLED-2.06 watch.
 
-- **From the browser** (Chrome or Edge): in the unzipped folder run
-  `python -m http.server --directory installer`, open `http://localhost:8000`
-  and press Install. The same page has the manual.
+- **From the web site** (Chrome or Edge on a computer): open
+  **<https://lowpoplabs.github.io/VirtualPet/>**, plug in the watch and press
+  Install. Nothing is installed on your computer. The
+  [manual](https://lowpoplabs.github.io/VirtualPet/manual.html) is there too.
+- **From your own computer:** download the zip from the latest release and
+  unzip it. Run `python -m http.server --directory installer`, open
+  `http://localhost:8000` and press Install: the same site, served locally.
 - **With esptool:** the command, with the address of each part, is in
-  `INSTALL.txt`.
+  `INSTALL.txt` in the zip.
 
 Erase the watch the first time only. When updating a watch that already has a
 pet, do not erase, or the pet and its farm go too. Afterwards swipe up, open
@@ -290,7 +293,10 @@ built-in name lists.
 ## Web site
 
 `site/src` holds a small static site: a page about the pet with a browser
-installer, and a manual. It is not published anywhere yet. The pages say
+installer, and a manual. It is published at
+<https://lowpoplabs.github.io/VirtualPet/> by `.github/workflows/pages.yml`,
+which takes the `installer/` folder out of the latest release zip each time a
+release is published, so the site always offers the released firmware. The pages say
 `{{NAME}}` wherever the project's name belongs, and the build fills it in.
 
 ```powershell
