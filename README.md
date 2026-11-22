@@ -43,6 +43,7 @@ changing the pet's numbers and name lists.
 | `sim/` | Desktop simulator: the shared app in an SDL2 window sized like either board. |
 | `firmware/` | ESP-IDF project for both boards. `main/board.h` is the only board-specific interface. |
 | `site/` | The web site: what the pet is, a manual, and a browser installer. |
+| `android/listener/` | Pet Listener, a test app and not the pet: it counts what an Android phone can still hear with its screen off, to see whether a phone version is possible. Needs Android Studio; build with `android/listener/build.ps1`. |
 
 ## Simulator (Windows)
 
