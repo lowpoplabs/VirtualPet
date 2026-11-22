@@ -56,7 +56,7 @@ import android.os.SystemClock
  * adding.
  *
  * Wi-Fi is heard two ways: whenever the phone finishes a scan for its own
- * reasons, and by asking for one every couple of minutes. Asking is
+ * reasons, and by asking for one every half minute. Asking is
  * rationed by Android, so the log notes whether each request was granted.
  */
 class ListenService : Service() {
@@ -65,7 +65,13 @@ class ListenService : Service() {
         const val EXTRA_WIFI = "wifi"
         const val EXTRA_NAMES = "names"
         private const val CHANNEL = "listening"
-        private const val WIFI_ASK_EVERY_MS = 2 * 60 * 1000L
+        /*
+         * Android lets an app with a service in view ask four times in two minutes.
+         * Every two minutes was too seldom on a drive: the pet, asking every half
+         * minute, heard fifty named networks this missed. A second over the half
+         * minute keeps a fifth ask from ever landing inside the two.
+         */
+        private const val WIFI_ASK_EVERY_MS = 31 * 1000L
         /* Android quietly weakens a scan left running for 30 minutes. */
         private const val BLE_RESTART_EVERY_MS = 25 * 60 * 1000L
 
