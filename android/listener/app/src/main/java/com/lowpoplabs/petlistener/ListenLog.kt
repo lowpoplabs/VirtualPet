@@ -103,7 +103,8 @@ object ListenLog {
         val power = c?.getSystemService(PowerManager::class.java)
         val screen = if (power?.isInteractive == true) "on" else "off"
         val idle = if (power?.isDeviceIdleMode == true) 1 else 0
-        val clean = (name ?: "").replace('\n', ' ').replace('\r', ' ').replace("\"", "\"\"")
+        // Some devices pad their names with zero bytes or other control characters, which break a CSV reader.
+        val clean = (name ?: "").replace(Regex("[\\u0000-\\u001F\\u007F]"), " ").trim().replace("\"", "\"\"")
         val row = stamp(System.currentTimeMillis()) + "," + kind + "," + screen + "," + idle + "," + rssi +
             ",\"" + clean + "\"," + detail.replace(',', ';') + "\n"
         try {
