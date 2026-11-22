@@ -106,8 +106,12 @@ for tuning: treat a log made that way as private, and turn the setting off
 before the device goes to anyone else. Addresses are never logged either
 way. The card must be FAT32.
 
-Two kinds of row are there for tuning, whichever way the setting is:
+Three kinds of row are there for tuning, whichever way the setting is:
 
+- `wakes`, beside each `battery` row: how many times the dark screen was
+  lit since the last one, by a touch, a raise or the button, and the
+  seconds it stayed lit. A screen lit over and over in a pocket shows
+  here.
 - `motion`, after every scan: whether the device was carried, rode in a
   vehicle or lay still since the last one, the average shake (thousandths
   of g between readings), steps a minute, the number of readings, and how
@@ -208,6 +212,9 @@ times a second) tells three things:
   that is a new angle (so hanging from a bag does not light it at every
   pause). A knock on the table is too short to count. Plugged in it is
   ignored. The last run's tallies are printed at the next start.
+- **Touch.** A touch lights a dark screen unless "Touch" is set to off,
+  which is for a pocket: then the panel is not even asked while the
+  screen is dark, and only the side button (or a raise) lights it.
 - **Carried or still.** On battery the pet scans every minute while it is
   being carried, every three minutes otherwise, and every five once it has
   lain still for ten minutes. Plugged in it scans every 30 seconds
@@ -388,7 +395,7 @@ Only the drawing changes; the pet itself is untouched. Nothing on screen
 points to it, because the forms are meant to be a surprise.
 
 Settings: name, brightness, text size, sound, volume, quiet hours, clock, screen
-(stays on or sleeps), pause, life speed, wrist raise, card and dev log, and "Start over" at
+(stays on or sleeps), pause, life speed, wrist raise, touch, card and dev log, and "Start over" at
 the bottom, which after a three second hold replaces the pet and all it
 had with a new egg (settings stay). "Card: computer" lends the memory
 card to a computer as a USB drive (watch only so far); while it is lent the

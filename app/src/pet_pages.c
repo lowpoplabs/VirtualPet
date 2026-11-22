@@ -1051,7 +1051,7 @@ static const char *const SETTING_LABEL[SET_COUNT] = {
     [SET_QUIET_START] = "Quiet from", [SET_QUIET_END] = "Quiet until",
     [SET_HOUR] = "Clock hour", [SET_MINUTE] = "Clock minute",
     [SET_CARRY] = "Screen", [SET_PAUSE] = "Pet", [SET_LIFE_SPEED] = "Life speed",
-    [SET_RAISE] = "Wrist raise",
+    [SET_RAISE] = "Wrist raise", [SET_TOUCH] = "Touch",
 };
 
 static void setting_text(pet_setting_id_t id, char *buf, size_t cap)
@@ -1072,6 +1072,7 @@ static void setting_text(pet_setting_id_t id, char *buf, size_t cap)
     case SET_CARRY:       snprintf(buf, cap, "%s", s->carry ? "sleeps" : "stays on"); break;
     case SET_PAUSE:       snprintf(buf, cap, "%s", s->paused ? "paused" : "awake"); break;
     case SET_RAISE:       snprintf(buf, cap, "%s", s->raise_off ? "off" : "wakes"); break;
+    case SET_TOUCH:       snprintf(buf, cap, "%s", s->touch_off ? "off" : "wakes"); break;
     case SET_LIFE_SPEED:
         snprintf(buf, cap, "%s", s->speed_fixed ? "by file"
                                  : (s->life_speed == LIFE_FAST ? "fast"
@@ -1173,6 +1174,9 @@ static void build_settings(void)
     para(body, "Wrist raise: on battery, \"wakes\" lights the screen for a few seconds when "
                "it is turned toward you. \"off\" leaves it dark until touched or the side "
                "button is pressed, which saves the most battery on a wrist.", COLOR_DIM);
+    para(body, "Touch: \"off\" stops a touch from lighting a dark screen, for a pocket, "
+               "where cloth and bumps keep waking it. The side button still lights it, "
+               "and once lit it works as usual.", COLOR_DIM);
     if (s_host->can_share_card) {
         para(body, "Card: \"computer\" lends the memory card to a computer over the USB "
                    "cable, as a drive. Eject it there, then switch back to \"pet\"; "

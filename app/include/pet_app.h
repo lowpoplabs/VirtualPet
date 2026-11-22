@@ -136,6 +136,16 @@ bool pet_app_screen_dark(void);
  */
 bool pet_app_raise(void);
 
+/* Whether a touch lights a dark screen ("Touch" in Settings). If not, the panel need not be asked. */
+bool pet_app_touch_wakes(void);
+
+/* How often a dark screen was lit, and by what, since the last call; and for how long it was lit. */
+typedef struct {
+    uint16_t touch, raise, button;
+    uint32_t lit_s;
+} pet_wakes_t;
+void pet_app_take_wakes(pet_wakes_t *out);
+
 /*
  * What was wrong with a settings file at start-up, as one line ("tuning.txt
  * line 12: ..."), or "" when they were all fine or absent.

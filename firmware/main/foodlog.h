@@ -35,6 +35,9 @@ void foodlog_motion(const char *state, int shake, int steps_per_min, int samples
                     const sensing_cycle_t *scan);
 
 /* A change of place: "new", "arrive", "leave" or "badge", and which habitat (-1 = none). */
+/* How many times the dark screen was lit since the last such row, by what, and the seconds it stayed lit. */
+void foodlog_wakes(int touch, int raise, int button, int lit_s);
+
 void foodlog_place(const char *what, int habitat);
 
 /* How a spell on battery went: its length, and the share of it the chip slept. */

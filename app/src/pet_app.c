@@ -313,6 +313,11 @@ typedef enum { SCREEN_BRIGHT, SCREEN_DIM, SCREEN_DARK } screen_state_t;
 static screen_state_t s_screen = SCREEN_BRIGHT;
 static int s_brightness = -1;       /* last level sent to the panel */
 static bool s_forced_dark;          /* side button turned the screen off */
+/* What lit a dark screen, counted for the tuning log (pet_app_take_wakes). */
+typedef enum { WAKE_TOUCH, WAKE_RAISE, WAKE_BUTTON, WAKE_COUNT } wake_cause_t;
+static wake_cause_t s_wake_cause = WAKE_TOUCH;  /* a touch, unless a raise or the button says otherwise */
+static uint16_t s_wake_tally[WAKE_COUNT];
+static uint32_t s_lit_ms, s_lit_since_ms;       /* how long the screen has been lit since the last take */
 static bool s_glance;               /* lit by a raise and not touched since: it goes dark again sooner */
 #define GLANCE_MS 6000
 static uint32_t s_last_idle_ms;
@@ -541,6 +546,11 @@ static void screen_update(void)
     }
     /* Order matters: draw the frame before lighting the panel, darken it before stopping. */
     if (was_dark && next != SCREEN_DARK) {
+        if (s_wake_tally[s_wake_cause] < UINT16_MAX) {
+            s_wake_tally[s_wake_cause]++;
+        }
+        s_wake_cause = WAKE_TOUCH;
+        s_lit_since_ms = lv_tick_get();
         set_drawing(true);
         pet_view_set_action(s_brain.action);
         show_missed();
@@ -549,9 +559,15 @@ static void screen_update(void)
     int dim = plan.idle_pct < bright ? plan.idle_pct : bright;
     set_brightness(next == SCREEN_BRIGHT ? bright : (next == SCREEN_DIM ? dim : 0));
     if (!was_dark && next == SCREEN_DARK) {
+        s_lit_ms += lv_tick_get() - s_lit_since_ms;
         set_drawing(false);
         s_glance = false;
     }
+    /*
+     * With "Touch" off a dark screen does not feel a finger at all, so a
+     * pocket cannot light it or press what is on it. Lit, it works as ever.
+     */
+    lv_indev_enable(NULL, !(s_set.touch_off && next == SCREEN_DARK));
 
     /* Low battery: the pet is drowsy; nearly flat: make sure it is saved. */
     static bool was_critical;
@@ -567,12 +583,31 @@ bool pet_app_screen_dark(void)
     return s_screen == SCREEN_DARK;
 }
 
+bool pet_app_touch_wakes(void)
+{
+    return !s_set.touch_off;
+}
+
+void pet_app_take_wakes(pet_wakes_t *out)
+{
+    uint32_t ms = lv_tick_get();
+    if (s_screen != SCREEN_DARK) {
+        s_lit_ms += ms - s_lit_since_ms;
+        s_lit_since_ms = ms;
+    }
+    *out = (pet_wakes_t){.touch = s_wake_tally[WAKE_TOUCH], .raise = s_wake_tally[WAKE_RAISE],
+                         .button = s_wake_tally[WAKE_BUTTON], .lit_s = s_lit_ms / 1000};
+    memset(s_wake_tally, 0, sizeof(s_wake_tally));
+    s_lit_ms %= 1000;
+}
+
 bool pet_app_raise(void)
 {
     if (s_hal && !s_set.raise_off && s_screen == SCREEN_DARK &&
         !(s_hal->usb_powered && s_hal->usb_powered())) {
         s_forced_dark = false;
         s_glance = true;
+        s_wake_cause = WAKE_RAISE;
         lv_display_trigger_activity(NULL);
         s_last_idle_ms = 0;
         screen_update();    /* now, not at the next slow tick of a dark screen */
@@ -610,6 +645,7 @@ void pet_app_button(void)
 {
     if (s_screen == SCREEN_DARK) {
         s_forced_dark = false;
+        s_wake_cause = WAKE_BUTTON;
         lv_display_trigger_activity(NULL);
     } else {
         s_forced_dark = true;
@@ -621,7 +657,7 @@ void pet_app_button(void)
 /* ---- Settings ----------------------------------------------------------- */
 
 #define SETTINGS_MAGIC   0x53
-#define SETTINGS_VERSION 6      /* 1 had no volume: 8 bytes. 2 no dev log: 9. 3 no life speed: 10. 4 no raise: 11. 5 no text size: 12 */
+#define SETTINGS_VERSION 7      /* 1 had no volume: 8 bytes. 2 no dev log: 9. 3 no life speed: 10. 4 no raise: 11. 5 no text size: 12. 6 no touch: 13 */
 
 /* Growth speed for each choice of "Life speed": a whole life in 12, 6 and 3 weeks. */
 static const float LIFE_SPEED[LIFE_SPEED_COUNT] = {
@@ -631,19 +667,20 @@ static const float LIFE_SPEED[LIFE_SPEED_COUNT] = {
 static void settings_save(void)
 {
     if (s_hal && s_hal->save_settings) {
-        const uint8_t b[13] = {SETTINGS_MAGIC, SETTINGS_VERSION, s_set.brightness, s_set.sound,
+        const uint8_t b[14] = {SETTINGS_MAGIC, SETTINGS_VERSION, s_set.brightness, s_set.sound,
                                s_set.quiet_start, s_set.quiet_end, s_set.carry, s_set.paused,
                                s_set.volume, s_set.dev_log, s_set.life_speed, s_set.raise_off,
-                               s_set.text_large};
+                               s_set.text_large, s_set.touch_off};
         s_hal->save_settings(b, sizeof(b));
     }
 }
 
 static void settings_load(void)
 {
-    uint8_t b[13] = {0};
+    uint8_t b[14] = {0};
     size_t len = s_hal->load_settings ? s_hal->load_settings(b, sizeof(b)) : 0;
-    bool v6 = len == 13 && b[1] == 6;
+    bool v7 = len == 14 && b[1] == 7;
+    bool v6 = (len == 13 && b[1] == 6) || v7;
     bool v5 = (len == 12 && b[1] == 5) || v6;
     bool v1 = len == 8 && b[1] == 1, v2 = len == 9 && b[1] == 2, v4 = (len == 11 && b[1] == 4) || v5;
     bool v3 = (len == 10 && b[1] == 3) || v4;
@@ -658,6 +695,7 @@ static void settings_load(void)
                                  .life_speed = (v4 && b[10] < LIFE_SPEED_COUNT) ? b[10] : LIFE_SLOW,
                                  .raise_off = v5 && b[11] != 0,
                                  .text_large = v6 && b[12] != 0,
+                                 .touch_off = v7 && b[13] != 0,
                                  .speed_fixed = s_set.speed_fixed};
     }
 }
@@ -751,6 +789,9 @@ static void on_setting(pet_setting_id_t what, int dir)
         break;
     case SET_RAISE:
         s_set.raise_off = !s_set.raise_off;
+        break;
+    case SET_TOUCH:
+        s_set.touch_off = !s_set.touch_off;
         break;
     case SET_TEXT:
         s_set.text_large = !s_set.text_large;
@@ -901,6 +942,7 @@ void pet_app_button_long(void)
     /* Light the screen to say so; in carry mode it then sleeps as usual. */
     s_forced_dark = false;
     s_last_idle_ms = 0;
+    s_wake_cause = WAKE_BUTTON;
     lv_display_trigger_activity(NULL);
     screen_update();
     pet_app_show_find(s_set.carry ? "carry mode: screen sleeps" : "desk mode: screen stays on");

@@ -400,7 +400,7 @@ static void housekeeping_task(void *arg)
 
         if (battery) {
             /* A sleeping chip does not hear the touch interrupt: ask the panel. */
-            if (!pet_app_screen_dark() || (++touch_turn & 1)) {
+            if (!pet_app_screen_dark() || (pet_app_touch_wakes() && (++touch_turn & 1))) {
                 board_touch_poll();
             }
             since_stats += step;
@@ -629,6 +629,15 @@ static void on_cycle(const sensing_cycle_t *c)
     if (esp_timer_get_time() - last_battery_row >= BATTERY_LOG_EVERY_US) {
         last_battery_row = esp_timer_get_time();
         foodlog_battery(s_battery_pct, s_usb);
+        /* What lit the screen since the last row, and for how long: where the battery goes. */
+        pet_wakes_t wakes = {0};
+        if (board_lvgl_lock(200)) {
+            pet_app_take_wakes(&wakes);
+            board_lvgl_unlock();
+            if (!s_usb || wakes.touch || wakes.raise || wakes.button) {
+                foodlog_wakes(wakes.touch, wakes.raise, wakes.button, (int)wakes.lit_s);
+            }
+        }
     }
     foodlog_flush();
 }

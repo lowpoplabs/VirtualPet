@@ -4,6 +4,16 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.2 - 2026-11-22
+
+### Added
+- **Touch setting:** "off" stops a touch from lighting a dark screen, for carrying the pet in
+  a pocket, where cloth and bumps wake it again and again. The side button still lights it,
+  and a lit screen works as usual. An evening in a shirt pocket had drained the battery at
+  twice the usual rate while the scanning stayed the same.
+- **Dev log:** a `wakes` line beside each `battery` line counts what lit the screen since the
+  last one (touch, raise or button) and the seconds it stayed lit.
+
 ## 0.4.1 - 2026-11-21
 
 ### Fixed

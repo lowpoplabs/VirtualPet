@@ -148,6 +148,16 @@ void foodlog_motion(const char *state, int shake, int steps_per_min, int samples
     end();
 }
 
+void foodlog_wakes(int touch, int raise, int button, int lit_s)
+{
+    if (!begin()) {
+        return;
+    }
+    write_time();
+    fprintf(s_file, "wakes,screen,%d,,,touch=%d raise=%d button=%d\n", lit_s, touch, raise, button);
+    end();
+}
+
 void foodlog_place(const char *what, int habitat)
 {
     if (!begin()) {

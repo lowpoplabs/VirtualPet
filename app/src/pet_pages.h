@@ -52,6 +52,7 @@ typedef struct {
     bool dev_log;           /* for tuning: names are written to the log. Off unless turned on */
     uint8_t life_speed;     /* pet_life_speed_t: how long a whole life takes */
     bool raise_off;         /* on battery, turning the screen toward you does not light it */
+    bool touch_off;         /* a touch does not light a dark screen: only the side button, or a raise */
     bool text_large;        /* the pages are set in the next size of letters up */
     bool speed_fixed;       /* growth_speed is given in tuning.txt, which wins; never saved */
 } pet_settings_t;
@@ -76,6 +77,7 @@ typedef enum {
     SET_PAUSE,
     SET_LIFE_SPEED,
     SET_RAISE,
+    SET_TOUCH,
     SET_CARD,
     SET_DEV_LOG,
     SET_COUNT,
