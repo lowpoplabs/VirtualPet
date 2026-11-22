@@ -27,6 +27,7 @@ class MainActivity : Activity() {
 
     private lateinit var status: TextView
     private lateinit var wifiBox: CheckBox
+    private lateinit var namesBox: CheckBox
     private lateinit var startStop: Button
     private val handler = Handler(Looper.getMainLooper())
     private val refresh = object : Runnable {
@@ -52,7 +53,8 @@ class MainActivity : Activity() {
             text = "A test for Baandwidth Farms. It counts the Wi-Fi networks and Bluetooth devices " +
                 "this phone can hear, minute by minute, to find out how much still gets through " +
                 "with the screen off.\n\nIt only listens. It never connects to anything, and it " +
-                "writes down counts only: no names, no addresses, no location."
+                "writes down counts only: no names, no addresses, no location. Names are written " +
+                "only if you tick the last box below."
             textSize = 16f
             setPadding(0, pad / 2, 0, pad)
         })
@@ -64,6 +66,21 @@ class MainActivity : Activity() {
             isChecked = true
         }
         column.addView(wifiBox)
+
+        namesBox = CheckBox(this).apply {
+            text = "Names too, for tuning. Writes a second, private file with the name of each " +
+                "network and device the first time it is heard. Still no addresses and no " +
+                "location. Do not share that file; delete it when the tuning is done."
+            textSize = 16f
+            isChecked = false
+        }
+        column.addView(namesBox)
+
+        column.addView(Button(this).apply {
+            text = "Delete the names file"
+            textSize = 18f
+            setOnClickListener { deleteNames() }
+        })
 
         startStop = Button(this).apply {
             textSize = 18f
@@ -86,7 +103,11 @@ class MainActivity : Activity() {
 
         setContentView(ScrollView(this).apply { addView(column) })
 
-        // For testing over a cable: "am start ... --ez start true" presses the button, "--ez stop true" the other.
+        // For testing over a cable: "am start ... --ez start true" presses the button, "--ez stop true" the other,
+        // and "--ez names true" ticks the names box first.
+        if (intent.getBooleanExtra("names", false)) {
+            namesBox.isChecked = true
+        }
         if (intent.getBooleanExtra("stop", false)) {
             stop()
         } else if (intent.getBooleanExtra("start", false) && !ListenLog.running) {
@@ -108,11 +129,15 @@ class MainActivity : Activity() {
         val on = ListenLog.running
         startStop.text = if (on) "Stop listening" else "Start listening"
         wifiBox.isEnabled = !on
+        namesBox.isEnabled = !on
         val file = ListenLog.file(this)
         status.text = buildString {
             append(if (on) "Listening.\n" else "Not listening.\n")
             if (on) {
                 append("Rows written: ").append(ListenLog.rows).append('\n')
+                if (ListenLog.names) {
+                    append("Names written: ").append(ListenLog.deviceRows).append('\n')
+                }
                 if (ListenLog.lastRow.isNotEmpty()) {
                     append("Last full minute: ").append(ListenLog.lastRow).append('\n')
                 }
@@ -156,11 +181,26 @@ class MainActivity : Activity() {
         if (wifiBox.isChecked && !wifi) {
             Toast.makeText(this, "No Location permission: listening for Bluetooth only.", Toast.LENGTH_LONG).show()
         }
-        startForegroundService(Intent(this, ListenService::class.java).putExtra(ListenService.EXTRA_WIFI, wifi))
+        startForegroundService(
+            Intent(this, ListenService::class.java)
+                .putExtra(ListenService.EXTRA_WIFI, wifi)
+                .putExtra(ListenService.EXTRA_NAMES, namesBox.isChecked)
+        )
     }
 
     private fun stop() {
         stopService(Intent(this, ListenService::class.java))
+    }
+
+    private fun deleteNames() {
+        if (ListenLog.running && ListenLog.names) {
+            Toast.makeText(this, "Stop listening first.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val file = ListenLog.devicesFile(this)
+        val had = file.exists()
+        file.delete()
+        Toast.makeText(this, if (had) "The names file is deleted." else "There is no names file.", Toast.LENGTH_SHORT).show()
     }
 
     /* Copies the log into the phone's Downloads folder, where a file manager or a USB cable can reach it. */

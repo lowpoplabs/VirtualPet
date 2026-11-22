@@ -18,6 +18,13 @@ import java.util.Locale
  * A minute in which nothing at all reached the app has no row. A gap in
  * the time column is itself the finding: the phone was not letting the app
  * hear anything.
+ *
+ * A second file is written only when "names" is switched on, for tuning:
+ * one row the first time each network or device is heard after starting,
+ * with its name and what it says of itself, in the manner of the pet's own
+ * Dev log, so the two can be laid side by side. Addresses are still not
+ * written. That file holds real names and is private: it is not for
+ * sharing, and is to be deleted when the tuning is done.
  */
 object ListenLog {
     const val FILE_NAME = "pet-listen.csv"
@@ -25,8 +32,13 @@ object ListenLog {
         "time,screen,idle,battery,ble_filtered_adverts,ble_filtered_devices,ble_open_adverts," +
             "ble_open_devices,ble_named,wifi_events,wifi_fresh,wifi_networks,wifi_asked,wifi_ask_ok,note\n"
 
+    const val DEVICES_NAME = "pet-devices.csv"
+    private const val DEVICES_HEADER = "time,kind,screen,idle,rssi,name,detail\n"
+
     private val lock = Any()
     private var file: File? = null
+    private var devices: File? = null
+    private val met = HashSet<String>()
     private var app: Context? = null
     private var minute = -1L
     private var screenAtStart = false
@@ -49,10 +61,57 @@ object ListenLog {
     @Volatile var rows = 0; private set
     @Volatile var lastRow = ""; private set
     @Volatile var running = false
+    @Volatile var names = false; private set
+    @Volatile var deviceRows = 0; private set
 
     fun file(context: Context): File {
         val dir = context.getExternalFilesDir(null) ?: context.filesDir
         return File(dir, FILE_NAME)
+    }
+
+    fun devicesFile(context: Context): File {
+        val dir = context.getExternalFilesDir(null) ?: context.filesDir
+        return File(dir, DEVICES_NAME)
+    }
+
+    /** Turns the private names file on or off for this run. Call after open(). */
+    fun names(on: Boolean) = synchronized(lock) {
+        names = on
+        met.clear()
+        deviceRows = 0
+        devices = null
+        val c = app
+        if (on && c != null) {
+            val f = devicesFile(c)
+            if (!f.exists() || f.length() == 0L) {
+                f.writeText(DEVICES_HEADER)
+            }
+            devices = f
+        }
+    }
+
+    /**
+     * A network or device, written the first time it is heard in this run and only when names are on.
+     * `key` tells one from another (an address); it is kept in memory and never written.
+     */
+    fun device(kind: String, key: String, rssi: Int, name: String?, detail: String) = synchronized(lock) {
+        val f = devices ?: return@synchronized
+        if (!met.add("$kind $key")) {
+            return@synchronized
+        }
+        val c = app
+        val power = c?.getSystemService(PowerManager::class.java)
+        val screen = if (power?.isInteractive == true) "on" else "off"
+        val idle = if (power?.isDeviceIdleMode == true) 1 else 0
+        val clean = (name ?: "").replace('\n', ' ').replace('\r', ' ').replace("\"", "\"\"")
+        val row = stamp(System.currentTimeMillis()) + "," + kind + "," + screen + "," + idle + "," + rssi +
+            ",\"" + clean + "\"," + detail.replace(',', ';') + "\n"
+        try {
+            FileWriter(f, true).use { it.write(row) }
+            deviceRows++
+        } catch (e: Exception) {
+            // A full or missing disk must not stop the listening.
+        }
     }
 
     fun open(context: Context) = synchronized(lock) {

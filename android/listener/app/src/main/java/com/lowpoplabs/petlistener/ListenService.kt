@@ -63,6 +63,7 @@ class ListenService : Service() {
 
     companion object {
         const val EXTRA_WIFI = "wifi"
+        const val EXTRA_NAMES = "names"
         private const val CHANNEL = "listening"
         private const val WIFI_ASK_EVERY_MS = 2 * 60 * 1000L
         /* Android quietly weakens a scan left running for 30 minutes. */
@@ -143,7 +144,7 @@ class ListenService : Service() {
 
     private inner class Callback(val open: Boolean) : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            ListenLog.ble(result.device.address, result.scanRecord?.deviceName != null, open)
+            heard(result)
             if (!open) {
                 heartbeat()
             }
@@ -151,7 +152,15 @@ class ListenService : Service() {
 
         override fun onBatchScanResults(results: List<ScanResult>) {
             for (r in results) {
-                ListenLog.ble(r.device.address, r.scanRecord?.deviceName != null, open)
+                heard(r)
+            }
+        }
+
+        private fun heard(r: ScanResult) {
+            val record = r.scanRecord
+            ListenLog.ble(r.device.address, record?.deviceName != null, open)
+            if (ListenLog.names) {
+                ListenLog.device("ble", r.device.address, r.rssi, record?.deviceName, describe(r) + (if (open) " via=open" else " via=filter"))
             }
         }
 
@@ -160,12 +169,75 @@ class ListenService : Service() {
         }
     }
 
+    /*
+     * What a device says of itself, as the pet's Dev log writes it: its
+     * maker's number and the first byte of what the maker sent, then the
+     * first service it lists. "co=004C/10 u=FEF3".
+     */
+    private fun describe(r: ScanResult): String {
+        val record = r.scanRecord ?: return ""
+        val out = StringBuilder()
+        val makers = record.manufacturerSpecificData
+        if (makers != null && makers.size() > 0) {
+            val data = makers.valueAt(0)
+            out.append(String.format("co=%04X/", makers.keyAt(0)))
+            out.append(if (data != null && data.isNotEmpty()) String.format("%02X", data[0].toInt() and 0xFF) else "--")
+        }
+        var service = record.serviceUuids?.firstOrNull()
+        if (service == null) {
+            service = record.serviceData?.keys?.firstOrNull()
+        }
+        if (service != null) {
+            val text = service.uuid.toString().uppercase()
+            val short = text.endsWith("-0000-1000-8000-00805F9B34FB") && text.startsWith("0000")
+            if (out.isNotEmpty()) {
+                out.append(' ')
+            }
+            out.append("u=").append(if (short) text.substring(4, 8) else text.substring(0, 8) + "..")
+        }
+        return out.toString()
+    }
+
+    /* A network: how it is locked, its channel and its band. The pet hears the 2.4 band only. */
+    @Suppress("DEPRECATION")
+    private fun describe(n: android.net.wifi.ScanResult): String {
+        val caps = n.capabilities ?: ""
+        val lock = when {
+            caps.contains("SAE") && caps.contains("PSK") -> "wpa2/3"
+            caps.contains("SAE") -> "wpa3"
+            caps.contains("EAP") -> "eap"
+            caps.contains("PSK") -> "wpa2"
+            caps.contains("WEP") -> "wep"
+            caps.contains("OWE") -> "owe"
+            else -> "open"
+        }
+        val f = n.frequency
+        val band = when {
+            f < 3000 -> "2.4"
+            f < 5925 -> "5"
+            else -> "6"
+        }
+        val channel = when {
+            f == 2484 -> 14
+            f < 3000 -> (f - 2407) / 5
+            f < 5925 -> (f - 5000) / 5
+            else -> (f - 5950) / 5
+        }
+        return "sec=$lock ch=$channel band=$band"
+    }
+
     private val wifiResults = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val fresh = intent.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false)
             val count = try {
                 @SuppressLint("MissingPermission")
                 val results = wifi?.scanResults ?: emptyList()
+                if (ListenLog.names) {
+                    for (n in results) {
+                        @Suppress("DEPRECATION")
+                        ListenLog.device("wifi", n.BSSID ?: "", n.level, n.SSID, describe(n))
+                    }
+                }
                 results.map { it.BSSID }.toSet().size
             } catch (e: SecurityException) {
                 -1      // location permission taken away, or Location switched off
@@ -200,8 +272,11 @@ class ListenService : Service() {
         started = true
         ListenLog.open(this)
         ListenLog.running = true
+        val names = intent?.getBooleanExtra(EXTRA_NAMES, false) ?: false
+        ListenLog.names(names)
         ListenLog.note(
-            "started: wifi " + (if (wifiOn) "on" else "off") + "; android " + Build.VERSION.RELEASE +
+            "started: wifi " + (if (wifiOn) "on" else "off") + "; names " + (if (names) "on" else "off") +
+                "; android " + Build.VERSION.RELEASE +
                 "; " + Build.MANUFACTURER + " " + Build.MODEL
         )
         startBluetooth()
@@ -332,7 +407,10 @@ class ListenService : Service() {
         )
         return Notification.Builder(this, CHANNEL)
             .setContentTitle("Pet Listener is listening")
-            .setContentText("Counting nearby Wi-Fi and Bluetooth. Nothing is connected to.")
+            .setContentText(
+                if (ListenLog.names) "Writing down nearby Wi-Fi and Bluetooth, with names. Nothing is connected to."
+                else "Counting nearby Wi-Fi and Bluetooth. Nothing is connected to."
+            )
             .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
             .setContentIntent(tap)
             .setOngoing(true)
