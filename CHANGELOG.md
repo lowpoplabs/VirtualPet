@@ -4,6 +4,19 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.1 - 2026-11-21
+
+### Fixed
+- **Riding:** a 45 minute drive in a truck was mostly missed, because the truck shook the
+  watch like a walk, and an evening sat by a fire with no network in earshot was taken for
+  a ride. A ride is now told by networks going by: three scans while carried that hear
+  networks the pet has not met and few or none that it has. It lasts through five scans of
+  empty road. Shake and steps are no longer part of it.
+
+### Changed
+- **Dev log:** the `motion` line also says how many of the networks a scan heard were new
+  (`new=`), which is what the riding rule goes by.
+
 ## 0.4.0 - 2026-11-21
 
 ### Added

@@ -574,8 +574,7 @@ static void on_scan(const pet_scan_t *scan)
         /* The other task is still adding readings; a reading lost here does not matter. */
         int samples, shake, steps;
         pet_gait_take(&s_gait, &samples, &shake, &steps);
-        if (pet_ride_scan(&s_ride, with_motion.motion == 2, shake, steps, s_last_cycle.wifi_seen,
-                          s_last_cycle.wifi_best)) {
+        if (pet_ride_scan(&s_ride, with_motion.motion == 2, s_last_cycle.wifi_seen, s_last_cycle.wifi_new)) {
             with_motion.motion = 3;
         }
         const char *state = with_motion.motion == 3 ? "riding" : (with_motion.motion == 2 ? "carried" : "still");

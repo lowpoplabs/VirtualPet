@@ -142,8 +142,9 @@ void foodlog_motion(const char *state, int shake, int steps_per_min, int samples
         return;
     }
     write_time();
-    fprintf(s_file, "motion,%s,%d,%d,,n=%d heard=%d prints=%d names=%d best=%d\n", state, shake,
-            steps_per_min, samples, scan->wifi_seen, scan->prints, scan->matches, scan->wifi_best);
+    fprintf(s_file, "motion,%s,%d,%d,,n=%d heard=%d prints=%d names=%d best=%d new=%d\n", state, shake,
+            steps_per_min, samples, scan->wifi_seen, scan->prints, scan->matches, scan->wifi_best,
+            scan->wifi_new);
     end();
 }
 

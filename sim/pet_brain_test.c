@@ -92,32 +92,50 @@ int main(void)
     /* ---- Riding: told from walking and from sitting ---- */
     {
         pet_ride_t r = {0};
-        /* A drive: a small shake, a few false steps, faint networks or none. */
-        CHECK(!pet_ride_scan(&r, true, 43, 25, 3, -88), "one scan that looks like a ride is not one yet");
-        CHECK(pet_ride_scan(&r, true, 47, 28, 0, 0), "a second in a row is");
-        CHECK(pet_ride_scan(&r, true, 62, 40, 1, -89), "and it goes on");
-        CHECK(!pet_ride_scan(&r, true, 178, 89, 0, 0), "getting out and walking ends it");
-        CHECK(!pet_ride_scan(&r, true, 64, 35, 6, -83), "and getting back in starts the count again");
-        CHECK(pet_ride_scan(&r, true, 43, 19, 1, -85), "riding once more");
+        /* A drive: every scan hears networks it has never met, or nothing. */
+        CHECK(!pet_ride_scan(&r, true, 3, 3), "one scan of new networks is not a ride yet");
+        CHECK(!pet_ride_scan(&r, true, 1, 1), "nor two");
+        CHECK(pet_ride_scan(&r, true, 4, 3), "a third is");
+        CHECK(pet_ride_scan(&r, true, 0, 0), "an empty stretch of road does not end it");
+        CHECK(pet_ride_scan(&r, true, 2, 2), "and it goes on");
+        CHECK(!pet_ride_scan(&r, true, 14, 2), "arriving among networks that stay ends it");
+        CHECK(!pet_ride_scan(&r, true, 5, 5), "and setting off again starts the count again");
+        CHECK(!pet_ride_scan(&r, true, 1, 1), "two");
+        CHECK(pet_ride_scan(&r, true, 2, 2), "riding once more");
+        CHECK(!pet_ride_scan(&r, false, 0, 0), "put down, it is not riding");
+
+        r = (pet_ride_t){0};
+        for (int k = 0; k < 3; k++) {
+            pet_ride_scan(&r, true, 2, 2);
+        }
+        bool lasted = true;
+        for (int k = 0; k < 5; k++) {
+            lasted = lasted && pet_ride_scan(&r, true, 0, 0);
+        }
+        CHECK(lasted, "a ride lasts through five empty scans");
+        CHECK(!pet_ride_scan(&r, true, 0, 0), "but not for ever: parked in the country is not riding");
+        CHECK(!pet_ride_scan(&r, true, 1, 1), "and one new network afterwards does not bring it back");
 
         /* Things that are not rides, however long they last. */
         static const struct {
             bool carried;
-            int shake, steps, heard, best;
+            int first_heard, first_new;     /* the first scan there */
+            int heard, fresh;               /* every scan after it */
             const char *what;
         } NOT[] = {
-            {true, 130, 95, 4, -85, "a walk down a quiet street"},
-            {false, 3, 0, 5, -66, "lying on a desk"},
-            {true, 15, 8, 50, -76, "standing in a queue in a shop"},
-            {true, 40, 10, 6, -62, "on a wrist at a desk, its own network close by"},
-            {true, 45, 20, 55, -80, "ambling round a big shop"},
-            {true, 76, 59, 2, -90, "a slow walk"},
+            {true, 9, 9, 9, 1, "a walk down a street, the last houses still in earshot"},
+            {false, 5, 5, 5, 0, "lying on a desk"},
+            {true, 50, 50, 50, 0, "standing in a queue in a shop"},
+            {true, 54, 19, 54, 4, "ambling round a big shop"},
+            {true, 0, 0, 0, 0, "an evening by a fire with no network in earshot"},
+            {true, 1, 0, 1, 0, "the same faint network coming and going"},
+            {true, 8, 8, 8, 0, "walking into somewhere new and staying"},
         };
         for (size_t i = 0; i < sizeof(NOT) / sizeof(NOT[0]); i++) {
             pet_ride_t n = {0};
-            bool ride = false;
-            for (int k = 0; k < 5; k++) {
-                ride = ride || pet_ride_scan(&n, NOT[i].carried, NOT[i].shake, NOT[i].steps, NOT[i].heard, NOT[i].best);
+            bool ride = pet_ride_scan(&n, NOT[i].carried, NOT[i].first_heard, NOT[i].first_new);
+            for (int k = 0; k < 30; k++) {
+                ride = ride || pet_ride_scan(&n, NOT[i].carried, NOT[i].heard, NOT[i].fresh);
             }
             if (ride) {
                 printf("FAIL: taken for a ride: %s\n", NOT[i].what);

@@ -127,29 +127,39 @@ bool pet_motion_take_moved(pet_motion_t *m)
 /* ---- Riding ------------------------------------------------------------- */
 
 /*
- * From a morning's log with the device in a jacket pocket: a car seat
- * shook it 33 to 64 with 13 to 40 false steps a minute; walking 105 to 310
- * with 70 to 150 steps; lying still 2 to 4. On the road a scan heard at
- * most 9 networks, none better than -78 dBm.
+ * Shake and step rhythm cannot tell a ride. A car seat shook a jacket
+ * pocket 33 to 64 with 13 to 40 false steps a minute, but a truck on
+ * country roads shook a shirt pocket 46 to 134 with 32 to 116, which is a
+ * walk by those numbers, and an evening sat by a fire read like the car.
+ *
+ * What a ride has that nothing else does is networks going by: each scan
+ * hears ones it has never met and none of the ones before. On foot the
+ * last scan's networks are still in earshot, and sitting still they are
+ * all old friends. On the logged drives nearly every network heard was
+ * new; in a shop, at home and by the fire almost none were.
  */
-#define RIDE_SHAKE_MIN   25
-#define RIDE_SHAKE_MAX   90
-#define RIDE_STEPS_MAX   50
-#define RIDE_HEARD_MAX   12
-#define RIDE_WIFI_BEST   (-75)  /* a network stronger than this is a building, not a road */
-#define RIDE_SCANS       2
+#define RIDE_PASSES     3   /* scans of networks going by before it counts as a ride */
+#define RIDE_QUIET_MAX  5   /* scans in a row hearing nothing new or old that a ride lasts through */
 
-bool pet_ride_scan(pet_ride_t *r, bool carried, int shake, int steps_per_min, int wifi_heard, int wifi_best)
+bool pet_ride_scan(pet_ride_t *r, bool carried, int wifi_heard, int wifi_new)
 {
-    bool looks = carried && shake >= RIDE_SHAKE_MIN && shake <= RIDE_SHAKE_MAX &&
-                 steps_per_min < RIDE_STEPS_MAX && wifi_heard <= RIDE_HEARD_MAX &&
-                 (wifi_best == 0 || wifi_best < RIDE_WIFI_BEST);
-    if (!looks) {
+    int known = wifi_heard - wifi_new;
+    if (!carried || known > wifi_new) {
+        /* Lying still, or mostly among networks it already knows: somewhere, not on the way. */
         r->run = 0;
-    } else if (r->run < RIDE_SCANS) {
-        r->run++;
+        r->quiet = 0;
+    } else if (wifi_new > 0) {
+        if (r->run < RIDE_PASSES) {
+            r->run++;
+        }
+        r->quiet = 0;
+    } else if (r->quiet < RIDE_QUIET_MAX) {
+        /* An empty stretch of road says nothing either way. */
+        r->quiet++;
+    } else {
+        r->run = 0;
     }
-    return r->run >= RIDE_SCANS;
+    return r->run >= RIDE_PASSES;
 }
 
 /* ---- Gait --------------------------------------------------------------- */

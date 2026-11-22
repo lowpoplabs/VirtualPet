@@ -110,9 +110,10 @@ Two kinds of row are there for tuning, whichever way the setting is:
 
 - `motion`, after every scan: whether the device was carried, rode in a
   vehicle or lay still since the last one, the average shake (thousandths
-  of g between readings), steps a minute, and the number of readings. A
-  walk shows as a strong shake with a rhythm of steps, a drive as a small
-  steady shake with none, a desk as nothing.
+  of g between readings), steps a minute, the number of readings, and how
+  many networks the scan heard and how many of those were new. A walk
+  shows as a strong shake with a rhythm of steps and a desk as nothing; a
+  drive can shake like either, and shows as scans of new networks only.
 - `heard`: a network that was already eaten, heard at least 8 dB more
   strongly than before. A network is logged when eaten, which is usually
   from a distance, so this is what shows how close it really came. It
@@ -211,11 +212,13 @@ times a second) tells three things:
   being carried, every three minutes otherwise, and every five once it has
   lain still for ten minutes. Plugged in it scans every 30 seconds
   regardless.
-- **Riding.** A ride in a car, a bus or a train is told from a walk: a
-  small steady shake (25 to 90) with fewer than 50 steps a minute, while
-  the scan hears at most 12 networks and none stronger than -75 dBm, for
-  two scans in a row. A walk shakes harder, a desk hardly at all, and a
-  wrist at a desk has its own strong network close by. A day with a ride
+- **Riding.** A ride in a car, a bus or a train is told from a walk by
+  the networks going by: three scans while carried that hear networks the
+  pet has not met in the last day and few or none it has. On foot the
+  last scan's networks are still in earshot, and sitting anywhere hears
+  the same ones again. A ride lasts through five scans of empty road. The
+  shake is not used: a truck on a rough road shakes like a walk. A day
+  with a ride
   can say so in the journal. It does not change how often the pet scans.
 - **Off the grid** only counts while carried (see Places).
 

@@ -233,7 +233,7 @@ The motion sensor is combined with how fast nearby networks change. Battery mode
 | --- | --- | --- |
 | Still | No | Same every scan |
 | Walking | Yes | Changing slowly |
-| Riding | No | Changing quickly |
+| Riding | Either: a rough road shakes like a walk | All new, scan after scan |
 
 ### Both modes
 
