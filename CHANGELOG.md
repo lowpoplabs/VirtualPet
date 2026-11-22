@@ -4,6 +4,17 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.3 - 2026-11-22
+
+### Added
+- **Bluetooth cars:** the pet had eaten car hotspots over Wi-Fi but never a Bluetooth car in
+  four days, because a car's own stereo uses the older Bluetooth that the pet cannot hear.
+  It now knows what cars do send: a Tesla listening for its owner's phone, and things added
+  to a car (diagnostic dongles, dash cameras, wireless phone-link boxes, fitted stereos,
+  hands-free kits and tyre sensors).
+- **More car makers:** Mercedes, Dodge, Cadillac, Acura and Infiniti count as cars by name,
+  over Wi-Fi and Bluetooth.
+
 ## 0.4.2 - 2026-11-22
 
 ### Added

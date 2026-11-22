@@ -46,6 +46,20 @@ int main(void)
     CHECK(ble_name(NULL) == FOOD_BLE_UNKNOWN, "null name is crumbs");
     CHECK(ble_name("JBL Flip 6") == FOOD_BLE_SPEAKER, "jbl speaker");
     CHECK(ble_name("Ford SYNC") == FOOD_BLE_CAR, "ford sync");
+    /* What a low-energy scan really hears from cars: a Tesla's phone key, and things added to a car. */
+    CHECK(ble_name("S3f9a01c27be4d586C") == FOOD_BLE_CAR, "a tesla's phone key");
+    CHECK(ble_name("S00112233aabbccddR") == FOOD_BLE_CAR, "its rear aerial too");
+    CHECK(ble_name("S3f9a01c27be4d586X") != FOOD_BLE_CAR, "not with another last letter");
+    CHECK(ble_name("S3f9a01c27be4d58C") != FOOD_BLE_CAR, "nor a digit short");
+    CHECK(ble_name("Sz f9a01c27be4d586C") != FOOD_BLE_CAR, "nor with anything but digits inside");
+    CHECK(ble_name("Samsung Soundbar Q60C") != FOOD_BLE_CAR, "a soundbar that starts with S and ends in C is not a car");
+    CHECK(ble_name("OBDII") == FOOD_BLE_CAR, "a diagnostic dongle");
+    CHECK(ble_name("VIOFO_A129_4c1f") == FOOD_BLE_CAR, "a dash camera");
+    CHECK(ble_name("Garmin Dash Cam 57") == FOOD_BLE_CAR, "a dash camera, whoever made it");
+    CHECK(ble_name("AutoKit-88d2") == FOOD_BLE_CAR, "a wireless phone-link box");
+    CHECK(ble_name("TPMS_2A31F0") == FOOD_BLE_CAR, "a tyre sensor");
+    CHECK(wifi("MB Hotspot 41827", WIFI_SEC_SECURED) == FOOD_WIFI_CAR, "a mercedes hotspot");
+    CHECK(wifi("Dodge 7731", WIFI_SEC_SECURED) == FOOD_WIFI_CAR, "a dodge hotspot");
     CHECK(ble_name("AirPods Pro") == FOOD_BLE_EARBUDS, "airpods by name");
     CHECK(ble_name("Galaxy Watch6") == FOOD_BLE_WATCH, "watch by name");
     CHECK(ble_name("[TV] Samsung 7 Series") == FOOD_BLE_TV, "tv by name");

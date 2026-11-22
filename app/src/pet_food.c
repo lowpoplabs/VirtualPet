@@ -14,6 +14,7 @@ static const char *const WIFI_CAR_NAMES[] = {
     "OnStar", "Tesla", "Toyota", "Honda", "HondaLink", "Subaru", "Audi_MMI",
     "BMW", "My VW", "VW_WLAN", "Jeep", "Chrysler", "FordPass", "Hyundai",
     "Kia", "Mazda", "Volvo", "Porsche", "Lexus", "Nissan", "CarPlay",
+    "Mercedes", "MB Hotspot", "Dodge", "Cadillac", "Acura", "Infiniti",
     "Motive Hotspot",   /* fleet truck gateway */
     NULL,
 };
@@ -32,11 +33,26 @@ static const char *const WIFI_PRINTER_NAMES[] = {
     NULL,
 };
 
+/*
+ * A car's own stereo talks the older kind of Bluetooth, which a low-energy
+ * scan cannot hear, so the makers' names below seldom turn up: four days
+ * of logs had none in 4350 meals. What is heard from a car is mostly what
+ * has been added to it, which is the second half of the list, and a
+ * Tesla's phone key (see tesla_key).
+ */
 static const char *const BLE_CAR_NAMES[] = {
     "SYNC", "Uconnect", "MyLink", "Tesla", "Toyota", "Honda", "Subaru",
     "BMW", "Audi", "VW ", "Jeep", "Ford", "Chevrolet", "Hyundai", "Kia",
     "Mazda", "Volvo", "Lexus", "Nissan", "CAR MULTIMEDIA", "CarPlay",
-    "Handsfree", "Hands-Free",
+    "Handsfree", "Hands-Free", "Mercedes", "Dodge", "Cadillac", "Acura", "Infiniti",
+    /* Plugged into the diagnostic socket. */
+    "OBD", "ELM327", "vLinker", "Vgate", "Veepeak", "BlueDriver", "FIXD",
+    /* Dash cameras. */
+    "VIOFO", "70mai", "BlackVue", "Dash Cam", "DashCam", "Thinkware", "Nextbase", "Vantrue",
+    /* Boxes that make a wired phone link wireless, and fitted stereos. */
+    "Carlinkit", "AutoKit", "Ottocast", "AAWireless", "DMH-", "AVH-",
+    /* Hands-free kits, music senders and tyre sensors. */
+    "CarKit", "Car Kit", "BT-CAR", "TPMS",
     NULL,
 };
 static const char *const BLE_EARBUD_NAMES[] = {
@@ -194,6 +210,25 @@ food_type_t food_classify_wifi(const wifi_sighting_t *s)
     }
 }
 
+/*
+ * A Tesla listening for its owner's phone calls itself S, sixteen
+ * hexadecimal digits and one letter for which aerial is speaking (C, D, P
+ * or R). Nothing else is named like that; the logs had four, eaten as
+ * crumbs.
+ */
+static bool tesla_key(const char *name)
+{
+    if (!name || strlen(name) != 18 || name[0] != 'S' || !strchr("CDPR", name[17])) {
+        return false;
+    }
+    for (int i = 1; i <= 16; i++) {
+        if (!isxdigit((unsigned char)name[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 food_type_t food_classify_ble(const ble_sighting_t *s)
 {
     /*
@@ -227,7 +262,7 @@ food_type_t food_classify_ble(const ble_sighting_t *s)
     }
 
     /* Cars before speakers and earbuds: "Ford SYNC" must not lose to a brand overlap. */
-    if (name_in(s->name, food_names(FOOD_BLE_CAR)))     return FOOD_BLE_CAR;
+    if (name_in(s->name, food_names(FOOD_BLE_CAR)) || tesla_key(s->name)) return FOOD_BLE_CAR;
     if (name_in(s->name, food_names(FOOD_BLE_EARBUDS))) return FOOD_BLE_EARBUDS;
     if (name_in(s->name, food_names(FOOD_BLE_SPEAKER))) return FOOD_BLE_SPEAKER;
     if (name_in(s->name, food_names(FOOD_BLE_WATCH)))   return FOOD_BLE_WATCH;
