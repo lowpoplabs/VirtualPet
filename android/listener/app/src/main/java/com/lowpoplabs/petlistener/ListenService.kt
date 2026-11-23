@@ -114,6 +114,8 @@ class ListenService : Service() {
             0xFEED,     // Tile trackers
             0xFD6F,     // exposure notification, still sent by some phones
             0xFEAA,     // Eddystone beacons
+            0xFEF3,     // Google: Android phones nearby, which the pet eats as phones
+            0xFCF1,     // Google: also sent by Android things, crumbs to the pet
             0x180F,     // battery service
             0x180D,     // heart rate: watches and straps
             0x1812,     // keyboards, mice, remotes
