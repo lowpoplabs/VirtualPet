@@ -306,7 +306,23 @@ static void build_diet(void)
         para(body, "A full life lived.", COLOR_ACCENT);
     } else {
         if (days_needed > 0) {
-            snprintf(buf, sizeof(buf), "day %d of %d", days_done, days_needed);
+            int len = snprintf(buf, sizeof(buf), "day %d of %d", days_done, days_needed);
+            /*
+             * These are the pet's days. At any speed but the slowest they are
+             * shorter than ours, so say how long it really is.
+             */
+            uint32_t left = pet_growth_seconds_left(pet);
+            if (pet->tune.growth_speed > 1 && left > 0) {
+                if (left >= 36 * 3600) {
+                    snprintf(buf + len, sizeof(buf) - (size_t)len, ", about %d real days left",
+                             (int)((left + 43200) / 86400));
+                } else if (left > 3600) {
+                    snprintf(buf + len, sizeof(buf) - (size_t)len, ", about %d hours left",
+                             (int)((left + 1800) / 3600));
+                } else {
+                    snprintf(buf + len, sizeof(buf) - (size_t)len, ", under an hour left");
+                }
+            }
             para(body, buf, COLOR_DIM);
             bar(body, days_done, days_needed);
         }

@@ -221,6 +221,15 @@ void pet_growth_progress(const pet_t *pet, float *time_done, float *meals_done)
     }
 }
 
+uint32_t pet_growth_seconds_left(const pet_t *pet)
+{
+    float seconds;
+    uint32_t meals;
+    stage_needs(pet, &seconds, &meals);
+    float spent = (float)(pet->now - pet->stage_started);
+    return seconds > spent ? (uint32_t)(seconds - spent + 0.5f) : 0;
+}
+
 void pet_growth_counts(const pet_t *pet, int *days_done, int *days_needed,
                        int *meals_done, int *meals_needed)
 {

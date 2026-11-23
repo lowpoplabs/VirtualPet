@@ -4,6 +4,13 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.4 - 2026-11-22
+
+### Changed
+- **Diet screen:** "day 2 of 14" counts the pet's days, which on "medium" and "fast" Life
+  speed are shorter than ours, and nothing said so. At those speeds the line now adds the
+  real time left in the stage: "day 2 of 14, about 3 real days left".
+
 ## 0.4.3 - 2026-11-22
 
 ### Added

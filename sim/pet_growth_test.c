@@ -276,6 +276,11 @@ int main(void)
         pet_growth_counts(&p, &d1, &dn1, &m1, &mn1);
         pet_growth_progress(&p, &t1, &f1);
         CHECK(d1 == d0 && dn1 == dn0, "slow to fast: the same days done, of the same days");
+        {
+            uint32_t left = pet_growth_seconds_left(&p);
+            float want = (1 - t0) * p.tune.juvenile_days * DAY / 4;
+            CHECK(fabsf((float)left - want) < 60, "but a quarter of the real time left in the stage");
+        }
         CHECK(fabsf(t1 - t0) < 0.001f, "and the same share of the stage's time");
         CHECK(mn1 == (mn0 + 3) / 4 && fabsf(f1 - f0) <= 1.0f / (float)mn1,
               "a quarter of the meals to eat, with the same share eaten");
@@ -300,6 +305,7 @@ int main(void)
         pet_set_growth_speed(&egg, 4);
         pet_growth_counts(&egg, &d1, &dn1, &m1, &mn1);
         CHECK(m1 == 1 && mn1 == egg.tune.egg_meals, "an egg keeps its meals");
+        CHECK(pet_growth_seconds_left(&egg) == 0, "and has no time to wait out");
 
         /* The speed is in the save, so waking at another speed keeps the age as well. */
         pet_t q;

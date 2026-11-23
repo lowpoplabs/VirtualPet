@@ -384,6 +384,12 @@ const char *pet_group_name(pet_group_t group);
 void pet_set_growth_speed(pet_t *pet, float speed);
 
 /* How many days and meals the current stage asks for, and how many are done. */
+/*
+ * Seconds by the clock until the pet has spent long enough in its stage,
+ * at the speed it is living at. 0 once it has, or for an egg.
+ */
+uint32_t pet_growth_seconds_left(const pet_t *pet);
+
 void pet_growth_counts(const pet_t *pet, int *days_done, int *days_needed,
                        int *meals_done, int *meals_needed);
 

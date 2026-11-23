@@ -386,6 +386,8 @@ time. Changing it does not age the pet: its age and its share of the
 current stage stay as they were, and only time from then on runs at the
 new speed. The same holds when `growth_speed` in `tuning.txt` changes,
 because the save records the speed the pet was living at.
+The Diet screen counts in the pet's days ("day 2 of 14") at every speed, and on
+"medium" and "fast" adds the real time left in the stage.
 
 Preview of every form (hidden): with Dev log set to "names", hold the
 "Settings" title at the top of the settings screen. With Dev log off the
