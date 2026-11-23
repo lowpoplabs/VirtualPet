@@ -74,7 +74,7 @@ Drag across the window to swipe, as on the device:
 | Swipe right | Journal: today's entry, then the last seven days |
 | Swipe up | Menu: food-dex, badges, places, farm, pet card, settings |
 | Swipe down | Recent finds: the last eight meals (kinds of food only, no names) |
-| Hold the pet | Its card: name, stage, age, traits |
+| Hold the pet | Its card: name (and the button to change it), stage, age, traits |
 
 Swipe the opposite way, or tap the title, to go back. A screen left alone
 returns to the pet. With `--save pet.bin` the settings are kept in
@@ -397,7 +397,7 @@ line under it. It ends after the last one, or after a minute left alone.
 Only the drawing changes; the pet itself is untouched. Nothing on screen
 points to it, because the forms are meant to be a surprise.
 
-Settings: name, brightness, text size, sound, volume, quiet hours, clock, screen
+Settings: brightness, text size, sound, volume, quiet hours, clock, screen
 (stays on or sleeps), pause, life speed, wrist raise, touch, card and dev log, and "Start over" at
 the bottom, which after a three second hold replaces the pet and all it
 had with a new egg (settings stay). "Card: computer" lends the memory
@@ -417,6 +417,9 @@ From stage 7, the burn-in guard, the motion sensor and sleep on battery
 are in, and so are the settings files on the card for numbers and name
 lists. Stage 8, generations, is in too (see Retirement and the farm).
 Still to come: the remaining card files.
+The pet is named from its card, not from Settings: the pencil beside the
+name opens the keyboard.
+
 Favourite food: while the pet is still growing, a button on its card
 ("Favourite: none") lets the owner pick one food group: networks,
 hotspots, music, cars or phones. Food of that group counts five times

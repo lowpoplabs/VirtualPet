@@ -132,7 +132,7 @@ static pet_page_t parent_of(pet_page_t page)
     case PAGE_PLACES:
     case PAGE_SETTINGS: return PAGE_MENU;
     case PAGE_INFO:     return s_info_parent;
-    case PAGE_NAME:     return s_name_habitat >= 0 ? PAGE_PLACES : PAGE_SETTINGS;
+    case PAGE_NAME:     return s_name_habitat >= 0 ? PAGE_PLACES : PAGE_INFO;
     case PAGE_RESET:    return PAGE_SETTINGS;
     case PAGE_RETIRE:   return PAGE_FARM;
     default:            return PAGE_HOME;
@@ -977,14 +977,27 @@ static void favourite_cb(lv_event_t *e)
     lv_label_set_text(s_favourite_label, buf);
 }
 
+static void name_cb(lv_event_t *e)
+{
+    LV_UNUSED(e);
+    s_name_habitat = -1;
+    pet_pages_open(PAGE_NAME);
+}
+
 static void build_info(void)
 {
     const pet_t *pet = s_host->pet;
     lv_obj_t *body = page_begin(LV_SYMBOL_LEFT "  Pet", true);
     char buf[64];
 
-    text(body, pet->name[0] ? pet->name : "(no name yet)", pet->name[0] ? COLOR_ACCENT : COLOR_DIM,
-         true);
+    /* Its name, and the button that names it: the pet's own, so here and not in Settings. */
+    lv_obj_t *named = row(body, 44);
+    lv_obj_t *name = text(named, pet->name[0] ? pet->name : "(no name yet)",
+                          pet->name[0] ? COLOR_ACCENT : COLOR_DIM, true);
+    lv_obj_set_width(name, s_body_w - 108);
+    lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
+    lv_obj_align(name, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_align(button(named, 96, 38, LV_SYMBOL_EDIT, name_cb, NULL), LV_ALIGN_RIGHT_MID, -8, 0);
     /* What the bell on the home screen is about. */
     const char *craving = pet_craving_text(pet);
     if (craving[0]) {
@@ -1058,7 +1071,6 @@ static void build_info(void)
 /* ---- Settings ----------------------------------------------------------- */
 
 static lv_obj_t *s_value[SET_COUNT];
-static lv_obj_t *s_name_value;
 
 static const char *const SETTING_LABEL[SET_COUNT] = {
     [SET_BRIGHTNESS] = "Brightness", [SET_TEXT] = "Text size",
@@ -1127,13 +1139,6 @@ static void setting_cb(lv_event_t *e)
     settings_refresh();
 }
 
-static void name_cb(lv_event_t *e)
-{
-    LV_UNUSED(e);
-    s_name_habitat = -1;
-    pet_pages_open(PAGE_NAME);
-}
-
 static void reset_cb(lv_event_t *e)
 {
     LV_UNUSED(e);
@@ -1152,12 +1157,7 @@ static void build_settings(void)
     lv_obj_t *body = page_begin(LV_SYMBOL_LEFT "  Settings", true);
     memset(s_value, 0, sizeof(s_value));
 
-    lv_obj_t *line = setting_row(body, "Name");
-    const pet_t *pet = s_host->pet;
-    s_name_value = text(line, pet->name[0] ? pet->name : "none", COLOR_ACCENT, false);
-    lv_obj_align(s_name_value, LV_ALIGN_RIGHT_MID, -108, 0);
-    lv_obj_align(button(line, 96, 38, LV_SYMBOL_EDIT, name_cb, NULL), LV_ALIGN_RIGHT_MID, 0, 0);
-
+    lv_obj_t *line;
     for (int i = 0; i < SET_COUNT; i++) {
         if ((i == SET_HOUR || i == SET_MINUTE) && !s_host->can_set_clock) {
             continue;
@@ -1331,7 +1331,7 @@ static void name_done_cb(lv_event_t *e)
         }
         s_host->renamed();
     }
-    pet_pages_open(place ? PAGE_PLACES : PAGE_SETTINGS);
+    pet_pages_open(place ? PAGE_PLACES : PAGE_INFO);
 }
 
 static void build_name(void)

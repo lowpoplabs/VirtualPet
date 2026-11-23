@@ -4,6 +4,14 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.5 - 2026-11-23
+
+### Changed
+- **Naming the pet** has moved from Settings to the pet's own card (hold the pet): the
+  pencil beside its name opens the keyboard.
+- **Manual:** the seven animals are now named, with what to raise each one on and how to
+  get a different one next time. What they look like is still left to find out.
+
 ## 0.4.4 - 2026-11-22
 
 ### Changed
