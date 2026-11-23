@@ -62,6 +62,9 @@ typedef struct {
     uint16_t appearance;
     const uint16_t *uuids16;     /* service UUIDs and service-data UUIDs */
     size_t num_uuids16;
+    bool has_svc_byte;           /* one service's data was heard: whose, and */
+    uint16_t svc_uuid;           /* its first byte, which for some services */
+    uint8_t svc_byte;            /* says what kind of thing is speaking */
 } ble_sighting_t;
 
 food_type_t food_classify_wifi(const wifi_sighting_t *s);

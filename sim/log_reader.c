@@ -122,6 +122,11 @@ static food_type_t reclassify(const char *kind, const char *name, const char *de
     for (p = strstr(detail, "u="); p && n < 8; p = strstr(p + 2, "u=")) {
         if (sscanf(p, "u=%4x", &v) == 1) {
             uuids[n++] = (uint16_t)v;
+            if (p[6] == '/' && sscanf(p + 7, "%2x", &t) == 1) {
+                s.has_svc_byte = true;
+                s.svc_uuid = (uint16_t)v;
+                s.svc_byte = (uint8_t)t;
+            }
         }
     }
     s.uuids16 = uuids;

@@ -229,6 +229,9 @@ typedef struct {
     uint16_t appearance;
     uint16_t uuids[BLE_MAX_UUIDS];
     uint8_t num_uuids;
+    bool has_svc_byte;      /* the first byte of one service's data: the kind of beacon */
+    uint16_t svc_uuid;
+    uint8_t svc_byte;
 } ble_heard_t;
 
 static ble_heard_t s_heard[BLE_MAX_PER_SCAN];
@@ -265,6 +268,9 @@ static void eat_heard(const ble_heard_t *h)
         .appearance = h->appearance,
         .uuids16 = h->uuids,
         .num_uuids16 = h->num_uuids,
+        .has_svc_byte = h->has_svc_byte,
+        .svc_uuid = h->svc_uuid,
+        .svc_byte = h->svc_byte,
     };
     ev.type = food_classify_ble(&s);
 
@@ -280,6 +286,9 @@ static void eat_heard(const ble_heard_t *h)
     }
     for (int i = 0; i < h->num_uuids && len < (int)sizeof(ev.detail) - 8; i++) {
         len += snprintf(ev.detail + len, sizeof(ev.detail) - len, " u=%04X", h->uuids[i]);
+        if (h->has_svc_byte && h->uuids[i] == h->svc_uuid && len < (int)sizeof(ev.detail) - 4) {
+            len += snprintf(ev.detail + len, sizeof(ev.detail) - len, "/%02X", h->svc_byte);
+        }
     }
 
     s_cycle.ble_new++;
@@ -330,7 +339,14 @@ static void handle_advert(const struct ble_gap_disc_desc *d)
         add_uuid(h, f.uuids16[i].value);
     }
     if (f.svc_data_uuid16 && f.svc_data_uuid16_len >= 2) {
-        add_uuid(h, (uint16_t)(f.svc_data_uuid16[0] | (f.svc_data_uuid16[1] << 8)));
+        uint16_t svc = (uint16_t)(f.svc_data_uuid16[0] | (f.svc_data_uuid16[1] << 8));
+        add_uuid(h, svc);
+        /* Only the byte that says what kind of beacon it is; nothing that says which one. */
+        if (f.svc_data_uuid16_len >= 3 && (!h->has_svc_byte || svc == 0xFEAA)) {
+            h->has_svc_byte = true;
+            h->svc_uuid = svc;
+            h->svc_byte = f.svc_data_uuid16[2];
+        }
     }
 
     if (h == &overflow) {

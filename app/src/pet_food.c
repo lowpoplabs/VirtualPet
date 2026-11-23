@@ -127,7 +127,9 @@ void food_names_set(food_type_t type, const char *const *list)
 #define APPLE_TYPE_AIRDROP  0x05
 #define APPLE_TYPE_AIRPODS  0x07   /* proximity pairing: AirPods and Beats */
 #define APPLE_TYPE_AIRPLAY  0x09   /* AirPlay target: Apple TV, HomePod */
+#define APPLE_TYPE_WATCH    0x0B   /* a watch looking for its phone */
 #define APPLE_TYPE_HANDOFF  0x0C
+#define APPLE_TYPE_HOTSPOT  0x0E   /* a phone or tablet offering its hotspot */
 #define APPLE_TYPE_ACTION   0x0F   /* nearby action */
 #define APPLE_TYPE_NEARBY   0x10   /* nearby info */
 #define APPLE_TYPE_FINDMY   0x12   /* offline finding: AirTag and Find My items */
@@ -135,7 +137,30 @@ void food_names_set(food_type_t type, const char *const *list)
 /* 16-bit service UUIDs used by tracker tags. */
 static const uint16_t TRACKER_UUIDS[] = {
     0xFEED, 0xFEEC,   /* Tile */
-    0xFD5A,           /* Samsung SmartTag */
+    0xFD5A, 0xFD59,   /* Samsung SmartTag, and one not yet set up */
+    0xFE33, 0xFE65,   /* Chipolo */
+};
+
+/*
+ * The service every maker's tag sends once it is away from its owner. Earbuds
+ * left behind send it too, and those are still earbuds, so it is asked after
+ * Apple's own message types and not with the tags above.
+ */
+#define UUID_AWAY          0xFCB2
+
+/*
+ * Google's Eddystone service carries beacons of several kinds; its data
+ * begins with the kind. 0x40 and 0x41 are a tag (or earbuds) on the Find
+ * Hub network; the rest are shop and museum beacons, which stay crumbs.
+ */
+#define UUID_EDDYSTONE     0xFEAA
+#define EDDYSTONE_FINDHUB(b) ((b) == 0x40 || (b) == 0x41)
+
+/* LE Audio: the newer earbuds, headphones and hearing aids, which often send no name. */
+static const uint16_t LE_AUDIO_UUIDS[] = {
+    0x184E,           /* audio stream control */
+    0x1853,           /* common audio */
+    0x1854,           /* hearing access */
 };
 
 /* Other 16-bit service UUIDs that give the device away. */
@@ -243,11 +268,16 @@ food_type_t food_classify_ble(const ble_sighting_t *s)
             }
         }
     }
+    if (s->has_svc_byte && s->svc_uuid == UUID_EDDYSTONE && EDDYSTONE_FINDHUB(s->svc_byte)) {
+        return FOOD_BLE_TRACKER;
+    }
     bool apple = s->has_company && s->company_id == COMPANY_APPLE;
     uint8_t apple_type = (apple && s->mfg_payload_len > 0) ? s->mfg_payload[0] : 0;
     if (apple_type == APPLE_TYPE_FINDMY)  return FOOD_BLE_TRACKER;
     if (apple_type == APPLE_TYPE_AIRPODS) return FOOD_BLE_EARBUDS;
     if (apple_type == APPLE_TYPE_AIRPLAY) return FOOD_BLE_TV;
+    if (apple_type == APPLE_TYPE_WATCH)   return FOOD_BLE_WATCH;
+    if (has_uuid(s, UUID_AWAY))           return FOOD_BLE_TRACKER;
 
     if (s->has_appearance) {
         switch (APPEARANCE_CATEGORY(s->appearance)) {
@@ -275,6 +305,11 @@ food_type_t food_classify_ble(const ble_sighting_t *s)
      */
     if (has_uuid(s, UUID_SONOS) || has_uuid(s, UUID_BOSE)) return FOOD_BLE_SPEAKER;
     if (has_uuid(s, UUID_FAST_PAIR))                       return FOOD_BLE_EARBUDS;
+    for (size_t i = 0; i < sizeof(LE_AUDIO_UUIDS) / sizeof(LE_AUDIO_UUIDS[0]); i++) {
+        if (has_uuid(s, LE_AUDIO_UUIDS[i])) {
+            return FOOD_BLE_EARBUDS;
+        }
+    }
     if (s->has_company) {
         switch (s->company_id) {
         case COMPANY_SONOS:
@@ -295,6 +330,7 @@ food_type_t food_classify_ble(const ble_sighting_t *s)
         switch (apple_type) {
         case APPLE_TYPE_AIRDROP:
         case APPLE_TYPE_HANDOFF:
+        case APPLE_TYPE_HOTSPOT:
         case APPLE_TYPE_ACTION:
         case APPLE_TYPE_NEARBY: return FOOD_BLE_PHONE;
         default:                return FOOD_BLE_UNKNOWN;   /* beacons, AirPrint... */

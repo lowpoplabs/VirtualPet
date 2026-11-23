@@ -4,6 +4,18 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.7 - 2026-11-23
+
+### Added
+- **More trackers.** Chipolo tags, Samsung tags not yet set up, tags on Google's Find Hub
+  network, and any maker's tag that is away from its owner are now eaten as trackers
+  and no longer as crumbs. Earbuds left behind are still earbuds.
+- **Apple watches and phones** are told apart a little better: a watch looking for its
+  phone is a watch, and a phone offering its hotspot is a phone.
+- **LE Audio earbuds,** headphones and hearing aids that send no name are eaten as earbuds.
+- **Dev log:** a service's data now shows the byte that says what kind of beacon it is,
+  as `u=FEAA/40`. It says nothing about which beacon.
+
 ## 0.4.6 - 2026-11-23
 
 ### Changed

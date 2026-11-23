@@ -97,6 +97,46 @@ int main(void)
         static const uint16_t tile[] = {0x180F, 0xFEED};
         ble_sighting_t s = {.name = "Tile", .uuids16 = tile, .num_uuids16 = 2};
         CHECK(food_classify_ble(&s) == FOOD_BLE_TRACKER, "tile by service id");
+
+        static const uint16_t chipolo[] = {0xFE33}, away[] = {0xFCB2}, newtag[] = {0xFD59}, eddy[] = {0xFEAA};
+        ble_sighting_t c = {.uuids16 = chipolo, .num_uuids16 = 1};
+        CHECK(food_classify_ble(&c) == FOOD_BLE_TRACKER, "chipolo by service id");
+        ble_sighting_t d = {.has_company = true, .company_id = 0x004C, .uuids16 = away, .num_uuids16 = 1};
+        CHECK(food_classify_ble(&d) == FOOD_BLE_TRACKER, "a tag away from its owner, whoever made it");
+        static const uint8_t pods[] = {0x07, 0x19};
+        d.mfg_payload = pods;
+        d.mfg_payload_len = 2;
+        CHECK(food_classify_ble(&d) == FOOD_BLE_EARBUDS, "but earbuds left behind are still earbuds");
+        ble_sighting_t n = {.uuids16 = newtag, .num_uuids16 = 1};
+        CHECK(food_classify_ble(&n) == FOOD_BLE_TRACKER, "a samsung tag not yet set up");
+
+        /* Eddystone: a Find Hub tag is a tracker; a shop's beacon is still crumbs. */
+        ble_sighting_t hub = {.uuids16 = eddy, .num_uuids16 = 1, .has_svc_byte = true, .svc_uuid = 0xFEAA, .svc_byte = 0x40};
+        CHECK(food_classify_ble(&hub) == FOOD_BLE_TRACKER, "find hub tag = tracker");
+        hub.svc_byte = 0x41;
+        CHECK(food_classify_ble(&hub) == FOOD_BLE_TRACKER, "and one that has been away a while");
+        hub.svc_byte = 0x10;
+        CHECK(food_classify_ble(&hub) == FOOD_BLE_UNKNOWN, "an eddystone web address beacon is crumbs");
+        hub.has_svc_byte = false;
+        CHECK(food_classify_ble(&hub) == FOOD_BLE_UNKNOWN, "eddystone with no data heard is crumbs");
+        ble_sighting_t other = {.has_svc_byte = true, .svc_uuid = 0xFE2C, .svc_byte = 0x40};
+        CHECK(food_classify_ble(&other) != FOOD_BLE_TRACKER, "the same byte under another service means nothing");
+
+        /* Apple: a watch looking for its phone, and a phone offering its hotspot. */
+        static const uint8_t magic[] = {0x0B, 0x04}, tether[] = {0x0E, 0x06};
+        ble_sighting_t aw = {.has_company = true, .company_id = 0x004C, .mfg_payload = magic, .mfg_payload_len = 2};
+        CHECK(food_classify_ble(&aw) == FOOD_BLE_WATCH, "apple watch by its message");
+        aw.mfg_payload = tether;
+        CHECK(food_classify_ble(&aw) == FOOD_BLE_PHONE, "apple hotspot offer = phone");
+
+        /* LE Audio earbuds that send no name. */
+        static const uint16_t leaudio[] = {0x184E}, hearing[] = {0x1854};
+        ble_sighting_t le = {.uuids16 = leaudio, .num_uuids16 = 1};
+        CHECK(food_classify_ble(&le) == FOOD_BLE_EARBUDS, "le audio = earbuds");
+        le.uuids16 = hearing;
+        CHECK(food_classify_ble(&le) == FOOD_BLE_EARBUDS, "hearing aids count as earbuds");
+        ble_sighting_t les = {.name = "JBL Flip 6", .uuids16 = leaudio, .num_uuids16 = 1};
+        CHECK(food_classify_ble(&les) == FOOD_BLE_SPEAKER, "a speaker's name beats le audio");
     }
 
     /* Fixes from the day 1 log */
