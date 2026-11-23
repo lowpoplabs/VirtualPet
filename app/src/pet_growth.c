@@ -10,7 +10,7 @@ static const pet_group_t GROUP_OF[FOOD_TYPE_COUNT] = {
     [FOOD_WIFI_SECURED] = GROUP_NETWORKS, [FOOD_WIFI_WPA3] = GROUP_NETWORKS,
     [FOOD_WIFI_HIDDEN] = GROUP_NETWORKS,  [FOOD_WIFI_PRINTER] = GROUP_NETWORKS,
     [FOOD_WIFI_OPEN] = GROUP_SCAVENGE,    [FOOD_WIFI_HOTSPOT] = GROUP_SCAVENGE,
-    [FOOD_WIFI_CAR] = GROUP_SCAVENGE,
+    [FOOD_WIFI_CAR] = GROUP_CARS,         /* a car is a car, whichever radio it is heard on */
     [FOOD_BLE_SPEAKER] = GROUP_MUSIC,     [FOOD_BLE_EARBUDS] = GROUP_MUSIC,
     [FOOD_BLE_CAR] = GROUP_CARS,
     [FOOD_BLE_PHONE] = GROUP_GADGETS,     [FOOD_BLE_WATCH] = GROUP_GADGETS,
@@ -70,8 +70,9 @@ static void form_points(const pet_t *pet, float g[GROUP_COUNT])
 }
 
 /*
- * Wi-Fi or Bluetooth. Odds and ends (crumbs, trackers, TVs) count on the
- * Bluetooth side. A food eaten again in one day is worth half each time,
+ * Wi-Fi or Bluetooth, but for cars: a car's Wi-Fi counts with the cars, on
+ * the Hunter's side, so that all car food leads to the Racer. Odds and ends
+ * (crumbs, trackers, TVs) count on the Bluetooth side. A food eaten again in one day is worth half each time,
  * so a day gives about twice a food's value however much of it there is,
  * and without them the Bluetooth side has too few kinds to keep up.
  */

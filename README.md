@@ -420,6 +420,10 @@ Still to come: the remaining card files.
 The pet is named from its card, not from Settings: the pencil beside the
 name opens the keyboard.
 
+Car Wi-Fi counts with the cars, not with the hotspots: it is in the cars
+group on the diet chart, weighs on the Hunter's side of the Grazer or
+Hunter choice, and leads to the Racer along with cars heard over Bluetooth.
+
 Favourite food: while the pet is still growing, a button on its card
 ("Favourite: none") lets the owner pick one food group: networks,
 hotspots, music, cars or phones. Food of that group counts five times

@@ -4,6 +4,16 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.6 - 2026-11-23
+
+### Changed
+- **Car Wi-Fi is car food.** A car's hotspot used to count with the phone hotspots, toward
+  the Scavenger, while only cars heard over Bluetooth led to the Racer; out on the road
+  most car food is Wi-Fi. It is now in the cars group: it shows there on the diet chart,
+  weighs on the Hunter's side as a hatchling, and leads to the Racer. A living pet's past
+  car meals count the new way at once; days already on the diet chart stay as drawn.
+  The "cars" favourite now covers it, and "hotspots" no longer does.
+
 ## 0.4.5 - 2026-11-23
 
 ### Changed

@@ -142,9 +142,9 @@ typedef enum {
 /* The food groups that evolution weighs against each other. */
 typedef enum {
     GROUP_NETWORKS,     /* secured, WPA3, hidden, printers */
-    GROUP_SCAVENGE,     /* open networks, hotspots, car hotspots */
+    GROUP_SCAVENGE,     /* open networks, hotspots */
     GROUP_MUSIC,        /* speakers, earbuds */
-    GROUP_CARS,         /* cars over Bluetooth */
+    GROUP_CARS,         /* cars, over Bluetooth or by their Wi-Fi */
     GROUP_GADGETS,      /* phones, watches */
     GROUP_OTHER,        /* crumbs, trackers, TVs: food, but no form of their own */
     GROUP_COUNT,

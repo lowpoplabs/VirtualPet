@@ -155,6 +155,13 @@ int main(void)
         const food_type_t cars[] = {FOOD_BLE_CAR, FOOD_BLE_UNKNOWN, FOOD_BLE_TRACKER};
         CHECK(raise(cars, 3, 12, NULL) == FORM_RACER, "cars: Racer");
 
+        /* A car's Wi-Fi is car food too: it leads to the Hunter, and on to the Racer. */
+        CHECK(pet_food_group(FOOD_WIFI_CAR) == GROUP_CARS, "a car hotspot is in the cars group");
+        const food_type_t drive[] = {FOOD_WIFI_CAR, FOOD_BLE_UNKNOWN, FOOD_BLE_TRACKER};
+        pet_form_t drive_branch;
+        CHECK(raise(drive, 3, 12, &drive_branch) == FORM_RACER && drive_branch == FORM_HUNTER,
+              "car hotspots alone: a Hunter, then a Racer");
+
         const food_type_t gadgets[] = {FOOD_BLE_PHONE, FOOD_BLE_WATCH, FOOD_BLE_UNKNOWN};
         CHECK(raise(gadgets, 3, 12, NULL) == FORM_GLOWBUG, "phones and watches: Glowbug");
 

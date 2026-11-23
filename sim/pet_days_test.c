@@ -206,6 +206,9 @@ int main(void)
         meal(&p, FOOD_WIFI_HIDDEN, 5);
         CHECK(pet_has_badge(&p, BADGE_LUCKY_FIND), "a hidden network worth 5 is");
 
+        /* A car's Wi-Fi is car food, so the hotspots group needs a meal of its own. */
+        meal(&p, FOOD_WIFI_HOTSPOT, 2);
+        CHECK(!pet_has_badge(&p, BADGE_BALANCED_DAY), "four food groups are not five");
         meal(&p, FOOD_BLE_PHONE, 1);
         CHECK(pet_has_badge(&p, BADGE_BALANCED_DAY), "five food groups in a day");
         CHECK(pet_has_badge(&p, BADGE_HATCHED), "hatched along the way");
