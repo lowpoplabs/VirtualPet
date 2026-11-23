@@ -180,7 +180,9 @@ class ListenService : Service() {
     /*
      * What a device says of itself, as the pet's Dev log writes it: its
      * maker's number and the first byte of what the maker sent, then the
-     * first service it lists. "co=004C/10 u=FEF3".
+     * first service it lists. "co=004C/10 u=FEF3". Where the service sent
+     * data, its first byte follows, "u=FEAA/40": for an Eddystone beacon
+     * that is the kind of beacon, not which one.
      */
     private fun describe(r: ScanResult): String {
         val record = r.scanRecord ?: return ""
@@ -191,9 +193,14 @@ class ListenService : Service() {
             out.append(String.format("co=%04X/", makers.keyAt(0)))
             out.append(if (data != null && data.isNotEmpty()) String.format("%02X", data[0].toInt() and 0xFF) else "--")
         }
-        var service = record.serviceUuids?.firstOrNull()
+        // Eddystone first when it sent data, as the pet does; then the first service listed.
+        val sent = record.serviceData
+        var service = sent?.keys?.firstOrNull { it.uuid.toString().startsWith("0000feaa", ignoreCase = true) }
         if (service == null) {
-            service = record.serviceData?.keys?.firstOrNull()
+            service = record.serviceUuids?.firstOrNull()
+        }
+        if (service == null) {
+            service = sent?.keys?.firstOrNull()
         }
         if (service != null) {
             val text = service.uuid.toString().uppercase()
@@ -202,6 +209,10 @@ class ListenService : Service() {
                 out.append(' ')
             }
             out.append("u=").append(if (short) text.substring(4, 8) else text.substring(0, 8) + "..")
+            val data = sent?.get(service)
+            if (data != null && data.isNotEmpty()) {
+                out.append(String.format("/%02X", data[0].toInt() and 0xFF))
+            }
         }
         return out.toString()
     }
