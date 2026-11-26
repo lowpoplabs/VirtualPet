@@ -37,9 +37,9 @@ jobs:
           test -f unpacked/installer/manifest.json
           test -f unpacked/installer/firmware/virtualpet.bin
           cat unpacked/installer/manifest.json
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: unpacked/installer
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
