@@ -72,8 +72,18 @@ static void note_surroundings(const wifi_ap_record_t *ap, const char *name, food
     /* Phones and cars move about; only things bolted down mark a place. */
     bool fixed = type == FOOD_WIFI_SECURED || type == FOOD_WIFI_WPA3 || type == FOOD_WIFI_OPEN ||
                  type == FOOD_WIFI_PRINTER || type == FOOD_WIFI_HIDDEN;
+    uint16_t print = fixed ? place_print(s_cb.place_salt, ap->bssid, sizeof(ap->bssid)) : 0;
+    /* For telling a ride, however faint: by the roadside they mostly are. */
+    if (fixed && s_cycle.ride_prints < RIDE_PRINTS) {
+        bool have = false;
+        for (int i = 0; i < s_cycle.ride_prints; i++) {
+            have = have || s_cycle.ride_print[i] == print;
+        }
+        if (!have) {
+            s_cycle.ride_print[s_cycle.ride_prints++] = print;
+        }
+    }
     if (fixed && ap->rssi >= PLACE_PRINT_MIN_RSSI && s_scan.prints < SCAN_PRINTS_MAX) {
-        uint16_t print = place_print(s_cb.place_salt, ap->bssid, sizeof(ap->bssid));
         bool have = false;
         for (int i = 0; i < s_scan.prints; i++) {
             have = have || s_scan.print[i] == print;

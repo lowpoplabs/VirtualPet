@@ -6,6 +6,7 @@
 #define SCAN_PLUGGED_S   30
 #define SCAN_BATTERY_S   180
 #define SCAN_MOVING_S    60     /* on battery and being carried: there is new food about */
+#define SCAN_PASSING_S   30     /* and it is going by: a minute is a long way in a car */
 #define SCAN_STILL_S     300    /* on battery and lying still: the same food as last time */
 #define SCAN_NIGHT_S     900
 #define SCAN_LOW_S       600
@@ -36,8 +37,9 @@ pet_power_plan_t pet_power_plan(const pet_power_in_t *in)
         p.idle_pct = in->carry ? 0 : (in->night ? NIGHT_DIM_PCT : DIM_PCT);
     } else {
         /* Wrist mode: a short burst every few minutes, radio and screen off in between. */
-        p.scan_period_s = in->motion == PET_MOTION_MOVING ? SCAN_MOVING_S
-                          : (in->motion == PET_MOTION_STILL ? SCAN_STILL_S : SCAN_BATTERY_S);
+        p.scan_period_s = in->motion == PET_MOTION_PASSING ? SCAN_PASSING_S
+                          : (in->motion == PET_MOTION_MOVING ? SCAN_MOVING_S
+                          : (in->motion == PET_MOTION_STILL ? SCAN_STILL_S : SCAN_BATTERY_S));
         p.radio_off_between = true;
         p.idle_pct = 0;
 

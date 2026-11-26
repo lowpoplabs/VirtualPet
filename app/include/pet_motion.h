@@ -19,6 +19,7 @@ typedef enum {
     PET_MOTION_UNKNOWN,     /* no sensor, or neither of the below */
     PET_MOTION_STILL,       /* has not been carried for ten minutes */
     PET_MOTION_MOVING,      /* carried within the last two minutes */
+    PET_MOTION_PASSING,     /* carried, and the networks are going by: a ride, or the start of one */
 } pet_motion_state_t;
 
 typedef struct {
@@ -83,23 +84,38 @@ void pet_gait_take(pet_gait_t *g, int *samples, int *shake, int *steps_per_min);
  * Riding: in a car, a bus or a train, as against walking or sitting. Fed
  * once per scan with what the scan heard.
  *
- * A ride is networks going by: scan after scan hears ones it has not met
- * and none of the ones before. Walking keeps the last scan's networks in
- * earshot, and sitting anywhere hears the same ones over and over. Three
- * such scans make a ride, and it lasts through a few scans of empty road.
- * The shake of the thing is no help: a truck shakes like a walk.
+ * A ride is networks going by: scan after scan hears ones that were not
+ * there a moment ago. Walking keeps the last scan's networks in earshot,
+ * and sitting anywhere hears the same ones over and over. Three such scans
+ * make a ride, and it lasts through a few scans of empty road. The shake of
+ * the thing is no help: a truck shakes like a walk.
+ *
+ * "Not there a moment ago" is asked of the last few scans, not of everything
+ * the pet has ever met: a road it drives every day is still a ride. For that
+ * it remembers the scrambled prints of the last few scans' networks, here
+ * and nowhere else; they are never saved.
  */
+#define RIDE_PRINTS 24  /* networks remembered from one scan, the nearest ones */
+#define RIDE_SCANS  6   /* scans remembered: one more than an empty stretch a ride lasts through */
+
 typedef struct {
-    uint8_t run;    /* scans that heard only new networks, since it last stayed put */
+    uint8_t run;    /* scans whose networks had mostly just come into earshot, since it last stayed put */
     uint8_t quiet;  /* scans in a row since then that heard nothing at all */
+    uint8_t at;     /* where the next scan's prints go */
+    uint8_t count[RIDE_SCANS];
+    uint16_t recent[RIDE_SCANS][RIDE_PRINTS];
 } pet_ride_t;
 
 /*
- * carried: it moved at all since the last scan. wifi_heard is how many
- * networks the scan heard, and wifi_new how many of those it had not met
- * in the last day. Returns true while it is riding.
+ * carried: it moved at all since the last scan. prints are the scrambled
+ * prints of the fixed networks the scan heard, strongest first, and heard
+ * how many. *same, if asked for, gets how many of them were in one of the
+ * last few scans. Returns true while it is riding.
  */
-bool pet_ride_scan(pet_ride_t *r, bool carried, int wifi_heard, int wifi_new);
+bool pet_ride_scan(pet_ride_t *r, bool carried, const uint16_t *prints, int heard, int *same);
+
+/* True from the first scan of networks going by: worth looking again soon. */
+bool pet_ride_passing(const pet_ride_t *r);
 
 #ifdef __cplusplus
 }

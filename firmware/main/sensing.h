@@ -19,6 +19,7 @@
 
 #include "esp_err.h"
 #include "pet_food.h"
+#include "pet_motion.h"
 #include "pet_places.h"
 
 typedef struct {
@@ -37,6 +38,10 @@ typedef struct {
     int prints;      /* fixed networks strong enough to say where the pet is */
     int matches;     /* place names among them */
     int wifi_new;    /* of those, eaten (not on the seen list) */
+    /* For telling a ride: the fixed networks heard, nearest first, as scrambled prints. */
+    uint16_t ride_print[RIDE_PRINTS];
+    int ride_prints;
+    int wifi_same;   /* of those, how many were in one of the last few scans; filled in by the listener */
     int ble_seen;
     int ble_new;
 } sensing_cycle_t;

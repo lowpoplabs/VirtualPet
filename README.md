@@ -221,13 +221,20 @@ times a second) tells three things:
   lain still for ten minutes. Plugged in it scans every 30 seconds
   regardless.
 - **Riding.** A ride in a car, a bus or a train is told from a walk by
-  the networks going by: three scans while carried that hear networks the
-  pet has not met in the last day and few or none it has. On foot the
+  the networks going by: three scans while carried in which most of the
+  networks heard were not in any of the last six scans. On foot the
   last scan's networks are still in earshot, and sitting anywhere hears
-  the same ones again. A ride lasts through five scans of empty road. The
-  shake is not used: a truck on a rough road shakes like a walk. A day
-  with a ride
-  can say so in the journal. It does not change how often the pet scans.
+  the same ones again. It asks only about the last few scans, not about
+  everything the pet has met, so a road it drives every day is still a
+  ride. For this it keeps the scrambled prints of up to 24 fixed networks
+  from each of the last six scans, in memory only, never saved. A ride
+  lasts through five scans of empty road. The shake is not used: a truck
+  on a rough road shakes like a walk. A day with a ride can say so in the
+  journal. From the first scan of networks going by, and for as long as
+  they keep going by, the pet scans every 30 seconds on battery instead
+  of every minute; a low battery and quiet hours still come first. The
+  Dev log's motion rows carry `fixed=` and `same=`: the fixed networks
+  heard, and how many of them were in the last few scans.
 - **Off the grid** only counts while carried (see Places).
 
 Once a minute the pet's area and the two strips shift a few pixels along a

@@ -263,7 +263,12 @@ static uint32_t now_ms(void)
 
 static pet_motion_state_t hal_motion(void)
 {
-    return s_motion_ok ? pet_motion_state(&s_motion, now_ms()) : PET_MOTION_UNKNOWN;
+    if (!s_motion_ok) {
+        return PET_MOTION_UNKNOWN;
+    }
+    pet_motion_state_t state = pet_motion_state(&s_motion, now_ms());
+    /* Networks going by: look again sooner (see pet_power.c). */
+    return state == PET_MOTION_MOVING && pet_ride_passing(&s_ride) ? PET_MOTION_PASSING : state;
 }
 
 /*
@@ -574,7 +579,8 @@ static void on_scan(const pet_scan_t *scan)
         /* The other task is still adding readings; a reading lost here does not matter. */
         int samples, shake, steps;
         pet_gait_take(&s_gait, &samples, &shake, &steps);
-        if (pet_ride_scan(&s_ride, with_motion.motion == 2, s_last_cycle.wifi_seen, s_last_cycle.wifi_new)) {
+        if (pet_ride_scan(&s_ride, with_motion.motion == 2, s_last_cycle.ride_print, s_last_cycle.ride_prints,
+                          &s_last_cycle.wifi_same)) {
             with_motion.motion = 3;
         }
         const char *state = with_motion.motion == 3 ? "riding" : (with_motion.motion == 2 ? "carried" : "still");

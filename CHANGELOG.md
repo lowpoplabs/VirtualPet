@@ -4,6 +4,19 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.8 - 2026-11-25
+
+### Changed
+- **Riding** is now told by comparing each scan with the last few, not with every network
+  the pet has ever met. Two short drives from home had read as "carried" throughout,
+  because the roads near home were full of networks it already knew; a pet would have
+  seen fewer rides the longer it lived. The prints it compares are scrambled and kept in
+  memory only.
+- **On a ride the pet scans every 30 seconds** on battery instead of every minute,
+  starting from the first scan in which the networks have changed. A minute is a long way
+  in a car. A low battery and quiet hours still come first.
+- **Dev log:** motion rows add `fixed=` and `same=`.
+
 ## 0.4.7 - 2026-11-23
 
 ### Added

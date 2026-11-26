@@ -48,6 +48,30 @@ static pet_action_t broken_picker(const pet_senses_t *s, uint32_t random)
     return (pet_action_t)99;
 }
 
+/*
+ * One scan for the riding rule: `heard` networks, of which `fresh` were not
+ * in the scan before. The rest are carried over from that scan.
+ */
+static uint16_t s_ride_last[RIDE_PRINTS];
+static int s_ride_last_n;
+static uint16_t s_ride_next = 1;
+
+static bool ride(pet_ride_t *r, bool carried, int heard, int fresh)
+{
+    uint16_t now[RIDE_PRINTS];
+    if (heard > RIDE_PRINTS) {
+        fresh = fresh * RIDE_PRINTS / heard;
+        heard = RIDE_PRINTS;
+    }
+    int kept = heard - fresh < s_ride_last_n ? heard - fresh : s_ride_last_n;
+    for (int i = 0; i < heard; i++) {
+        now[i] = i < kept ? s_ride_last[i] : s_ride_next++;
+    }
+    memcpy(s_ride_last, now, sizeof(now));
+    s_ride_last_n = heard;
+    return pet_ride_scan(r, carried, now, heard, NULL);
+}
+
 int main(void)
 {
     int n[ACT_COUNT], m[ACT_COUNT];
@@ -92,29 +116,82 @@ int main(void)
     /* ---- Riding: told from walking and from sitting ---- */
     {
         pet_ride_t r = {0};
-        /* A drive: every scan hears networks it has never met, or nothing. */
-        CHECK(!pet_ride_scan(&r, true, 3, 3), "one scan of new networks is not a ride yet");
-        CHECK(!pet_ride_scan(&r, true, 1, 1), "nor two");
-        CHECK(pet_ride_scan(&r, true, 4, 3), "a third is");
-        CHECK(pet_ride_scan(&r, true, 0, 0), "an empty stretch of road does not end it");
-        CHECK(pet_ride_scan(&r, true, 2, 2), "and it goes on");
-        CHECK(!pet_ride_scan(&r, true, 14, 2), "arriving among networks that stay ends it");
-        CHECK(!pet_ride_scan(&r, true, 5, 5), "and setting off again starts the count again");
-        CHECK(!pet_ride_scan(&r, true, 1, 1), "two");
-        CHECK(pet_ride_scan(&r, true, 2, 2), "riding once more");
-        CHECK(!pet_ride_scan(&r, false, 0, 0), "put down, it is not riding");
+        /* A drive: every scan hears networks that were not there a moment ago, or nothing. */
+        CHECK(!ride(&r, true, 3, 3), "one scan of networks going by is not a ride yet");
+        CHECK(pet_ride_passing(&r), "but it is worth looking again soon");
+        CHECK(!ride(&r, true, 1, 1), "nor two");
+        CHECK(ride(&r, true, 4, 3), "a third is");
+        CHECK(ride(&r, true, 0, 0), "an empty stretch of road does not end it");
+        CHECK(ride(&r, true, 2, 2), "and it goes on");
+        CHECK(ride(&r, true, 14, 14), "pulling up somewhere, its networks are all just arrived");
+        CHECK(!ride(&r, true, 14, 0), "but they stay, and that ends it");
+        CHECK(!pet_ride_passing(&r), "nor is there any hurry now");
+        CHECK(!ride(&r, true, 5, 5), "setting off again starts the count again");
+        CHECK(!ride(&r, true, 1, 1), "two");
+        CHECK(ride(&r, true, 2, 2), "riding once more");
+        CHECK(!ride(&r, false, 0, 0), "put down, it is not riding");
 
         r = (pet_ride_t){0};
         for (int k = 0; k < 3; k++) {
-            pet_ride_scan(&r, true, 2, 2);
+            ride(&r, true, 2, 2);
         }
         bool lasted = true;
         for (int k = 0; k < 5; k++) {
-            lasted = lasted && pet_ride_scan(&r, true, 0, 0);
+            lasted = lasted && ride(&r, true, 0, 0);
         }
         CHECK(lasted, "a ride lasts through five empty scans");
-        CHECK(!pet_ride_scan(&r, true, 0, 0), "but not for ever: parked in the country is not riding");
-        CHECK(!pet_ride_scan(&r, true, 1, 1), "and one new network afterwards does not bring it back");
+        CHECK(!ride(&r, true, 0, 0), "but not for ever: parked in the country is not riding");
+        CHECK(!ride(&r, true, 1, 1), "and one new network afterwards does not bring it back");
+
+        /*
+         * The road it drives every day. Every network on it is an old friend,
+         * and it is a ride all the same: out along three streets, a stop, and
+         * back along the same three.
+         */
+        {
+            static const uint16_t street[3][3] = {{101, 102, 103}, {201, 202, 203}, {301, 302, 303}};
+            static const uint16_t shop[4] = {901, 902, 903, 904};
+            int same = -1;
+            r = (pet_ride_t){0};
+            pet_ride_scan(&r, true, street[0], 3, NULL);
+            pet_ride_scan(&r, true, street[1], 3, NULL);
+            CHECK(pet_ride_scan(&r, true, street[2], 3, &same) && same == 0, "the way out is a ride");
+            bool stopped = true;
+            for (int k = 0; k < 20; k++) {
+                bool riding = pet_ride_scan(&r, true, shop, 4, &same);
+                stopped = stopped && (k == 0 || (!riding && same == 4));
+            }
+            CHECK(stopped, "the stop is not");
+            pet_ride_scan(&r, true, street[2], 3, &same);
+            CHECK(same == 0, "the street outside is no longer in mind");
+            pet_ride_scan(&r, true, street[1], 3, NULL);
+            CHECK(pet_ride_scan(&r, true, street[0], 3, NULL), "and the way home, past networks it knows, is a ride");
+        }
+
+        /* One faint network that comes and goes all evening is not three networks going by. */
+        {
+            static const uint16_t faint[1] = {77};
+            r = (pet_ride_t){0};
+            bool rode = false;
+            for (int k = 0; k < 40; k++) {
+                rode = rode || pet_ride_scan(&r, true, faint, k % 3 == 0 ? 1 : 0, NULL);
+            }
+            CHECK(!rode, "a faint network coming and going is not a ride");
+        }
+
+        /* More networks than it can hold in mind: the nearest are what count. */
+        {
+            uint16_t crowd[40];
+            for (int i = 0; i < 40; i++) {
+                crowd[i] = (uint16_t)(500 + i);
+            }
+            int same = -1;
+            r = (pet_ride_t){0};
+            pet_ride_scan(&r, true, crowd, 40, NULL);
+            pet_ride_scan(&r, true, crowd, 40, &same);
+            CHECK(same == RIDE_PRINTS, "a crowd of networks is remembered by its nearest");
+            CHECK(!pet_ride_scan(&r, true, NULL, 0, &same) && same == 0, "and a scan that heard nothing is taken as such");
+        }
 
         /* Things that are not rides, however long they last. */
         static const struct {
@@ -124,6 +201,7 @@ int main(void)
             const char *what;
         } NOT[] = {
             {true, 9, 9, 9, 1, "a walk down a street, the last houses still in earshot"},
+            {true, 9, 9, 9, 4, "a brisk walk, nearly half the street new each time"},
             {false, 5, 5, 5, 0, "lying on a desk"},
             {true, 50, 50, 50, 0, "standing in a queue in a shop"},
             {true, 54, 19, 54, 4, "ambling round a big shop"},
@@ -133,11 +211,11 @@ int main(void)
         };
         for (size_t i = 0; i < sizeof(NOT) / sizeof(NOT[0]); i++) {
             pet_ride_t n = {0};
-            bool ride = pet_ride_scan(&n, NOT[i].carried, NOT[i].first_heard, NOT[i].first_new);
+            bool rode = ride(&n, NOT[i].carried, NOT[i].first_heard, NOT[i].first_new);
             for (int k = 0; k < 30; k++) {
-                ride = ride || pet_ride_scan(&n, NOT[i].carried, NOT[i].heard, NOT[i].fresh);
+                rode = rode || ride(&n, NOT[i].carried, NOT[i].heard, NOT[i].fresh);
             }
-            if (ride) {
+            if (rode) {
                 printf("FAIL: taken for a ride: %s\n", NOT[i].what);
                 failures++;
             }
@@ -436,6 +514,14 @@ int main(void)
         CHECK(pet_power_plan(&in).scan_period_s == 180, "on battery, motion unknown: every 3 minutes");
         in.motion = PET_MOTION_MOVING;
         CHECK(pet_power_plan(&in).scan_period_s == 60, "carried: every minute");
+        in.motion = PET_MOTION_PASSING;
+        CHECK(pet_power_plan(&in).scan_period_s == 30, "networks going by: every half minute");
+        in.battery_pct = 10;
+        CHECK(pet_power_plan(&in).scan_period_s == 600, "but a low battery still comes first");
+        in.battery_pct = 80;
+        in.night = true;
+        CHECK(pet_power_plan(&in).scan_period_s == 900, "and so do quiet hours");
+        in.night = false;
         in.motion = PET_MOTION_STILL;
         CHECK(pet_power_plan(&in).scan_period_s == 300, "lying still: every 5 minutes");
         in.usb = true;

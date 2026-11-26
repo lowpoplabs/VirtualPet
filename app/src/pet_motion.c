@@ -133,22 +133,58 @@ bool pet_motion_take_moved(pet_motion_t *m)
  * walk by those numbers, and an evening sat by a fire read like the car.
  *
  * What a ride has that nothing else does is networks going by: each scan
- * hears ones it has never met and none of the ones before. On foot the
- * last scan's networks are still in earshot, and sitting still they are
- * all old friends. On the logged drives nearly every network heard was
- * new; in a shop, at home and by the fire almost none were.
+ * hears ones that were not there a moment ago and none of the ones before.
+ * On foot the last scan's networks are still in earshot, and sitting still
+ * they are the same every time.
+ *
+ * It used to ask whether the pet had ever met them, and that failed on the
+ * roads it knows: two short drives from home read as carried throughout,
+ * each scan among old friends. So it asks only about the last few scans.
  */
 #define RIDE_PASSES     3   /* scans of networks going by before it counts as a ride */
-#define RIDE_QUIET_MAX  5   /* scans in a row hearing nothing new or old that a ride lasts through */
+#define RIDE_QUIET_MAX  5   /* scans in a row hearing nothing that a ride lasts through */
 
-bool pet_ride_scan(pet_ride_t *r, bool carried, int wifi_heard, int wifi_new)
+static bool ride_met(const pet_ride_t *r, uint16_t print)
 {
-    int known = wifi_heard - wifi_new;
-    if (!carried || known > wifi_new) {
-        /* Lying still, or mostly among networks it already knows: somewhere, not on the way. */
+    for (int s = 0; s < RIDE_SCANS; s++) {
+        for (int i = 0; i < r->count[s]; i++) {
+            if (r->recent[s][i] == print) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool pet_ride_scan(pet_ride_t *r, bool carried, const uint16_t *prints, int heard, int *same)
+{
+    if (!prints || heard < 0) {
+        heard = 0;
+    }
+    if (heard > RIDE_PRINTS) {
+        heard = RIDE_PRINTS;
+    }
+    int stayed = 0;
+    for (int i = 0; i < heard; i++) {
+        stayed += ride_met(r, prints[i]);
+    }
+    int came = heard - stayed;
+    if (same) {
+        *same = stayed;
+    }
+    /* This scan takes the place of the oldest one remembered. */
+    r->at %= RIDE_SCANS;
+    r->count[r->at] = (uint8_t)heard;
+    if (heard) {
+        memcpy(r->recent[r->at], prints, (size_t)heard * sizeof(uint16_t));
+    }
+    r->at = (uint8_t)((r->at + 1) % RIDE_SCANS);
+
+    if (!carried || stayed > came) {
+        /* Lying still, or mostly among the networks of a moment ago: somewhere, not on the way. */
         r->run = 0;
         r->quiet = 0;
-    } else if (wifi_new > 0) {
+    } else if (came > 0) {
         if (r->run < RIDE_PASSES) {
             r->run++;
         }
@@ -160,6 +196,11 @@ bool pet_ride_scan(pet_ride_t *r, bool carried, int wifi_heard, int wifi_new)
         r->run = 0;
     }
     return r->run >= RIDE_PASSES;
+}
+
+bool pet_ride_passing(const pet_ride_t *r)
+{
+    return r->run > 0;
 }
 
 /* ---- Gait --------------------------------------------------------------- */
