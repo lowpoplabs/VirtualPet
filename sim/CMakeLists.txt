@@ -60,6 +60,10 @@ target_link_libraries(pet_places_test PRIVATE pet_app)
 add_executable(pet_hearing_test pet_hearing_test.c)
 target_link_libraries(pet_hearing_test PRIVATE pet_app)
 
+# The whole app on a display that draws to nowhere: the pet-only screen and pet_ui.h.
+add_executable(pet_ui_test pet_ui_test.c)
+target_link_libraries(pet_ui_test PRIVATE pet_app lvgl)
+
 add_executable(pet_config_test pet_config_test.c)
 target_link_libraries(pet_config_test PRIVATE pet_app)
 

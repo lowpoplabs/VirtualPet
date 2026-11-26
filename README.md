@@ -58,6 +58,7 @@ The first build downloads SDL2 and LVGL.
 .\sim\build\virtualpet_sim.exe --sound rare                  # eating sounds: off, rare or all (default)
 .\sim\build\virtualpet_sim.exe --battery 80                  # as if on battery: screen goes dark after 15 s
 .\sim\build\virtualpet_sim.exe --board square
+.\sim\build\virtualpet_sim.exe --pet-only                    # as a phone runs it: the pet's square alone
 .\sim\build\virtualpet_sim.exe --page diet                   # open a screen straight away
 .\sim\build\virtualpet_sim.exe --screenshot frame.bmp
 ```
@@ -132,6 +133,9 @@ Built by `sim\build.ps1`, run on the desktop:
 - `sim\build\pet_hearing_test.exe` checks what is done with a network or a
   device once it is heard: eaten once a day, the prints and place names
   that say where the pet is, and the counts of one scan.
+- `sim\build\pet_ui_test.exe` checks what a device with screens of its own
+  uses (`app/include/pet_ui.h`): the pet-only screen, the notices, the
+  words the pages work out and what their buttons do.
 - `sim\build\pet_core_test.exe` checks the pet core: stomach, mood, eating
   rules, cravings and the underfed state.
 - `sim\build\pet_brain_test.exe` checks the action picker, personality

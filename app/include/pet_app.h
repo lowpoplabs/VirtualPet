@@ -33,6 +33,27 @@ typedef enum {
 
 struct pet_sound;   /* pet_sound_t, in pet_sound.h */
 
+/* What the app tells a platform that draws its own screens (notice in pet_hal_t). */
+typedef enum {
+    /*
+     * The line under the pet, as it appears. text is what it says.
+     * FIND is a meal: the kind of food and, when there is one, the name
+     * that was heard. It is for showing now and keeping nowhere.
+     * NEWS is everything else that line says: hatching and growing, a new
+     * badge, a place, ready to retire, goodbye, a settings file ignored.
+     */
+    PET_NOTICE_FIND,
+    PET_NOTICE_NEWS,
+    /* The line's few seconds are up and nothing has replaced it. text is NULL. */
+    PET_NOTICE_LINE_GONE,
+    /*
+     * Something the pages show has changed (a meal, a scan, a setting, a
+     * new day, the mood, the stomach, a name): read again what is on
+     * screen. text is NULL. At most one for each tick of the pet's timer.
+     */
+    PET_NOTICE_CHANGED,
+} pet_notice_t;
+
 /* Platform services the app needs. Each platform fills this in once. */
 typedef struct {
     /* 0-100, or -1 when unknown. */
@@ -115,6 +136,24 @@ typedef struct {
      */
     size_t (*read_file)(const char *name, char *buf, size_t cap);
     bool (*write_file)(const char *name, const char *text, size_t len);
+    /*
+     * The platform draws its own screens around the pet (pet_ui.h). The app
+     * then builds the pet's square and nothing else: no clock and battery
+     * strip, no stomach, mood or bell, no line under the pet, no pages, no
+     * swipes, no card on a long press, and no burn-in drift. A tap still
+     * pats the pet. The display should be PET_AREA_SIZE square. It also
+     * hides "Text size", which sizes the pages.
+     */
+    bool pet_only;
+    /*
+     * Told what the app would have shown on its own screen, and when to
+     * read again (see pet_notice_t). Called with the LVGL lock held, from
+     * inside the app: from its timers, from pet_app_start() itself, and
+     * from the calls that cause it. Copy text if it is wanted afterwards,
+     * and do not call back into the app from it. NULL = not wanted. It
+     * works with or without pet_only.
+     */
+    void (*notice)(pet_notice_t what, const char *text);
 } pet_hal_t;
 
 /*

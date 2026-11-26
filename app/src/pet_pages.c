@@ -205,19 +205,6 @@ static lv_obj_t *page_begin(const char *title, bool scrolls)
 
 #define CHART_H 140
 
-static const pet_day_t *day_record(const pet_t *pet, uint32_t day)
-{
-    if (pet->today.day == day) {
-        return &pet->today;
-    }
-    for (int i = 0; i < PET_HISTORY_DAYS; i++) {
-        if (pet->history[i].day == day) {
-            return &pet->history[i];
-        }
-    }
-    return NULL;
-}
-
 static uint32_t day_total(const pet_day_t *d)
 {
     uint32_t total = 0;
@@ -234,22 +221,19 @@ static void build_diet(void)
     char buf[96];
 
     /* The week: one stacked column per day, today on the right. */
-    uint32_t today = pet->today.day, biggest = 1, week[GROUP_COUNT] = {0};
+    uint32_t today = pet->today.day, biggest = 1;
     for (int i = 0; i < 7; i++) {
-        const pet_day_t *d = day_record(pet, today - 6 + (uint32_t)i);
+        const pet_day_t *d = pet_app_day(today - 6 + (uint32_t)i);
         uint32_t total = day_total(d);
         if (total > biggest) {
             biggest = total;
-        }
-        for (int g = 0; d && g < GROUP_COUNT; g++) {
-            week[g] += d->group_pts[g];
         }
     }
     lv_obj_t *chart = row(body, CHART_H + tx(24));
     int32_t col_w = s_body_w / 7;
     for (int i = 0; i < 7; i++) {
         uint32_t day = today - 6 + (uint32_t)i;
-        const pet_day_t *d = day_record(pet, day);
+        const pet_day_t *d = pet_app_day(day);
         int32_t x = col_w * i + (col_w - 26) / 2, y = CHART_H;
         for (int g = 0; d && g < GROUP_COUNT; g++) {
             if (d->group_pts[g] == 0) {
@@ -283,15 +267,7 @@ static void build_diet(void)
         lv_obj_align(filled(item, 10, 10, GROUP_COLOR[g], 5), LV_ALIGN_LEFT_MID, 0, 0);
         lv_obj_align(text(item, pet_group_name((pet_group_t)g), COLOR_TEXT, false), LV_ALIGN_LEFT_MID, 16, 0);
     }
-    int len = 0;
-    buf[0] = '\0';
-    for (int g = 0; g < GROUP_OTHER; g++) {
-        if (week[g] == 0 && len < (int)sizeof(buf)) {
-            len += snprintf(buf + len, sizeof(buf) - (size_t)len, "%s%s", len ? ", " : "none this week: ",
-                            pet_group_name((pet_group_t)g));
-        }
-    }
-    if (len) {
+    if (pet_app_line(PET_LINE_MISSING, buf, sizeof(buf))) {
         para(body, buf, COLOR_WARN);
     }
 
@@ -299,39 +275,23 @@ static void build_diet(void)
     gap(body, 6);
     int days_done, days_needed, meals_done, meals_needed;
     pet_growth_counts(pet, &days_done, &days_needed, &meals_done, &meals_needed);
-    snprintf(buf, sizeof(buf), "%s%s%s", pet_stage_name(pet->stage),
-             pet->form != FORM_NONE ? " " : "", pet_form_name(pet->form));
+    pet_app_line(PET_LINE_STAGE, buf, sizeof(buf));
     text(body, buf, COLOR_TEXT, true);
     if (pet->stage == STAGE_ADULT && pet->retire_ready) {
-        para(body, "A full life lived.", COLOR_ACCENT);
+        pet_app_line(PET_LINE_GROWTH_DAYS, buf, sizeof(buf));
+        para(body, buf, COLOR_ACCENT);
     } else {
         if (days_needed > 0) {
-            int len = snprintf(buf, sizeof(buf), "day %d of %d", days_done, days_needed);
-            /*
-             * These are the pet's days. At any speed but the slowest they are
-             * shorter than ours, so say how long it really is.
-             */
-            uint32_t left = pet_growth_seconds_left(pet);
-            if (pet->tune.growth_speed > 1 && left > 0) {
-                if (left >= 36 * 3600) {
-                    snprintf(buf + len, sizeof(buf) - (size_t)len, ", about %d real days left",
-                             (int)((left + 43200) / 86400));
-                } else if (left > 3600) {
-                    snprintf(buf + len, sizeof(buf) - (size_t)len, ", about %d hours left",
-                             (int)((left + 1800) / 3600));
-                } else {
-                    snprintf(buf + len, sizeof(buf) - (size_t)len, ", under an hour left");
-                }
-            }
+            pet_app_line(PET_LINE_GROWTH_DAYS, buf, sizeof(buf));
             para(body, buf, COLOR_DIM);
             bar(body, days_done, days_needed);
         }
-        snprintf(buf, sizeof(buf), "meals %d of %d", meals_done, meals_needed);
+        pet_app_line(PET_LINE_GROWTH_MEALS, buf, sizeof(buf));
         para(body, buf, COLOR_DIM);
         bar(body, meals_done, meals_needed);
     }
     if (pet->stage < STAGE_ADULT) {
-        snprintf(buf, sizeof(buf), "drifting toward %s", pet_form_name(pet_form_leaning(pet)));
+        pet_app_line(PET_LINE_LEANING, buf, sizeof(buf));
         para(body, buf, COLOR_ACCENT);
     }
 }
@@ -385,13 +345,7 @@ static void build_recent(void)
                  (int)(r->time % 3600 / 60));
         lv_obj_align(text(line, buf, COLOR_DIM, false), LV_ALIGN_LEFT_MID, 0, 0);
 
-        int len = snprintf(buf, sizeof(buf), "%s", food_label(r->best));
-        if (r->foods > 1) {
-            len += snprintf(buf + len, sizeof(buf) - (size_t)len, "  +%d", r->foods - 1);
-        }
-        if ((r->new_food || r->craving) && len < (int)sizeof(buf)) {
-            snprintf(buf + len, sizeof(buf) - (size_t)len, "  %s", r->new_food ? "new!" : "craving");
-        }
+        pet_app_recent_text(i, buf, sizeof(buf));
         lv_obj_align(text(line, buf, r->new_food ? COLOR_ACCENT : COLOR_TEXT, false),
                      LV_ALIGN_LEFT_MID, tx(56), 0);
 
@@ -483,58 +437,13 @@ static void menu_icon(lv_obj_t *box56, pet_page_t page)
 /* The small line under each tile's name: where things stand. */
 static void menu_status(pet_page_t page, char *buf, size_t cap, uint32_t *color)
 {
-    const pet_t *pet = s_host->pet;
-    int n = 0;
-    buf[0] = '\0';
-    switch (page) {
-    case PAGE_DEX:
-        for (int i = 0; i < FOOD_TYPE_COUNT; i++) {
-            n += pet->tasted[i] > 0;
-        }
-        snprintf(buf, cap, "%d of %d tasted", n, FOOD_TYPE_COUNT);
-        break;
-    case PAGE_BADGES:
-        for (int i = 0; i < BADGE_COUNT; i++) {
-            n += (pet->badges >> i) & 1;
-        }
-        for (int k = 0; k < PLACE_KIND_COUNT; k++) {
-            n += pet->places.kind[k].count > 0;
-        }
-        n += pet->places.offgrid_tier > 0;
-        snprintf(buf, cap, "%d of %d earned", n, BADGE_COUNT + PLACE_KIND_COUNT + 1);
-        if (pet->new_badges) {
-            *color = COLOR_WARN;    /* one it has not been shown yet */
-        }
-        break;
-    case PAGE_PLACES:
-        n = places_count(&pet->places);
-        snprintf(buf, cap, n == 1 ? "%d habitat" : "%d habitats", n);
-        break;
-    case PAGE_FARM:
-        n = pet->farm.count + pet->farm.moved_on;
-        if (pet_can_retire(pet)) {
-            snprintf(buf, cap, "ready to retire");
-            *color = COLOR_WARN;
-        } else if (n == 0) {
-            snprintf(buf, cap, "empty");
-        } else {
-            snprintf(buf, cap, "%d retired", n);
-        }
-        break;
-    case PAGE_INFO:
-        snprintf(buf, cap, "%s", pet->name[0] ? pet->name
-                                 : (pet->form != FORM_NONE ? pet_form_name(pet->form)
-                                                           : pet_stage_name(pet->stage)));
-        break;
-    default:
-        if (s_host->settings->dev_log) {
-            snprintf(buf, cap, "dev log on");
-            *color = COLOR_WARN;
-        } else if (s_host->settings->paused) {
-            snprintf(buf, cap, "pet paused");
-            *color = COLOR_WARN;
-        }
-        break;
+    pet_line_t line = page == PAGE_DEX ? PET_LINE_TILE_DEX
+                    : page == PAGE_BADGES ? PET_LINE_TILE_BADGES
+                    : page == PAGE_PLACES ? PET_LINE_TILE_PLACES
+                    : page == PAGE_FARM ? PET_LINE_TILE_FARM
+                    : page == PAGE_INFO ? PET_LINE_TILE_PET : PET_LINE_TILE_SETTINGS;
+    if (pet_app_line(line, buf, cap)) {
+        *color = COLOR_WARN;
     }
 }
 
@@ -704,18 +613,11 @@ static void build_places(void)
 {
     const pet_places_t *pl = &s_host->pet->places;
     lv_obj_t *body = page_begin(LV_SYMBOL_LEFT "  Places", true);
-    char buf[64], label[HABITAT_NAME_MAX + 4];
+    char buf[64], here[80];
     int home = places_home(pl);
 
-    if (pl->here >= 0) {
-        places_label(pl, pl->here, label, sizeof(label));
-        snprintf(buf, sizeof(buf), "Here now: %s", label);
-        para(body, buf, COLOR_ACCENT);
-    } else if (pl->cand_prints) {
-        para(body, "Somewhere it does not know. Stay a while and it will remember.", COLOR_WARN);
-    } else {
-        para(body, "On the move.", COLOR_DIM);
-    }
+    bool unknown = pet_app_line(PET_LINE_HERE, here, sizeof(here));
+    para(body, here, pl->here >= 0 ? COLOR_ACCENT : (unknown ? COLOR_WARN : COLOR_DIM));
     if (places_count(pl) == 0) {
         gap(body, 8);
         para(body, "No places yet. Ten minutes in one spot and the pet makes it a habitat.",
@@ -730,21 +632,10 @@ static void build_places(void)
                 continue;
             }
             lv_obj_t *line = row(body, tx(46));
-            places_label(pl, i, label, sizeof(label));
-            if (i == home && h->name[0]) {
-                snprintf(buf, sizeof(buf), "%s (home)", label);
-            } else {
-                snprintf(buf, sizeof(buf), "%s", label);
-            }
+            pet_app_habitat_text(i, 0, buf, sizeof(buf));
             lv_obj_align(text(line, buf, i == pl->here ? COLOR_ACCENT : COLOR_TEXT, false),
                          LV_ALIGN_TOP_LEFT, 0, 3);
-            if (h->minutes < 90) {
-                snprintf(buf, sizeof(buf), "%d visit%s, %d min", h->visits, h->visits == 1 ? "" : "s",
-                         (int)h->minutes);
-            } else {
-                snprintf(buf, sizeof(buf), "%d visit%s, %d h", h->visits, h->visits == 1 ? "" : "s",
-                         (int)((h->minutes + 30) / 60));
-            }
+            pet_app_habitat_text(i, 1, buf, sizeof(buf));
             lv_obj_align(text(line, buf, COLOR_DIM, false), LV_ALIGN_TOP_LEFT, 0, tx(23));
             lv_obj_align(button(line, 56, 38, LV_SYMBOL_EDIT, place_name_cb, (void *)(intptr_t)i),
                          LV_ALIGN_RIGHT_MID, 0, 0);
@@ -851,23 +742,16 @@ static void farm_show(int which)
     if (which < 0 || which >= farm->count || !s_farm_line[0]) {
         return;
     }
-    const pet_resident_t *r = &farm->resident[which];
     for (int i = 0; i < farm->count; i++) {
         if (s_farm_tile[i]) {
             lv_obj_set_style_bg_color(s_farm_tile[i], lv_color_hex(i == which ? FARM_PICKED : FARM_FIELD), 0);
         }
     }
     char buf[80];
-    lv_label_set_text(s_farm_line[0], r->name[0] ? r->name : "(never named)");
-    snprintf(buf, sizeof(buf), "%s, generation %d", pet_form_name((pet_form_t)r->form), r->generation);
-    lv_label_set_text(s_farm_line[1], buf);
-    int n = snprintf(buf, sizeof(buf), "lived %d days, %lu meals", r->days, (unsigned long)r->meals);
-    for (int t = 0; t < TRAIT_COUNT && n > 0 && n < (int)sizeof(buf); t++) {
-        if ((r->traits >> t) & 1) {
-            n += snprintf(buf + n, sizeof(buf) - (size_t)n, ", %s", pet_trait_name((pet_trait_t)t));
-        }
+    for (int line = 0; line < 3; line++) {
+        pet_app_resident_text(which, line, buf, sizeof(buf));
+        lv_label_set_text(s_farm_line[line], buf);
     }
-    lv_label_set_text(s_farm_line[2], buf);
 }
 
 static void farm_tap_cb(lv_event_t *e)
@@ -925,18 +809,9 @@ static void build_farm(void)
         gap(body, 4);
     }
 
-    const char *who = pet->name[0] ? pet->name : "this pet";
-    if (pet_can_retire(pet)) {
-        snprintf(buf, sizeof(buf), "Retire %s...", who);
+    if (pet_app_line(PET_LINE_RETIRING, buf, sizeof(buf))) {
         button(body, s_body_w, 44, buf, retire_open_cb, NULL);
-    } else if (pet->stage == STAGE_ADULT) {
-        int days, days_needed, meals, meals_needed;
-        pet_growth_counts(pet, &days, &days_needed, &meals, &meals_needed);
-        snprintf(buf, sizeof(buf), "%s can retire after a full adult life: day %d of %d, meal %d of %d.",
-                 pet->name[0] ? pet->name : "This pet", days, days_needed, meals, meals_needed);
-        para(body, buf, COLOR_DIM);
     } else {
-        snprintf(buf, sizeof(buf), "Generation %d is still growing up.", pet->generation);
         para(body, buf, COLOR_DIM);
     }
     gap(body, 8);
@@ -957,23 +832,12 @@ static void fact(lv_obj_t *body, const char *what, const char *value)
  */
 static lv_obj_t *s_favourite_label;
 
-static void favourite_text(char *buf, size_t cap)
-{
-    static const char *const SHORT[PET_FAVOURITE_MAX + 1] = {
-        "none", "networks", "hotspots", "music", "cars", "phones",
-    };
-    uint8_t f = s_host->pet->favourite;
-    snprintf(buf, cap, "Favourite: %s", SHORT[f <= PET_FAVOURITE_MAX ? f : 0]);
-}
-
 static void favourite_cb(lv_event_t *e)
 {
     LV_UNUSED(e);
-    pet_t *pet = s_host->pet;
-    pet->favourite = (uint8_t)((pet->favourite + 1) % (PET_FAVOURITE_MAX + 1));
-    s_host->renamed();      /* kept with the pet, like its name */
+    pet_app_set_favourite((s_host->pet->favourite + 1) % (PET_FAVOURITE_MAX + 1));
     char buf[32];
-    favourite_text(buf, sizeof(buf));
+    pet_app_line(PET_LINE_FAVOURITE, buf, sizeof(buf));
     lv_label_set_text(s_favourite_label, buf);
 }
 
@@ -1009,54 +873,23 @@ static void build_info(void)
     }
     gap(body, 2);
 
-    snprintf(buf, sizeof(buf), "%s%s%s", pet_stage_name(pet->stage),
-             pet->form != FORM_NONE ? " " : "", pet_form_name(pet->form));
+    pet_app_line(PET_LINE_STAGE, buf, sizeof(buf));
     fact(body, "stage", buf);
     snprintf(buf, sizeof(buf), "%d", pet->generation);
     fact(body, "generation", buf);
-
-    float speed = pet->tune.growth_speed > 0 ? pet->tune.growth_speed : 1;
-    int days = (int)((pet->now - pet->born) * speed / 86400.0f);
-    snprintf(buf, sizeof(buf), days == 1 ? "%d day" : "%d days", days);
+    pet_app_line(PET_LINE_AGE, buf, sizeof(buf));
     fact(body, "age", buf);
-
-    int len = 0;
-    buf[0] = '\0';
-    for (int t = 0; t < TRAIT_COUNT; t++) {
-        if (pet_has_trait(pet, (pet_trait_t)t) && len < (int)sizeof(buf)) {
-            len += snprintf(buf + len, sizeof(buf) - (size_t)len, "%s%s", len ? ", " : "",
-                            pet_trait_name((pet_trait_t)t));
-        }
-    }
+    pet_app_line(PET_LINE_TRAITS, buf, sizeof(buf));
     fact(body, "traits", buf);
-
     snprintf(buf, sizeof(buf), "%lu", (unsigned long)pet->meals);
     fact(body, "meals", buf);
-
-    float g[GROUP_COUNT];
-    int top = 0;
-    pet_group_points(pet, g);
-    for (int i = 1; i < GROUP_COUNT; i++) {
-        if (g[i] > g[top]) {
-            top = i;
-        }
-    }
-    fact(body, "eats mostly", g[top] > 0 ? pet_group_name((pet_group_t)top) : "nothing yet");
-
-    /* Counted the way the Badges screen counts them, place badges included. */
-    int earned = 0;
-    for (int b = 0; b < BADGE_COUNT; b++) {
-        earned += pet_has_badge(pet, (pet_badge_t)b);
-    }
-    for (int k = 0; k < PLACE_KIND_COUNT; k++) {
-        earned += pet->places.kind[k].count > 0;
-    }
-    earned += pet->places.offgrid_tier > 0;
-    snprintf(buf, sizeof(buf), "%d of %d", earned, BADGE_COUNT + PLACE_KIND_COUNT + 1);
+    pet_app_line(PET_LINE_EATS_MOSTLY, buf, sizeof(buf));
+    fact(body, "eats mostly", buf);
+    pet_app_line(PET_LINE_BADGES, buf, sizeof(buf));
     fact(body, "badges", buf);
     if (pet->stage < STAGE_ADULT) {
         gap(body, 4);
-        favourite_text(buf, sizeof(buf));
+        pet_app_line(PET_LINE_FAVOURITE, buf, sizeof(buf));
         lv_obj_t *b = button(body, s_body_w, 44, buf, favourite_cb, NULL);
         s_favourite_label = lv_obj_get_child(b, 0);
         para(body, "Tap to choose. Its favourite food counts for more in what it grows into, "
@@ -1072,52 +905,12 @@ static void build_info(void)
 
 static lv_obj_t *s_value[SET_COUNT];
 
-static const char *const SETTING_LABEL[SET_COUNT] = {
-    [SET_BRIGHTNESS] = "Brightness", [SET_TEXT] = "Text size",
-    [SET_SOUND] = "Sound", [SET_VOLUME] = "Volume",
-    [SET_CARD] = "Card", [SET_DEV_LOG] = "Dev log",
-    [SET_QUIET_START] = "Quiet from", [SET_QUIET_END] = "Quiet until",
-    [SET_HOUR] = "Clock hour", [SET_MINUTE] = "Clock minute",
-    [SET_CARRY] = "Screen", [SET_PAUSE] = "Pet", [SET_LIFE_SPEED] = "Life speed",
-    [SET_RAISE] = "Wrist raise", [SET_TOUCH] = "Touch",
-};
-
-static void setting_text(pet_setting_id_t id, char *buf, size_t cap)
-{
-    const pet_settings_t *s = s_host->settings;
-    uint32_t now = s_host->now();
-    switch (id) {
-    case SET_BRIGHTNESS:  snprintf(buf, cap, "%d%%", s->brightness); break;
-    case SET_TEXT:        snprintf(buf, cap, "%s", s->text_large ? "large" : "normal"); break;
-    case SET_SOUND:       snprintf(buf, cap, "%s", s->sound == 0 ? "off" : (s->sound == 1 ? "rare" : "all")); break;
-    case SET_VOLUME:      snprintf(buf, cap, "%d of 5", s->volume); break;
-    case SET_CARD:        snprintf(buf, cap, "%s", s->card_shared ? "computer" : "pet"); break;
-    case SET_DEV_LOG:
-        snprintf(buf, cap, "%s", !s->dev_log ? "off" : (s_host->dev_log_on ? s_host->dev_log_on : "names"));
-        break;
-    case SET_QUIET_START: snprintf(buf, cap, "%02d:00", s->quiet_start); break;
-    case SET_QUIET_END:   snprintf(buf, cap, "%02d:00", s->quiet_end); break;
-    case SET_HOUR:        snprintf(buf, cap, "%02d", (int)(now % 86400 / 3600)); break;
-    case SET_MINUTE:      snprintf(buf, cap, "%02d", (int)(now % 3600 / 60)); break;
-    case SET_CARRY:       snprintf(buf, cap, "%s", s->carry ? "sleeps" : "stays on"); break;
-    case SET_PAUSE:       snprintf(buf, cap, "%s", s->paused ? "paused" : "awake"); break;
-    case SET_RAISE:       snprintf(buf, cap, "%s", s->raise_off ? "off" : "wakes"); break;
-    case SET_TOUCH:       snprintf(buf, cap, "%s", s->touch_off ? "off" : "wakes"); break;
-    case SET_LIFE_SPEED:
-        snprintf(buf, cap, "%s", s->speed_fixed ? "by file"
-                                 : (s->life_speed == LIFE_FAST ? "fast"
-                                    : (s->life_speed == LIFE_MEDIUM ? "medium" : "slow")));
-        break;
-    default:              buf[0] = '\0'; break;
-    }
-}
-
 static void settings_refresh(void)
 {
     char buf[24];
     for (int i = 0; i < SET_COUNT; i++) {
         if (s_value[i]) {
-            setting_text((pet_setting_id_t)i, buf, sizeof(buf));
+            pet_app_setting_text((pet_setting_id_t)i, buf, sizeof(buf));
             lv_label_set_text(s_value[i], buf);
         }
     }
@@ -1161,25 +954,10 @@ static void build_settings(void)
 
     lv_obj_t *line;
     for (int i = 0; i < SET_COUNT; i++) {
-        if ((i == SET_HOUR || i == SET_MINUTE) && !s_host->can_set_clock) {
+        if (!pet_app_setting_shown((pet_setting_id_t)i)) {
             continue;
         }
-        if (i == SET_CARD && !s_host->can_share_card) {
-            continue;
-        }
-        if (i == SET_DEV_LOG && !s_host->can_dev_log) {
-            continue;
-        }
-        if (i == SET_BRIGHTNESS && !s_host->can_brightness) {
-            continue;
-        }
-        if (i == SET_RAISE && !s_host->can_raise) {
-            continue;
-        }
-        if ((i == SET_CARRY || i == SET_TOUCH) && s_host->screen_managed) {
-            continue;
-        }
-        line = setting_row(body, SETTING_LABEL[i]);
+        line = setting_row(body, pet_app_setting_label((pet_setting_id_t)i));
         s_value[i] = text(line, "", COLOR_ACCENT, false);
         lv_obj_align(s_value[i], LV_ALIGN_RIGHT_MID, -108, 0);
         lv_obj_align(button(line, 44, 38, LV_SYMBOL_MINUS, setting_cb, (void *)(intptr_t)(i * 2)),
@@ -1340,16 +1118,13 @@ static lv_obj_t *s_name_box;
 
 static void name_done_cb(lv_event_t *e)
 {
-    pet_t *pet = s_host->pet;
     bool place = s_name_habitat >= 0 && s_name_habitat < HABITAT_MAX;
     if (lv_event_get_code(e) == LV_EVENT_READY) {
         if (place) {
-            snprintf(pet->places.habitat[s_name_habitat].name, HABITAT_NAME_MAX, "%s",
-                     lv_textarea_get_text(s_name_box));
+            pet_app_name_place(s_name_habitat, lv_textarea_get_text(s_name_box));
         } else {
-            snprintf(pet->name, sizeof(pet->name), "%s", lv_textarea_get_text(s_name_box));
+            pet_app_rename(lv_textarea_get_text(s_name_box));
         }
-        s_host->renamed();
     }
     pet_pages_open(place ? PAGE_PLACES : PAGE_INFO);
 }
@@ -1458,8 +1233,11 @@ void pet_pages_open_card(void)
 
 void pet_pages_init(lv_obj_t *screen, const pet_pages_host_t *host)
 {
-    s_screen = screen;
     s_host = host;
+    if (host->pet_only) {
+        return;     /* no screen of ours to put a page on, and no swipes */
+    }
+    s_screen = screen;
     s_w = lv_display_get_horizontal_resolution(NULL);
     s_h = lv_display_get_vertical_resolution(NULL);
     s_body_w = s_w - 2 * PAGE_SIDE;

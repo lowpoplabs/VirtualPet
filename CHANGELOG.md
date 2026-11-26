@@ -4,6 +4,29 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.12 - 2026-11-26
+
+Nothing changes on the watch. This release is for other devices that run the same pet.
+
+### Added
+- **A device that draws its own screens** (a phone) can read the pet, its settings, its
+  recent finds and a day's record, and can get the worked-out lines the pages show (the
+  mood, the growth lines, "none this week", the farm's sentence, the line under each menu
+  tile) from the same code the watch's pages use, so the two cannot come to say different
+  things. See `app/include/pet_ui.h`.
+- **The same device can do what the pages' buttons do:** step a setting, rename the pet,
+  choose its favourite food, name a place, retire the pet and start over.
+- **A pet-only screen.** A device can ask for the pet's square alone, with no strips, no
+  line under the pet, no pages and no swipes. A tap still pats the pet.
+- **Word of what happens.** A device can be told each find line and each news line as it
+  appears, when the line goes, and when something the pages show has changed.
+- **Simulator:** `--pet-only` shows the pet's square alone and prints each of these. A new
+  test, `pet_ui_test`, runs the whole app that way.
+
+### Changed
+- **A name that is too long** is now cut on a whole character. The watch's keyboard only
+  offers plain letters, so nothing changes there.
+
 ## 0.4.11 - 2026-11-25
 
 Nothing changes on the watch.

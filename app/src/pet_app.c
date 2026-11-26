@@ -63,13 +63,43 @@ static lv_obj_t *s_craving;
 static lv_obj_t *s_find;
 static lv_timer_t *s_find_timer;
 
+/* ---- Word for a platform that draws its own screens (pet_hal_t.notice) ---- */
+
+static bool s_changed;      /* something the pages show has changed; told at the end of the tick */
+
+static void notice(pet_notice_t what, const char *text)
+{
+    if (s_hal && s_hal->notice) {
+        s_hal->notice(what, text);
+    }
+}
+
+static void changed(void)
+{
+    s_changed = true;
+}
+
+/* Once a tick at most, however much happened in it. A new day counts too. */
+static void flush_changed(void)
+{
+    static uint32_t day;
+    if (s_pet.today.day != day) {
+        day = s_pet.today.day;
+        s_changed = true;
+    }
+    if (s_changed) {
+        s_changed = false;
+        notice(PET_NOTICE_CHANGED, NULL);
+    }
+}
+
 /* The mood the face shows: a low battery makes the pet drowsy whatever else is going on. */
 static pet_mood_t face_mood(void)
 {
     return s_drowsy ? PET_MOOD_SLEEPY : pet_mood(&s_pet);
 }
 
-static const char *mood_text(void)
+const char *pet_app_mood_text(void)
 {
     if (s_set.paused) {
         return "paused";
@@ -152,7 +182,8 @@ static bool s_retire_told;      /* the owner has been told this pet is ready to 
 static int s_preview = -1;      /* which one is showing; -1 = the real pet */
 static uint32_t s_preview_tick;
 
-static void find_line(const char *text);
+static void find_line(pet_notice_t kind, const char *text);
+static void show_line(pet_notice_t kind, const char *text);
 
 static void preview_show(void)
 {
@@ -162,7 +193,7 @@ static void preview_show(void)
     char text[64];
     snprintf(text, sizeof(text), "preview %d of %d: %s", s_preview + 1, PREVIEW_COUNT,
              form == FORM_NONE ? pet_stage_name(stage) : pet_form_name(form));
-    find_line(text);
+    find_line(PET_NOTICE_NEWS, text);
     s_preview_tick = lv_tick_get();
 }
 
@@ -181,7 +212,7 @@ static bool preview_next(void)
     if (++s_preview >= PREVIEW_COUNT) {
         s_preview = -1;
         pet_view_set_look(s_pet.stage, s_pet.form, s_pet.is_static);
-        find_line("preview over");
+        find_line(PET_NOTICE_NEWS, "preview over");
     } else {
         preview_show();
     }
@@ -209,17 +240,23 @@ static void refresh_pet(void)
     int32_t stomach = (int32_t)(s_pet.stomach * 10);
     if (stomach != shown_stomach) {
         shown_stomach = stomach;
-        lv_bar_set_value(s_stomach, stomach, LV_ANIM_ON);
-        lv_obj_set_style_bg_color(
-            s_stomach,
-            lv_color_hex(s_pet.stomach < s_pet.tune.hungry_below ? COLOR_WARN : COLOR_ACCENT),
-            LV_PART_INDICATOR);
+        changed();
+        if (s_stomach) {
+            lv_bar_set_value(s_stomach, stomach, LV_ANIM_ON);
+            lv_obj_set_style_bg_color(
+                s_stomach,
+                lv_color_hex(s_pet.stomach < s_pet.tune.hungry_below ? COLOR_WARN : COLOR_ACCENT),
+                LV_PART_INDICATOR);
+        }
     }
     /* Both texts are string constants, so comparing pointers is enough. */
-    const char *mood = mood_text();
+    const char *mood = pet_app_mood_text();
     if (mood != shown_mood) {
         shown_mood = mood;
-        lv_label_set_text(s_mood, mood);
+        changed();
+        if (s_mood) {
+            lv_label_set_text(s_mood, mood);
+        }
         pet_view_set_mood(face_mood());
     }
     /*
@@ -232,7 +269,10 @@ static void refresh_pet(void)
     }
     if (craving != shown_craving) {
         shown_craving = craving;
-        if (craving[0]) {
+        changed();
+        if (!s_craving) {
+            /* no strip to put a bell on */
+        } else if (craving[0]) {
             lv_obj_remove_flag(s_craving, LV_OBJ_FLAG_HIDDEN);
         } else {
             lv_obj_add_flag(s_craving, LV_OBJ_FLAG_HIDDEN);
@@ -288,7 +328,7 @@ static void reveal_meal(void)
     if (m->foods > 1 && len < (int)sizeof(line)) {
         snprintf(line + len, sizeof(line) - len, "  +%d", m->foods - 1);
     }
-    pet_app_show_find(line);
+    show_line(PET_NOTICE_FIND, line);
     pet_view_set_action(s_brain.action);   /* stop sniffing */
     pet_view_hop();
     pet_view_munch();
@@ -453,6 +493,7 @@ uint32_t pet_app_scan(const pet_scan_t *scan)
     }
     place_kind_t kind = PLACE_KIND_COUNT;
     uint32_t ev = pet_scan(&s_pet, scan, &kind);
+    changed();
     char line[48], label[HABITAT_NAME_MAX + 4];
     if (ev & PLACE_EV_BADGE) {
         snprintf(line, sizeof(line), "badge: %s (%s)", place_kind_name(kind),
@@ -502,7 +543,7 @@ static void show_missed(void)
     if (s_missed.name[0] && len < (int)sizeof(line)) {
         snprintf(line + len, sizeof(line) - len, " %s", s_missed.name);
     }
-    pet_app_show_find(line);
+    show_line(PET_NOTICE_FIND, line);
     pet_view_hop();
     memset(&s_missed, 0, sizeof(s_missed));
 }
@@ -738,7 +779,7 @@ static void text_size_apply(void)
     }
 }
 
-static void on_setting(pet_setting_id_t what, int dir)
+static void setting_step(pet_setting_id_t what, int dir)
 {
     switch (what) {
     case SET_BRIGHTNESS: {
@@ -819,9 +860,77 @@ static void on_setting(pet_setting_id_t what, int dir)
     settings_save();
 }
 
-static void on_renamed(void)
+static void on_setting(pet_setting_id_t what, int dir)
+{
+    setting_step(what, dir);
+    changed();
+}
+
+void pet_app_setting_step(pet_setting_id_t what, int dir)
+{
+    if (s_hal && pet_app_setting_shown(what)) {
+        on_setting(what, dir < 0 ? -1 : 1);
+    }
+}
+
+/* ---- The pet's name, its favourite food and the names of its places ------ */
+
+/* Copies a name, cut to fit; a cut never leaves half of a character behind. */
+static void copy_name(char *dst, size_t cap, const char *src)
+{
+    size_t n = 0;
+    if (!src) {
+        src = "";
+    }
+    while (n + 1 < cap && src[n]) {
+        dst[n] = src[n];
+        n++;
+    }
+    if (((unsigned char)src[n] & 0xC0) == 0x80) {
+        /* Stopped inside a character of several bytes: take its first part back out. */
+        while (n > 0 && ((unsigned char)dst[n - 1] & 0xC0) == 0x80) {
+            n--;
+        }
+        if (n > 0) {
+            n--;
+        }
+    }
+    dst[n] = '\0';
+}
+
+/* Something kept with the pet was edited: keep it. */
+static void pet_edited(void)
 {
     pet_app_save_now();
+    changed();
+}
+
+void pet_app_rename(const char *name)
+{
+    if (s_hal) {
+        copy_name(s_pet.name, sizeof(s_pet.name), name);
+        pet_edited();
+    }
+}
+
+bool pet_app_set_favourite(int favourite)
+{
+    if (!s_hal || favourite < 0 || favourite > PET_FAVOURITE_MAX || s_pet.stage >= STAGE_ADULT) {
+        return false;
+    }
+    s_pet.favourite = (uint8_t)favourite;
+    pet_edited();
+    return true;
+}
+
+bool pet_app_name_place(int habitat, const char *name)
+{
+    if (!s_hal || habitat < 0 || habitat >= HABITAT_MAX || !s_pet.places.habitat[habitat].prints) {
+        return false;
+    }
+    copy_name(s_pet.places.habitat[habitat].name, HABITAT_NAME_MAX, name);
+    pet_edited();
+    return true;
 }
 
 /* "Start over": a new egg in place of the pet and everything it had. Settings stay. */
@@ -839,7 +948,15 @@ static void on_start_over(void)
     s_loaded = false;
     s_retire_told = false;
     pet_app_save_now();
+    changed();
     pet_app_show_find("a new egg");
+}
+
+void pet_app_start_over(void)
+{
+    if (s_hal) {
+        on_start_over();
+    }
 }
 
 /* "Retire": the pet moves to the farm and the egg it leaves takes its place. */
@@ -853,6 +970,7 @@ static void retire_finish(lv_timer_t *t)
 {
     LV_UNUSED(t);
     s_farewell = NULL;      /* a timer that has run its one time deletes itself */
+    changed();
     char who[PET_NAME_MAX];
     snprintf(who, sizeof(who), "%s", s_pet.name);
     uint32_t seed = (s_hal->random ? s_hal->random() : 0) ^ (s_pet.now * 2654435761u) ^ lv_tick_get();
@@ -876,10 +994,10 @@ static void retire_finish(lv_timer_t *t)
 }
 
 /* "Retire" was held: a farewell first, then retire_finish() does the rest. */
-static void on_retire(void)
+bool pet_app_retire(void)
 {
-    if (s_farewell || !pet_can_retire(&s_pet)) {
-        return;
+    if (!s_hal || s_farewell || !pet_can_retire(&s_pet)) {
+        return false;
     }
     if (s_set.sound != SOUND_LEVEL_OFF && !pet_is_night(&s_pet)) {
         s_last_sound_ms = lv_tick_get() | 1;
@@ -891,6 +1009,12 @@ static void on_retire(void)
     pet_view_walk_off(FAREWELL_MS);
     s_farewell = lv_timer_create(retire_finish, FAREWELL_MS + 200, NULL);
     lv_timer_set_repeat_count(s_farewell, 1);
+    return true;
+}
+
+static void on_retire(void)
+{
+    pet_app_retire();
 }
 
 void pet_app_set_carry(bool carry)
@@ -1040,12 +1164,14 @@ static void pet_timer(lv_timer_t *t)
         if (s_screen != SCREEN_DARK) {
             refresh_pet();
         }
+        flush_changed();
         return;
     }
 
     pet_meal_t meal;
     if (pet_tick(&s_pet, s_hal->now_s(), &meal)) {
         start_meal(&meal);
+        changed();
         /* Save soon, but let a run of meals in a busy place share one write. */
         if ((int32_t)(s_save_due_ms - ms) > SAVE_AFTER_MEAL_MS) {
             s_save_due_ms = ms + SAVE_AFTER_MEAL_MS;
@@ -1055,10 +1181,12 @@ static void pet_timer(lv_timer_t *t)
        stomach bar waits for the munch. */
     if (pet_take_evolved(&s_pet)) {
         on_evolved();
+        changed();
     }
     uint32_t fresh = pet_take_new_badges(&s_pet);
     if (fresh) {
         on_badges(fresh);
+        changed();
     }
     bool changed = pet_brain_step(&s_brain, &s_pet, ms);
     screen_update();
@@ -1072,6 +1200,32 @@ static void pet_timer(lv_timer_t *t)
     if ((int32_t)(ms - s_save_due_ms) >= 0) {
         pet_app_save_now();
     }
+    flush_changed();
+}
+
+/* ---- What a platform's own screens read (pet_ui.h) ----------------------- */
+
+const pet_hal_t *pet_app_hal(void)
+{
+    return s_hal;
+}
+
+const pet_t *pet_app_pet(void)
+{
+    return &s_pet;
+}
+
+const pet_settings_t *pet_app_settings(void)
+{
+    return &s_set;
+}
+
+int pet_app_recent(const pet_recent_t **list)
+{
+    if (list) {
+        *list = s_recent;
+    }
+    return s_recent_count;
 }
 
 void pet_app_describe(char *out, size_t size)
@@ -1106,8 +1260,11 @@ static void on_tap(void)
 static void hide_find(lv_timer_t *t)
 {
     LV_UNUSED(t);
-    lv_obj_add_flag(s_find, LV_OBJ_FLAG_HIDDEN);
+    if (s_find) {
+        lv_obj_add_flag(s_find, LV_OBJ_FLAG_HIDDEN);
+    }
     lv_timer_pause(s_find_timer);
+    notice(PET_NOTICE_LINE_GONE, NULL);
 }
 
 static lv_obj_t *plain_box(lv_obj_t *parent, int32_t w, int32_t h)
@@ -1258,63 +1415,69 @@ void pet_app_start(const pet_hal_t *hal)
     pet_view_set_look(s_pet.stage, s_pet.form, s_pet.is_static);
     pet_view_create(area);
     pet_view_set_tap_cb(on_tap);
-    pet_view_set_long_cb(pet_pages_open_card);
+    /* A platform with screens of its own (pet_only) gets the pet's square and nothing else. */
+    const bool full = !hal->pet_only;
+    if (full) {
+        pet_view_set_long_cb(pet_pages_open_card);
 
-    /* Latest find, along the bottom edge of the pet area. */
-    s_find = lv_label_create(area);
-    lv_obj_set_width(s_find, PET_AREA_SIZE - 40);
-    lv_label_set_long_mode(s_find, LV_LABEL_LONG_DOT);
-    lv_obj_set_style_text_align(s_find, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_color(s_find, lv_color_hex(COLOR_FIND), 0);
-    lv_obj_align(s_find, LV_ALIGN_BOTTOM_MID, 0, -8);
-    lv_obj_add_flag(s_find, LV_OBJ_FLAG_HIDDEN);
+        /* Latest find, along the bottom edge of the pet area. */
+        s_find = lv_label_create(area);
+        lv_obj_set_width(s_find, PET_AREA_SIZE - 40);
+        lv_label_set_long_mode(s_find, LV_LABEL_LONG_DOT);
+        lv_obj_set_style_text_align(s_find, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_set_style_text_color(s_find, lv_color_hex(COLOR_FIND), 0);
+        lv_obj_align(s_find, LV_ALIGN_BOTTOM_MID, 0, -8);
+        lv_obj_add_flag(s_find, LV_OBJ_FLAG_HIDDEN);
+    }
     s_find_timer = lv_timer_create(hide_find, FIND_SHOW_MS, NULL);
     lv_timer_pause(s_find_timer);
     s_reveal.timer = lv_timer_create(reveal_timer, SNIFF_MS, NULL);
     lv_timer_pause(s_reveal.timer);
 
-    /* Top strip */
-    lv_obj_t *top = plain_box(scr, strip_w, strip_h);
-    lv_obj_align(top, LV_ALIGN_TOP_MID, 0, 0);
-    s_clock = lv_label_create(top);
-    lv_obj_align(s_clock, LV_ALIGN_LEFT_MID, 0, 4);
-    s_battery = lv_label_create(top);
-    lv_obj_align(s_battery, LV_ALIGN_RIGHT_MID, 0, 4);
+    if (full) {
+        /* Top strip */
+        lv_obj_t *top = plain_box(scr, strip_w, strip_h);
+        lv_obj_align(top, LV_ALIGN_TOP_MID, 0, 0);
+        s_clock = lv_label_create(top);
+        lv_obj_align(s_clock, LV_ALIGN_LEFT_MID, 0, 4);
+        s_battery = lv_label_create(top);
+        lv_obj_align(s_battery, LV_ALIGN_RIGHT_MID, 0, 4);
 
-    /* Bottom strip */
-    lv_obj_t *bottom = plain_box(scr, strip_w, strip_h);
-    lv_obj_align(bottom, LV_ALIGN_BOTTOM_MID, 0, 0);
+        /* Bottom strip */
+        lv_obj_t *bottom = plain_box(scr, strip_w, strip_h);
+        lv_obj_align(bottom, LV_ALIGN_BOTTOM_MID, 0, 0);
 
-    s_stomach = lv_bar_create(bottom);
-    lv_obj_set_size(s_stomach, 64, 12);
-    lv_obj_align(s_stomach, LV_ALIGN_LEFT_MID, 0, -4);
-    lv_bar_set_range(s_stomach, 0, (int32_t)(s_pet.tune.stomach_max * 10));
-    lv_obj_set_style_bg_color(s_stomach, lv_color_hex(0x232830), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(s_stomach, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(s_stomach, lv_color_hex(COLOR_ACCENT), LV_PART_INDICATOR);
+        s_stomach = lv_bar_create(bottom);
+        lv_obj_set_size(s_stomach, 64, 12);
+        lv_obj_align(s_stomach, LV_ALIGN_LEFT_MID, 0, -4);
+        lv_bar_set_range(s_stomach, 0, (int32_t)(s_pet.tune.stomach_max * 10));
+        lv_obj_set_style_bg_color(s_stomach, lv_color_hex(0x232830), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(s_stomach, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(s_stomach, lv_color_hex(COLOR_ACCENT), LV_PART_INDICATOR);
 
-    s_mood = lv_label_create(bottom);
-    text_size_apply();
-    lv_obj_align(s_mood, LV_ALIGN_LEFT_MID, 72, -4);
+        s_mood = lv_label_create(bottom);
+        text_size_apply();
+        lv_obj_align(s_mood, LV_ALIGN_LEFT_MID, 72, -4);
 
-    /* The pet wants something: a bell. Tapping it opens the card, which says what. */
-    s_craving = lv_label_create(bottom);
-    lv_label_set_text(s_craving, LV_SYMBOL_BELL);
-    lv_obj_set_style_text_font(s_craving, &lv_font_montserrat_20, 0);
-    lv_obj_set_style_text_color(s_craving, lv_color_hex(COLOR_WARN), 0);
-    lv_obj_align(s_craving, LV_ALIGN_RIGHT_MID, 0, -4);
-    lv_obj_add_flag(s_craving, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_ext_click_area(s_craving, 20);
-    lv_obj_add_event_cb(s_craving, craving_tap_cb, LV_EVENT_CLICKED, NULL);
+        /* The pet wants something: a bell. Tapping it opens the card, which says what. */
+        s_craving = lv_label_create(bottom);
+        lv_label_set_text(s_craving, LV_SYMBOL_BELL);
+        lv_obj_set_style_text_font(s_craving, &lv_font_montserrat_20, 0);
+        lv_obj_set_style_text_color(s_craving, lv_color_hex(COLOR_WARN), 0);
+        lv_obj_align(s_craving, LV_ALIGN_RIGHT_MID, 0, -4);
+        lv_obj_add_flag(s_craving, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_ext_click_area(s_craving, 20);
+        lv_obj_add_event_cb(s_craving, craving_tap_cb, LV_EVENT_CLICKED, NULL);
 
-    s_guard_area = area;
-    s_guard_top = top;
-    s_guard_bottom = bottom;
-    lv_timer_create(burn_guard, BURN_GUARD_MS, NULL);
+        s_guard_area = area;
+        s_guard_top = top;
+        s_guard_bottom = bottom;
+        lv_timer_create(burn_guard, BURN_GUARD_MS, NULL);
 
-    refresh_strip(NULL);
+        refresh_strip(NULL);
+        lv_timer_create(refresh_strip, STRIP_REFRESH_MS, NULL);
+    }
     refresh_pet();
-    lv_timer_create(refresh_strip, STRIP_REFRESH_MS, NULL);
     s_pet_timer = lv_timer_create(pet_timer, PET_TICK_MS, NULL);
 
     static pet_pages_host_t host;
@@ -1324,11 +1487,11 @@ void pet_app_start(const pet_hal_t *hal)
         .can_dev_log = hal->set_dev_log != NULL,
         .can_brightness = hal->set_brightness != NULL,
         .can_raise = hal->motion != NULL && !hal->screen_managed,
-        .screen_managed = hal->screen_managed,
+        .screen_managed = hal->screen_managed, .pet_only = hal->pet_only,
         .dev_log_on = hal->dev_log_on, .dev_log_about = hal->dev_log_about,
         .version = hal->version,
         .now = hal->now_s,
-        .change = on_setting, .renamed = on_renamed, .start_over = on_start_over,
+        .change = on_setting, .start_over = on_start_over,
         .preview = on_preview, .retire = on_retire,
     };
     pet_pages_init(scr, &host);
@@ -1360,19 +1523,27 @@ void pet_app_feed(food_type_t type, float base_value, const char *name)
 
 void pet_app_show_find(const char *text)
 {
+    show_line(PET_NOTICE_NEWS, text);
+}
+
+static void show_line(pet_notice_t kind, const char *text)
+{
     /* During the preview the line says which form is showing; finds do not replace it. */
     if (s_preview < 0) {
-        find_line(text);
+        find_line(kind, text);
     }
 }
 
-static void find_line(const char *text)
+static void find_line(pet_notice_t kind, const char *text)
 {
-    if (!s_find) {
-        return;
+    if (!s_find_timer) {
+        return;     /* not started yet */
     }
-    lv_label_set_text(s_find, text);
-    lv_obj_remove_flag(s_find, LV_OBJ_FLAG_HIDDEN);
+    if (s_find) {
+        lv_label_set_text(s_find, text);
+        lv_obj_remove_flag(s_find, LV_OBJ_FLAG_HIDDEN);
+    }
     lv_timer_reset(s_find_timer);
     lv_timer_resume(s_find_timer);
+    notice(kind, text);
 }

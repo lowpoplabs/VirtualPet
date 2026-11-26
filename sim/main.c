@@ -15,6 +15,8 @@
  *   virtualpet_sim --battery 80         run as if on battery at 80%: the screen
  *                                        goes dark after 15 s; click to wake it
  *   virtualpet_sim --board square        480x480 instead of the watch's 410x502
+ *   virtualpet_sim --pet-only            as a phone runs it: the pet's square alone,
+ *                                        and what the app would have shown printed
  *   virtualpet_sim --page diet           open a screen: diet, journal, recent, menu,
  *                                        dex, badges, farm, pet, settings, name
  *   virtualpet_sim --screenshot out.bmp [--after-ms 1500]
@@ -222,6 +224,15 @@ static pet_motion_state_t sim_motion(void)
     return PET_MOTION_UNKNOWN;
 }
 
+/* --pet-only: what a phone would be told to show on its own screens. */
+static void sim_notice(pet_notice_t what, const char *text)
+{
+    static const char *const KIND[] = {"find", "news", "line gone", "changed"};
+    if (what != PET_NOTICE_CHANGED) {
+        printf("notice: %s%s%s\n", KIND[what], text ? ": " : "", text ? text : "");
+    }
+}
+
 static pet_hal_t s_hal = {
     .battery_percent = sim_battery,
     .usb_powered = sim_usb,
@@ -383,7 +394,7 @@ static uint32_t tick_cb(void) { return SDL_GetTicks(); }
 static int usage(const char *exe)
 {
     fprintf(stderr,
-            "usage: %s [--board watch|square] [--replay LOG.csv] [--speed N]\n"
+            "usage: %s [--board watch|square] [--pet-only] [--replay LOG.csv] [--speed N]\n"
             "       [--save PET.bin] [--sound off|rare|all] [--battery PERCENT] [--carry]\n"
             "       [--growth SPEED] [--page NAME]\n"
             "       [--screenshot file.bmp [--after-ms N]]\n",
@@ -410,6 +421,11 @@ int main(int argc, char **argv)
                 fprintf(stderr, "unknown board '%s' (use watch or square)\n", b);
                 return 2;
             }
+        } else if (!strcmp(argv[i], "--pet-only")) {
+            w = h = PET_AREA_SIZE;
+            s_hal.pet_only = true;
+            s_hal.screen_managed = true;
+            s_hal.notice = sim_notice;
         } else if (!strcmp(argv[i], "--replay") && i + 1 < argc) {
             replay = argv[++i];
         } else if (!strcmp(argv[i], "--save") && i + 1 < argc) {
