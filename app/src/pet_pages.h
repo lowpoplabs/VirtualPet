@@ -92,6 +92,11 @@ typedef struct {
     bool can_set_clock;
     bool can_share_card;
     bool can_dev_log;
+    bool can_brightness;
+    bool can_raise;                 /* there is a motion sensor, and a screen of ours to light */
+    bool screen_managed;            /* the platform darkens its own screen: no "Screen" or "Touch" */
+    const char *dev_log_on;         /* the "Dev log" row's word for on; NULL = "names" */
+    const char *dev_log_about;      /* its paragraph; NULL = the one about names on the card */
     const char *version;            /* shown at the foot of the settings; NULL = not known */
     uint32_t (*now)(void);
     /* The owner pressed - (dir -1) or + (dir +1) on a setting. The app applies and keeps it. */

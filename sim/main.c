@@ -216,10 +216,16 @@ static bool sim_write_file(const char *name, const char *text, size_t len)
     return ok;
 }
 
+/* No sensor to read, but the simulator stands in for the watch, which has one: keeps "Wrist raise". */
+static pet_motion_state_t sim_motion(void)
+{
+    return PET_MOTION_UNKNOWN;
+}
+
 static pet_hal_t s_hal = {
     .battery_percent = sim_battery,
     .usb_powered = sim_usb,
-    .now_s = sim_now,
+    .motion = sim_motion,    .now_s = sim_now,
     .random = sim_random,
     .play = sim_play,
     .set_brightness = sim_brightness,

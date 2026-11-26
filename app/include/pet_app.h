@@ -39,7 +39,10 @@ typedef struct {
     int (*battery_percent)(void);
     /* True when running from USB power (backpack mode). */
     bool (*usb_powered)(void);
-    /* How the device is being carried, from its motion sensor. NULL = no sensor. */
+    /*
+     * How the device is being carried, from its motion sensor. NULL = no
+     * sensor, which also hides the "Wrist raise" setting.
+     */
     pet_motion_state_t (*motion)(void);
     /*
      * Local time in seconds, arranged so a multiple of 86400 is local
@@ -61,8 +64,14 @@ typedef struct {
      * background; the sound stays valid forever. May be NULL for silence.
      */
     void (*play)(const struct pet_sound *sound);
-    /* Screen brightness, 0-100. 0 means dark. May be NULL. */
+    /* Screen brightness, 0-100. 0 means dark. NULL hides the "Brightness" setting. */
     void (*set_brightness)(int percent);
+    /*
+     * The platform lights and darkens its own screen (a phone). The app then
+     * never dims or darkens it for being left alone, and hides the settings
+     * that are about that: "Screen", "Wrist raise" and "Touch".
+     */
+    bool screen_managed;
     /*
      * Storage for the owner's settings (a few bytes), separate from the
      * pet's save. Same rules as load and save. Either may be NULL.
@@ -87,6 +96,15 @@ typedef struct {
      * setting.
      */
     void (*set_dev_log)(bool names);
+    /*
+     * For a platform whose dev log is not a log of names. dev_log_on is the
+     * word the setting shows when on (NULL = "names"), and dev_log_about the
+     * paragraph under the settings that explains it (NULL = the one about
+     * names on the card). With dev_log_on given, the line at start-up says
+     * only that the log is on.
+     */
+    const char *dev_log_on;
+    const char *dev_log_about;
     /* The version this was built as, such as "0.1.1", for the settings screen. NULL shows none. */
     const char *version;
     /*

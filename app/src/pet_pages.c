@@ -1092,7 +1092,9 @@ static void setting_text(pet_setting_id_t id, char *buf, size_t cap)
     case SET_SOUND:       snprintf(buf, cap, "%s", s->sound == 0 ? "off" : (s->sound == 1 ? "rare" : "all")); break;
     case SET_VOLUME:      snprintf(buf, cap, "%d of 5", s->volume); break;
     case SET_CARD:        snprintf(buf, cap, "%s", s->card_shared ? "computer" : "pet"); break;
-    case SET_DEV_LOG:     snprintf(buf, cap, "%s", s->dev_log ? "names" : "off"); break;
+    case SET_DEV_LOG:
+        snprintf(buf, cap, "%s", !s->dev_log ? "off" : (s_host->dev_log_on ? s_host->dev_log_on : "names"));
+        break;
     case SET_QUIET_START: snprintf(buf, cap, "%02d:00", s->quiet_start); break;
     case SET_QUIET_END:   snprintf(buf, cap, "%02d:00", s->quiet_end); break;
     case SET_HOUR:        snprintf(buf, cap, "%02d", (int)(now % 86400 / 3600)); break;
@@ -1168,6 +1170,15 @@ static void build_settings(void)
         if (i == SET_DEV_LOG && !s_host->can_dev_log) {
             continue;
         }
+        if (i == SET_BRIGHTNESS && !s_host->can_brightness) {
+            continue;
+        }
+        if (i == SET_RAISE && !s_host->can_raise) {
+            continue;
+        }
+        if ((i == SET_CARRY || i == SET_TOUCH) && s_host->screen_managed) {
+            continue;
+        }
         line = setting_row(body, SETTING_LABEL[i]);
         s_value[i] = text(line, "", COLOR_ACCENT, false);
         lv_obj_align(s_value[i], LV_ALIGN_RIGHT_MID, -108, 0);
@@ -1178,30 +1189,39 @@ static void build_settings(void)
     }
     settings_refresh();
     gap(body, 4);
-    para(body, "Screen: \"stays on\" for a desk, \"sleeps\" for a backpack. "
-               "Pet: pause it when the device sits on a shelf; its time stands still "
-               "and it stops scanning.", COLOR_DIM);
+    para(body, s_host->screen_managed
+                   ? "Pet: pause it when the device sits on a shelf; its time stands still "
+                     "and it stops scanning."
+                   : "Screen: \"stays on\" for a desk, \"sleeps\" for a backpack. "
+                     "Pet: pause it when the device sits on a shelf; its time stands still "
+                     "and it stops scanning.", COLOR_DIM);
     para(body, s_host->settings->speed_fixed
                    ? "Life speed: set by growth_speed in tuning.txt on the card. Take that "
                      "line out to choose it here."
                    : "Life speed: a whole life takes about 12 weeks on \"slow\", 6 on "
                      "\"medium\" and 3 on \"fast\". Changing it keeps the pet's age.",
          COLOR_DIM);
-    para(body, "Wrist raise: on battery, \"wakes\" lights the screen for a few seconds when "
-               "it is turned toward you. \"off\" leaves it dark until touched or the side "
-               "button is pressed, which saves the most battery on a wrist.", COLOR_DIM);
-    para(body, "Touch: \"off\" stops a touch from lighting a dark screen, for a pocket, "
-               "where cloth and bumps keep waking it. The side button still lights it, "
-               "and once lit it works as usual.", COLOR_DIM);
+    if (s_host->can_raise) {
+        para(body, "Wrist raise: on battery, \"wakes\" lights the screen for a few seconds when "
+                   "it is turned toward you. \"off\" leaves it dark until touched or the side "
+                   "button is pressed, which saves the most battery on a wrist.", COLOR_DIM);
+    }
+    if (!s_host->screen_managed) {
+        para(body, "Touch: \"off\" stops a touch from lighting a dark screen, for a pocket, "
+                   "where cloth and bumps keep waking it. The side button still lights it, "
+                   "and once lit it works as usual.", COLOR_DIM);
+    }
     if (s_host->can_share_card) {
         para(body, "Card: \"computer\" lends the memory card to a computer over the USB "
                    "cable, as a drive. Eject it there, then switch back to \"pet\"; "
                    "the device restarts.", COLOR_DIM);
     }
     if (s_host->can_dev_log) {
-        para(body, "Dev log: \"names\" writes the name of each network and device "
-                   "to the log on the card, for tuning. Keep that file private. "
-                   "\"off\" logs kinds of food only.", COLOR_DIM);
+        para(body, s_host->dev_log_about
+                       ? s_host->dev_log_about
+                       : "Dev log: \"names\" writes the name of each network and device "
+                         "to the log on the card, for tuning. Keep that file private. "
+                         "\"off\" logs kinds of food only.", COLOR_DIM);
     }
     gap(body, 8);
     button(body, s_body_w, 44, "Start over...", reset_cb, NULL);

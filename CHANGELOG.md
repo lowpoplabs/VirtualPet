@@ -4,6 +4,19 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.9 - 2026-11-25
+
+Nothing changes on the watch. This release is for other devices that run the same pet.
+
+### Added
+- **A device that looks after its own screen** (a phone) can say so. The pet then never
+  dims or darkens the screen for being left alone, and Settings leaves out "Screen",
+  "Wrist raise" and "Touch", which are about that.
+- **Settings leaves out rows a device cannot use:** "Brightness" where the pet cannot set
+  it, and "Wrist raise" where there is no motion sensor.
+- **Dev log wording** can be given by the device, for one whose log holds no names: the
+  word the row shows when on, and the paragraph that explains it.
+
 ## 0.4.8 - 2026-11-25
 
 ### Changed

@@ -527,8 +527,8 @@ static void screen_update(void)
     screen_state_t next;
     if (s_forced_dark) {
         next = SCREEN_DARK;
-    } else if (idle < idle_limit) {
-        next = SCREEN_BRIGHT;
+    } else if (idle < idle_limit || s_hal->screen_managed) {
+        next = SCREEN_BRIGHT;   /* a platform that darkens its own screen is never idle to us */
     } else {
         next = plan.screen_stays_on ? SCREEN_DIM : SCREEN_DARK;
     }
@@ -1322,6 +1322,10 @@ void pet_app_start(const pet_hal_t *hal)
         .pet = &s_pet, .settings = &s_set, .recent = s_recent, .recent_count = &s_recent_count,
         .can_set_clock = hal->adjust_clock != NULL, .can_share_card = hal->share_card != NULL,
         .can_dev_log = hal->set_dev_log != NULL,
+        .can_brightness = hal->set_brightness != NULL,
+        .can_raise = hal->motion != NULL && !hal->screen_managed,
+        .screen_managed = hal->screen_managed,
+        .dev_log_on = hal->dev_log_on, .dev_log_about = hal->dev_log_about,
         .version = hal->version,
         .now = hal->now_s,
         .change = on_setting, .renamed = on_renamed, .start_over = on_start_over,
@@ -1331,7 +1335,7 @@ void pet_app_start(const pet_hal_t *hal)
     if (hal->set_dev_log) {
         hal->set_dev_log(s_set.dev_log);
         if (s_set.dev_log) {
-            pet_app_show_find("dev log: names are logged");
+            pet_app_show_find(hal->dev_log_on ? "dev log on" : "dev log: names are logged");
         }
     }
     /* A settings file with a mistake was ignored: say which, so it can be fixed. */
