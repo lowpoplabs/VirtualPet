@@ -4,6 +4,14 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.11 - 2026-11-25
+
+Nothing changes on the watch.
+
+### Changed
+- **Site:** in "What's next", the Android app has moved from "Being thought about" to
+  "Being worked on now". The Wear OS view of it is still being thought about.
+
 ## 0.4.10 - 2026-11-25
 
 ### Changed
