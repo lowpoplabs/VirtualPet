@@ -54,7 +54,13 @@ static void fake_notice(pet_notice_t what, const char *text)
     snprintf(s_last[what], sizeof(s_last[what]), "%s", text ? text : "");
 }
 
+static void fake_dev_log(bool on)
+{
+    (void)on;
+}
+
 static pet_hal_t s_hal = {
+    .set_dev_log = fake_dev_log,
     .now_s = fake_now,
     .random = fake_random,
     .save = fake_save,
@@ -169,8 +175,7 @@ int main(void)
     CHECK(!pet_app_setting_shown(SET_TEXT), "no pages, so no Text size");
     CHECK(!pet_app_setting_shown(SET_CARRY) && !pet_app_setting_shown(SET_TOUCH) &&
               !pet_app_setting_shown(SET_BRIGHTNESS) && !pet_app_setting_shown(SET_RAISE) &&
-              !pet_app_setting_shown(SET_HOUR) && !pet_app_setting_shown(SET_CARD) &&
-              !pet_app_setting_shown(SET_DEV_LOG),
+              !pet_app_setting_shown(SET_HOUR) && !pet_app_setting_shown(SET_CARD),
           "nor what this device cannot do");
     CHECK(!strcmp(pet_app_setting_label(SET_QUIET_START), "Quiet from"), "a setting has its name");
     pet_app_setting_text(SET_QUIET_START, buf, sizeof(buf));
@@ -192,6 +197,40 @@ int main(void)
     CHECK(run_until(PET_NOTICE_CHANGED, 2000), "a paused pet still says when to read");
     pet_app_setting_step(SET_PAUSE, -1);
     CHECK(!set->paused, "and woken");
+
+    /* The preview of every form. */
+    CHECK(!set->dev_log && !pet_app_preview(), "no preview while Dev log is off");
+    pet_app_setting_step(SET_DEV_LOG, 1);
+    CHECK(set->dev_log && pet_app_preview(), "with it on, the preview starts");
+    CHECK(!strcmp(s_last[PET_NOTICE_NEWS], "preview 1 of 11: egg"), "and says which form is showing");
+    lv_obj_t *pet_root = lv_obj_get_child(lv_obj_get_child(scr, 0), 0);
+    int meals = (int)pet->meals;
+    for (int i = 2; i <= 11; i++) {
+        run_ms(1600);
+        lv_obj_send_event(pet_root, LV_EVENT_CLICKED, NULL);
+        pet_root = lv_obj_get_child(lv_obj_get_child(scr, 0), 0);   /* each form is drawn afresh */
+    }
+    CHECK(!strcmp(s_last[PET_NOTICE_NEWS], "preview 11 of 11: Prism"), "a tap moves to the next, to the last");
+    run_ms(1600);
+    lv_obj_send_event(pet_root, LV_EVENT_CLICKED, NULL);
+    CHECK(!strcmp(s_last[PET_NOTICE_NEWS], "preview over"), "one more tap ends it");
+    CHECK(pet->stage == STAGE_EGG && (int)pet->meals == meals, "the pet itself was not touched");
+    pet_app_setting_step(SET_DEV_LOG, 1);
+    CHECK(!set->dev_log, "Dev log goes off again");
+
+    /* The farm's pictures. */
+    for (int f = 0; f < FORM_COUNT; f++) {
+        pet_icon_part_t part[PET_ICON_PARTS_MAX];
+        int count = pet_farm_icon((pet_form_t)f, part, PET_ICON_PARTS_MAX);
+        bool fits = count >= 5 && count <= PET_ICON_PARTS_MAX &&
+                    pet_farm_icon((pet_form_t)f, NULL, 0) == count;
+        for (int i = 0; fits && i < count; i++) {
+            fits = part[i].w > 0 && part[i].h > 0 && part[i].x < PET_ICON_SIZE &&
+                   part[i].y + part[i].h <= PET_ICON_SIZE && part[i].radius * 2 <= part[i].w &&
+                   part[i].radius * 2 <= part[i].h;
+        }
+        CHECK(fits, "a form's farm picture fits its square");
+    }
 
     /* Retiring and starting over. */
     CHECK(!pet_app_retire(), "an egg cannot be retired");

@@ -185,6 +185,48 @@ bool pet_app_retire(void);
 /* A new egg in place of the pet and everything it had; the settings stay. Ask the owner first. */
 void pet_app_start_over(void);
 
+/*
+ * The preview of every form: the pet's square shows each stage and form in
+ * turn, the egg first, moving on at each tap on the pet and going back to
+ * the real pet after the last. Each one is told as news ("preview 3 of 11:
+ * Grazer"), then "preview over". Left alone for a minute it ends without a
+ * word. Only the drawing changes; the pet itself is untouched, and its
+ * finds are not told while it runs. Calling it again starts from the egg.
+ *
+ * The forms are meant to be a surprise, so this is false, and nothing
+ * happens, unless Dev log is on. On the watch it is a hold on the Settings
+ * title.
+ */
+bool pet_app_preview(void);
+
+/* ---- The farm's pictures ------------------------------------------------ */
+
+/*
+ * One piece of a small picture: a box with rounded corners, in a square of
+ * PET_ICON_SIZE. x and y are its top left corner. radius is of its corners;
+ * at half the shorter side the box is a circle or a pill.
+ */
+typedef struct {
+    uint8_t x, y, w, h;
+    uint8_t radius;
+    uint32_t color;     /* 0xRRGGBB */
+} pet_icon_part_t;
+
+#define PET_ICON_SIZE      56
+#define PET_ICON_PARTS_MAX 16
+
+/*
+ * The picture the farm shows for a retired pet of this form (a resident's
+ * form is pet->farm.resident[i].form). Fills parts with up to max pieces,
+ * to be drawn in order, each over the ones before, and returns how many
+ * the picture has; PET_ICON_PARTS_MAX holds any of them. To draw it at
+ * another size, multiply every number by size / PET_ICON_SIZE. A piece
+ * may run a pixel or two past the right edge (a tail): cut the picture
+ * off at its square, as the farm does. It needs
+ * no app running and no LVGL.
+ */
+int pet_farm_icon(pet_form_t form, pet_icon_part_t *parts, int max);
+
 #ifdef __cplusplus
 }
 #endif

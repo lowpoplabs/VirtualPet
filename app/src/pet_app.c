@@ -203,6 +203,15 @@ static void on_preview(void)
     preview_show();
 }
 
+bool pet_app_preview(void)
+{
+    if (!s_set.dev_log) {
+        return false;
+    }
+    on_preview();
+    return true;
+}
+
 /* A tap during the preview. True if it was used up moving to the next form. */
 static bool preview_next(void)
 {

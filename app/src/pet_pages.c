@@ -657,82 +657,12 @@ static lv_obj_t *s_farm_line[3];
 /* A retired pet, small: its form's colour and the one or two things that mark it out. */
 static void farm_icon(lv_obj_t *box56, pet_form_t form)
 {
-    static const uint32_t BODY[FORM_COUNT] = {
-        [FORM_NONE] = 0x8CF2B0,     [FORM_GRAZER] = 0xC6E68C,    [FORM_HUNTER] = 0xA9BEF7,
-        [FORM_HOMEBODY] = 0xBF7436, [FORM_ROAMER] = 0xFFC857,    [FORM_SCAVENGER] = 0xE8674C,
-        [FORM_SINGER] = 0xC79BF2,   [FORM_RACER] = 0xF48FB1,     [FORM_GLOWBUG] = 0xA9A2FF,
-        [FORM_PRISM] = 0xFF9CB8,
-    };
-    uint32_t c = BODY[form < FORM_COUNT ? form : FORM_NONE];
-    int32_t body_x = 8, body_w = 40;
-    switch (form) {
-    case FORM_HOMEBODY:     /* horn-antennae and a fringe */
-        dot(box56, 6, 14, 0xE9DFCB, 6, 10);
-        dot(box56, 6, 14, 0xE9DFCB, 44, 10);
-        dot(box56, 9, 9, 0xFFE27A, 3, 4);
-        dot(box56, 9, 9, 0xFFE27A, 44, 4);
-        break;
-    case FORM_ROAMER:       /* wings */
-        dot(box56, 26, 32, 0xF2811D, 0, 14);
-        dot(box56, 26, 32, 0xF2811D, 30, 14);
-        slab(box56, 3, 12, c, 21, 6);
-        slab(box56, 3, 12, c, 32, 6);
-        dot(box56, 8, 8, 0xFFE27A, 18, 1);
-        dot(box56, 8, 8, 0xFFE27A, 30, 1);
-        body_x = 15;
-        body_w = 26;
-        break;
-    case FORM_SCAVENGER:    /* blue pincers */
-        dot(box56, 16, 18, 0x3F8FE3, 0, 12);
-        dot(box56, 16, 18, 0x3F8FE3, 40, 12);
-        slab(box56, 3, 12, c, 20, 8);
-        slab(box56, 3, 9, c, 33, 11);
-        dot(box56, 8, 8, 0xFFE27A, 17, 3);
-        dot(box56, 8, 8, 0xFFE27A, 30, 6);
-        break;
-    case FORM_SINGER:       /* huge ears and a tail */
-        dot(box56, 18, 30, c, 6, 0);
-        dot(box56, 18, 30, c, 32, 0);
-        dot(box56, 8, 16, 0xF6BFE4, 11, 6);
-        dot(box56, 8, 16, 0xF6BFE4, 37, 6);
-        dot(box56, 14, 14, 0xF4EAFF, 44, 36);
-        break;
-    case FORM_RACER:        /* long ears, one striped */
-        dot(box56, 12, 32, c, 15, 0);
-        dot(box56, 12, 32, c, 30, 0);
-        slab(box56, 12, 3, 0xFFFFFF, 30, 9);
-        slab(box56, 12, 3, 0xFFFFFF, 30, 15);
-        dot(box56, 12, 12, 0xFFE6EE, 44, 40);
-        break;
-    case FORM_GLOWBUG:      /* ear fins and arms */
-        dot(box56, 18, 14, 0xC2BDFF, 0, 14);
-        dot(box56, 18, 14, 0xC2BDFF, 38, 14);
-        for (int i = 0; i < 4; i++) {
-            slab(box56, 7, 16, c, 12 + i * 9, 40);
-        }
-        break;
-    case FORM_PRISM:        /* a horn and a rainbow mane */
-        slab(box56, 8, 20, 0xFFD36B, 24, 0);
-        dot(box56, 12, 12, 0xFFB25B, 42, 18);
-        dot(box56, 12, 12, 0x7BE38F, 45, 28);
-        dot(box56, 12, 12, 0x7DB8F2, 42, 38);
-        break;
-    default:
-        break;
+    pet_icon_part_t part[PET_ICON_PARTS_MAX];
+    int count = pet_farm_icon(form, part, PET_ICON_PARTS_MAX);
+    for (int i = 0; i < count && i < PET_ICON_PARTS_MAX; i++) {
+        lv_obj_set_pos(filled(box56, part[i].w, part[i].h, part[i].color, part[i].radius),
+                       part[i].x, part[i].y);
     }
-    dot(box56, body_w, 36, c, body_x, 18);
-    if (form == FORM_HOMEBODY) {
-        slab(box56, 26, 9, 0xE9AE6A, 15, 15);
-        dot(box56, 20, 11, 0xF3D9B4, 18, 41);
-    }
-    if (form == FORM_GLOWBUG) {
-        dot(box56, 6, 6, 0x9FFFE8, 25, 20);
-    }
-    int32_t eye = form == FORM_ROAMER ? 4 : 0;
-    dot(box56, 9, 12, 0xFFFFFF, 17 + eye / 2, 26);
-    dot(box56, 9, 12, 0xFFFFFF, 30 - eye / 2, 26);
-    dot(box56, 4, 6, 0x10131A, 19 + eye / 2, 30);
-    dot(box56, 4, 6, 0x10131A, 32 - eye / 2, 30);
 }
 
 /* The three lines under the field, about the resident that was tapped. */

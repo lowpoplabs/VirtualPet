@@ -4,6 +4,18 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.14 - 2026-11-26
+
+Nothing changes on the watch. This release is for other devices that run the same pet.
+
+### Added
+- **The preview of every form** can be started by a device that draws its own screens. It
+  is refused unless Dev log is on, as on the watch, where it is a hold on the Settings
+  title.
+- **The farm's small pictures of retired pets** are now a list of rounded boxes that such a
+  device can draw itself at any size. The watch's farm page draws from the same list and
+  looks exactly as before.
+
 ## 0.4.13 - 2026-11-26
 
 Nothing changes on the watch. This release is for other devices that run the same pet.

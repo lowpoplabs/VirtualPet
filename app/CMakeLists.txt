@@ -13,6 +13,7 @@ set(PET_APP_SRCS
     src/pet_config.c
     src/pet_food.c
     src/pet_growth.c
+    src/pet_icon.c
     src/pet_hearing.c
     src/pet_journal.c
     src/pet_lines.c
