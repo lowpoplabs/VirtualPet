@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.second.outputs.page_url || steps.third.outputs.page_url }}
     steps:
       - name: Fetch the latest release zip
         env:
@@ -41,5 +41,22 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: unpacked/installer
+      # The deploy sometimes cannot find the artifact the step above has just
+      # uploaded ("No artifacts named github-pages were found"). It is there a
+      # little later, so a failed deploy is tried twice more after a wait.
       - id: deployment
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      - name: Wait before a second try
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+      - id: second
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      - name: Wait before a third try
+        if: steps.second.outcome == 'failure'
+        run: sleep 90
+      - id: third
+        if: steps.second.outcome == 'failure'
         uses: actions/deploy-pages@v5
