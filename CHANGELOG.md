@@ -4,6 +4,22 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.15 - 2026-11-26
+
+### Changed
+- **The pet's breathing no longer ticks at the bottom.** It used to touch its lowest point
+  for a moment and spring back; it now rests there as long as it does at the top. The
+  movement is the same size.
+- **On a device that draws the pet bigger than the watch does,** the pet's movements
+  (breathing, hopping, looking about, sniffing and the rest) now go a pixel of that screen
+  at a time, where they went in jumps of two or three. Nothing changes on the watch from
+  this.
+
+### Fixed
+- **`look_sheet`,** the simulator's artwork tool, took every picture at the first moment
+  of a movement whatever time it was asked for. It now pictures the moment asked for, and
+  the same arguments always give the same picture.
+
 ## 0.4.14 - 2026-11-26
 
 Nothing changes on the watch. This release is for other devices that run the same pet.

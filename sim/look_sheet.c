@@ -39,6 +39,7 @@ int main(int argc, char **argv)
     lv_init();
     lv_tick_set_cb(tick_cb);
     lv_sdl_window_create(side, side);
+    lv_tick_set_cb(tick_cb);    /* after the window, which sets a clock of its own */
 
     lv_obj_t *scr = lv_screen_active();
     lv_obj_set_style_bg_color(scr, lv_color_black(), 0);

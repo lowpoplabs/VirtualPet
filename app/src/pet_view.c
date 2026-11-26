@@ -313,7 +313,14 @@ void pet_view_munch(void)
     claws_snap(110, 4, 0);      /* a crab snaps its pincers as it chews */
 }
 
-/* ---- Animation callbacks (one per moving part, so each can be stopped) -- */
+/* ---- Animation callbacks (one per moving part, so each can be stopped) --
+ * A movement is counted in the screen's own pixels: its two ends are turned
+ * into them once, with px(), where the animation is started, and the
+ * callback uses the value as it comes. So a bigger pet moves a pixel at a
+ * time, as the watch's does, and not in jumps. The ones that set a size
+ * from a value in the watch's pixels (the eyes, the mouth) or in hundredths
+ * (the wings) still work it out at each step.
+ */
 
 static void eye_h_cb(void *var, int32_t h)
 {
@@ -330,19 +337,19 @@ static void eye_h_cb(void *var, int32_t h)
 
 static void bob_cb(void *var, int32_t y)
 {
-    lv_obj_set_style_translate_y((lv_obj_t *)var, px(y), 0);
+    lv_obj_set_style_translate_y((lv_obj_t *)var, y, 0);
 }
 
 static void hop_cb(void *var, int32_t y)
 {
-    lv_obj_set_style_translate_y((lv_obj_t *)var, px(y), 0);
+    lv_obj_set_style_translate_y((lv_obj_t *)var, y, 0);
 }
 
 static void look_cb(void *var, int32_t x)
 {
     LV_UNUSED(var);
     for (int i = 0; i < 2 && s_pupil[i]; i++) {
-        lv_obj_set_style_translate_x(s_pupil[i], px(x), 0);
+        lv_obj_set_style_translate_x(s_pupil[i], x, 0);
     }
 }
 
@@ -353,23 +360,24 @@ static void sniff_cb(void *var, int32_t x)
         /* The tips swing further than the stalks, in opposite directions per side. */
         int32_t dir = i == 0 ? 1 : -1;
         if (s_tip[i]) {
-            lv_obj_set_style_translate_x(s_tip[i], px(dir * x), 0);
+            lv_obj_set_style_translate_x(s_tip[i], dir * x, 0);
         }
         if (s_stalk[i]) {
-            lv_obj_set_style_translate_x(s_stalk[i], px(dir * x / 3), 0);
+            lv_obj_set_style_translate_x(s_stalk[i], dir * x / 3, 0);
         }
     }
 }
 
 static void shake_cb(void *var, int32_t x)
 {
-    lv_obj_set_style_translate_x((lv_obj_t *)var, px(x), 0);
+    lv_obj_set_style_translate_x((lv_obj_t *)var, x, 0);
 }
 
 static void zzz_cb(void *var, int32_t v)
 {
     lv_obj_t *z = var;
-    lv_obj_set_style_translate_y(z, px(-v / 4), 0);
+    /* A quarter of v in the watch's pixels, worked out in the screen's so it drifts smoothly. */
+    lv_obj_set_style_translate_y(z, -(v * s_size) / (4 * PET_AREA_SIZE), 0);
     lv_obj_set_style_opa(z, (lv_opa_t)(v < 128 ? v * 2 : (255 - v) * 2), 0);
 }
 
@@ -401,7 +409,7 @@ static void fin_cb(void *var, int32_t y)
 {
     LV_UNUSED(var);
     for (int i = 0; i < 2 && s_fin[i]; i++) {
-        lv_obj_set_style_translate_y(s_fin[i], px(y), 0);
+        lv_obj_set_style_translate_y(s_fin[i], y, 0);
     }
 }
 
@@ -410,13 +418,29 @@ static void arm_cb(void *var, int32_t y)
 {
     LV_UNUSED(var);
     for (int i = 0; i < 6 && s_arm[i]; i++) {
-        lv_obj_set_style_translate_y(s_arm[i], px(i % 2 ? y : -y), 0);
+        lv_obj_set_style_translate_y(s_arm[i], i % 2 ? y : -y, 0);
     }
 }
 
 static void flicker_cb(void *var, int32_t v)
 {
     lv_obj_set_style_opa((lv_obj_t *)var, (lv_opa_t)v, 0);
+}
+
+/*
+ * LVGL's ease in and out, but to the nearest pixel. LVGL's own rounds
+ * down, which shows the far end of a movement for one frame only: the pet's
+ * breathing touched its lowest point and sprang back, a tick at the bottom.
+ * Rounded to the nearest, the two ends each last as long as the other.
+ */
+static int32_t ease_nearest(const lv_anim_t *a)
+{
+    uint32_t t = lv_map(a->act_time, 0, a->duration, 0, LV_BEZIER_VAL_MAX);
+    int32_t step = lv_cubic_bezier(t, LV_BEZIER_VAL_FLOAT(0.42), LV_BEZIER_VAL_FLOAT(0),
+                                   LV_BEZIER_VAL_FLOAT(0.58), LV_BEZIER_VAL_FLOAT(1));
+    int32_t n = step * (a->end_value - a->start_value);
+    int32_t half = LV_BEZIER_VAL_MAX / 2;
+    return a->start_value + (n >= 0 ? n + half : n - half) / LV_BEZIER_VAL_MAX;
 }
 
 static void loop_anim(void *var, lv_anim_exec_xcb_t cb, int32_t from, int32_t to, uint32_t ms,
@@ -432,7 +456,8 @@ static void loop_anim(void *var, lv_anim_exec_xcb_t cb, int32_t from, int32_t to
         lv_anim_set_playback_duration(&a, ms);
     }
     lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+    /* The breathing is slow and small enough for the rounding to show. */
+    lv_anim_set_path_cb(&a, cb == bob_cb ? ease_nearest : lv_anim_path_ease_in_out);
     lv_anim_start(&a);
 }
 
@@ -440,12 +465,13 @@ static void loop_anim(void *var, lv_anim_exec_xcb_t cb, int32_t from, int32_t to
 
 #define CLAW_GAP_OPEN 12
 #define CLAW_GAP_SHUT 2
+#define WAVE          14    /* how far a pincer is waved */
 
 static void snap_cb(void *var, int32_t w)
 {
     LV_UNUSED(var);
     for (int i = 0; i < 2 && s_claw_gap[i]; i++) {
-        lv_obj_set_width(s_claw_gap[i], len(w));
+        lv_obj_set_width(s_claw_gap[i], w);
     }
 }
 
@@ -454,8 +480,8 @@ static void wave_cb(void *var, int32_t y)
 {
     LV_UNUSED(var);
     if (s_claw[0] && s_claw[1]) {
-        lv_obj_set_style_translate_y(s_claw[0], px(-y), 0);
-        lv_obj_set_style_translate_y(s_claw[1], px(y - 14), 0);
+        lv_obj_set_style_translate_y(s_claw[0], -y, 0);
+        lv_obj_set_style_translate_y(s_claw[1], y - px(WAVE), 0);
     }
 }
 
@@ -477,7 +503,7 @@ static void claws_snap(uint32_t ms, uint32_t times, uint32_t rest_ms)
     lv_anim_init(&a);
     lv_anim_set_var(&a, s_claw_gap);
     lv_anim_set_exec_cb(&a, snap_cb);
-    lv_anim_set_values(&a, CLAW_GAP_OPEN, CLAW_GAP_SHUT);
+    lv_anim_set_values(&a, len(CLAW_GAP_OPEN), len(CLAW_GAP_SHUT));
     lv_anim_set_duration(&a, ms);
     lv_anim_set_playback_duration(&a, ms);
     lv_anim_set_repeat_count(&a, times);
@@ -526,7 +552,7 @@ static void start_hop(uint32_t repeats)
     lv_anim_init(&a);
     lv_anim_set_var(&a, s_root);
     lv_anim_set_exec_cb(&a, hop_cb);
-    lv_anim_set_values(&a, 0, -28);
+    lv_anim_set_values(&a, 0, px(-28));
     lv_anim_set_duration(&a, 160);
     lv_anim_set_playback_duration(&a, 220);
     lv_anim_set_repeat_count(&a, repeats);
@@ -542,7 +568,7 @@ static void start_wobble(void)
     lv_anim_init(&a);
     lv_anim_set_var(&a, s_body);
     lv_anim_set_exec_cb(&a, shake_cb);
-    lv_anim_set_values(&a, -9, 9);
+    lv_anim_set_values(&a, px(-9), px(9));
     lv_anim_set_duration(&a, 110);
     lv_anim_set_playback_duration(&a, 110);
     lv_anim_set_repeat_count(&a, 4);
@@ -604,7 +630,7 @@ static void tap_cb(lv_event_t *e)
 
 static void walk_cb(void *var, int32_t x)
 {
-    lv_obj_set_style_translate_x((lv_obj_t *)var, px(x), 0);
+    lv_obj_set_style_translate_x((lv_obj_t *)var, x, 0);
 }
 
 static void slide(int32_t from, int32_t to, uint32_t ms, lv_anim_path_cb_t path)
@@ -629,7 +655,7 @@ void pet_view_walk_off(uint32_t ms)
     if (!s_is_egg && s_action != ACT_PLAY) {
         start_hop(ms / 440 + 1);
     }
-    slide(0, PET_AREA_SIZE, ms, lv_anim_path_ease_in);
+    slide(0, px(PET_AREA_SIZE), ms, lv_anim_path_ease_in);
 }
 
 void pet_view_roll_in(uint32_t ms)
@@ -638,7 +664,7 @@ void pet_view_roll_in(uint32_t ms)
         return;
     }
     lv_obj_set_style_translate_x(s_root, px(-PET_AREA_SIZE), 0);
-    slide(-PET_AREA_SIZE, 0, ms, lv_anim_path_overshoot);
+    slide(px(-PET_AREA_SIZE), 0, ms, lv_anim_path_overshoot);
     if (s_is_egg) {
         start_wobble();
     }
@@ -693,25 +719,25 @@ static void start_action(pet_action_t before)
 {
     switch (s_action) {
     case ACT_LOOK:
-        loop_anim(s_pupil, look_cb, -10, 10, 900, true);
+        loop_anim(s_pupil, look_cb, px(-10), px(10), 900, true);
         break;
     case ACT_SNIFF:
         /* Ears twitch too, but only antennae have tips to swing; no-op without them. */
-        loop_anim(s_tip, sniff_cb, -7, 7, 130, true);
+        loop_anim(s_tip, sniff_cb, px(-7), px(7), 130, true);
         break;
     case ACT_PLAY:
         start_hop(LV_ANIM_REPEAT_INFINITE);
         if (s_style == LOOK_HARE) {
-            loop_anim(s_tip, sniff_cb, -18, 18, 240, true);     /* its ears sway as it bounds */
+            loop_anim(s_tip, sniff_cb, px(-18), px(18), 240, true);     /* its ears sway as it bounds */
         }
         if (s_claw[0]) {
             /* A crab at play waves its pincers and snaps them. */
-            loop_anim(s_claw, wave_cb, 0, 14, 220, true);
+            loop_anim(s_claw, wave_cb, 0, px(WAVE), 220, true);
             claws_snap(120, LV_ANIM_REPEAT_INFINITE, 0);
         }
         break;
     case ACT_GRUMBLE:
-        loop_anim(s_body, shake_cb, -4, 4, 70, true);
+        loop_anim(s_body, shake_cb, px(-4), px(4), 70, true);
         break;
     case ACT_NAP:
         lv_obj_remove_flag(s_zzz, LV_OBJ_FLAG_HIDDEN);
@@ -822,7 +848,7 @@ static void build_egg(void)
         lv_obj_t *spot = shape(s_body, SPOTS[i][2], SPOTS[i][2], LOOK_HATCHLING.color);
         place(spot, LV_ALIGN_CENTER, SPOTS[i][0], SPOTS[i][1]);
     }
-    loop_anim(s_body, bob_cb, 0, 3, 1500, true);
+    loop_anim(s_body, bob_cb, 0, px(3), 1500, true);
 }
 
 /*
@@ -1067,7 +1093,7 @@ static void build_octopus_back(const look_t *k, int32_t body_top)
         }
         s_stalk[i] = s_fin[i];      /* so they twitch when it sniffs, as ears do */
     }
-    loop_anim(s_fin, fin_cb, -9, 7, 620, true);
+    loop_anim(s_fin, fin_cb, px(-9), px(7), 620, true);
 
     /* Long in the middle, short at the sides, so the hem is scalloped. */
     static const int16_t LONG[OCTO_ARMS] = {84, 100, 110, 110, 100, 84};
@@ -1075,7 +1101,7 @@ static void build_octopus_back(const look_t *k, int32_t body_top)
         s_arm[i] = body_part(s_root, 25, LONG[i], k->color);
         place(s_arm[i], LV_ALIGN_TOP_MID, -85 + i * 34, body_top + k->body_h - 62);
     }
-    loop_anim(s_arm, arm_cb, -5, 5, 900, true);
+    loop_anim(s_arm, arm_cb, px(-5), px(5), 900, true);
 }
 
 /* On its body: spots of light that pulse, and a blush under each eye. */
@@ -1360,7 +1386,7 @@ static void build_critter(const look_t *k)
     lv_obj_add_flag(s_zzz, LV_OBJ_FLAG_HIDDEN);
 
     /* Breathing bob, always on. */
-    loop_anim(s_body, bob_cb, 0, 5, 1100, true);
+    loop_anim(s_body, bob_cb, 0, px(5), 1100, true);
     if (k->glow) {
         loop_anim(s_belly, glow_cb, 70, 230, 1400, true);
     }
