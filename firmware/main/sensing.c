@@ -28,105 +28,29 @@
 #define WIFI_DWELL_MS        120     /* per channel; beacons come every ~102 ms */
 #define WIFI_MAX_NETWORKS    64
 #define BLE_SCAN_MS          5000
-/*
- * How long before the same network or device can be eaten again: a day.
- * At an hour (the first setting) one open guest network at home was eaten
- * 26 times in the day 1 log and made the pet queasy without going out.
- */
-#define REGROW_S             (24 * 3600)
 
 static const char *TAG = "sense";
 
 static sensing_callbacks_t s_cb;
-static seen_list_t *s_seen_list;        /* in PSRAM: internal RAM is scarce */
-#define s_seen (*s_seen_list)
-static SemaphoreHandle_t s_lock;        /* guards s_seen, s_cycle and callbacks */
+/*
+ * What is done with a network or a device once it has been heard is shared
+ * with the other platforms: app/include/pet_hearing.h. In PSRAM: internal
+ * RAM is scarce.
+ */
+static pet_hearing_t *s_hearing;
+static SemaphoreHandle_t s_lock;        /* guards s_hearing and callbacks */
 static SemaphoreHandle_t s_ble_synced;
 static SemaphoreHandle_t s_ble_done;
-static sensing_cycle_t s_cycle;
-static pet_scan_t s_scan;               /* the surroundings this cycle, for places */
 static bool s_scan_ok;
-
-/*
- * Networks weaker than this are too far off to say where the pet is. It
- * was -85 until the first day at an office: in a pocket the device heard
- * the office's own networks at about that, so the habitat took hours to
- * form and then came and went all day.
- */
-#define PLACE_PRINT_MIN_RSSI (-92)
-/*
- * A place name this strong counts at once. A fainter one (down to the
- * second figure) counts only once it has been heard again a few minutes
- * later, which a drive past never is: see PLACE_STAY_S. It was a flat -75
- * until a day of visits showed that standing inside a shop, in a pocket,
- * reads -83 to -92.
- */
-#define PLACE_NAME_NEAR_RSSI (-70)
-#define PLACE_NAME_MIN_RSSI  (-92)
-/* An eaten network heard this much more strongly than before is logged again, for tuning. */
-#define HEARD_STEP_DB        8
-
-/* One network heard, for places. Called with every network, eaten or not. */
-static void note_surroundings(const wifi_ap_record_t *ap, const char *name, food_type_t type)
-{
-    /* Phones and cars move about; only things bolted down mark a place. */
-    bool fixed = type == FOOD_WIFI_SECURED || type == FOOD_WIFI_WPA3 || type == FOOD_WIFI_OPEN ||
-                 type == FOOD_WIFI_PRINTER || type == FOOD_WIFI_HIDDEN;
-    uint16_t print = fixed ? place_print(s_cb.place_salt, ap->bssid, sizeof(ap->bssid)) : 0;
-    /* For telling a ride, however faint: by the roadside they mostly are. */
-    if (fixed && s_cycle.ride_prints < RIDE_PRINTS) {
-        bool have = false;
-        for (int i = 0; i < s_cycle.ride_prints; i++) {
-            have = have || s_cycle.ride_print[i] == print;
-        }
-        if (!have) {
-            s_cycle.ride_print[s_cycle.ride_prints++] = print;
-        }
-    }
-    if (fixed && ap->rssi >= PLACE_PRINT_MIN_RSSI && s_scan.prints < SCAN_PRINTS_MAX) {
-        bool have = false;
-        for (int i = 0; i < s_scan.prints; i++) {
-            have = have || s_scan.print[i] == print;
-        }
-        if (!have) {
-            s_scan.print[s_scan.prints++] = print;
-        }
-    }
-    place_kind_t kind;
-    uint16_t chain;
-    if (ap->rssi >= PLACE_NAME_MIN_RSSI && s_scan.matches < SCAN_MATCHES_MAX &&
-        place_match_name(name, &kind, &chain)) {
-        bool have = false;
-        for (int i = 0; i < s_scan.matches; i++) {
-            have = have || (s_scan.match[i].kind == kind && s_scan.match[i].chain == chain);
-        }
-        if (!have) {
-            s_scan.match[s_scan.matches].kind = (uint8_t)kind;
-            s_scan.match[s_scan.matches].faint = ap->rssi < PLACE_NAME_NEAR_RSSI;
-            s_scan.match[s_scan.matches++].chain = chain;
-        }
-    }
-}
 
 static uint32_t now_s(void)
 {
     return (uint32_t)(esp_timer_get_time() / 1000000) + 1;
 }
 
-/* Names come off the air: keep printable ASCII, replace the rest. */
-static void copy_name(char *dst, size_t dst_size, const uint8_t *src, size_t len)
-{
-    size_t n = len < dst_size - 1 ? len : dst_size - 1;
-    for (size_t i = 0; i < n; i++) {
-        dst[i] = (src[i] >= 0x20 && src[i] < 0x7F) ? (char)src[i] : '?';
-    }
-    dst[n] = '\0';
-}
-
 /* Caller holds s_lock. */
-static void emit(food_event_t *ev)
+static void emit(const food_event_t *ev)
 {
-    ev->value = food_value(ev->type, esp_random());
     if (s_cb.on_food) {
         s_cb.on_food(ev);
     }
@@ -188,28 +112,28 @@ static void wifi_scan_once(wifi_ap_record_t *records)
     }
 
     xSemaphoreTake(s_lock, portMAX_DELAY);
-    s_cycle.wifi_seen = count;
-    s_cycle.wifi_best = count ? records[0].rssi : 0;
     s_scan_ok = true;
     /* The results come strongest first, so the prints kept are the nearest networks. */
     for (int i = 0; i < count; i++) {
         const wifi_ap_record_t *ap = &records[i];
-        food_event_t ev = {.rssi = ap->rssi};
-        copy_name(ev.name, sizeof(ev.name), ap->ssid, strnlen((const char *)ap->ssid, 32));
-        wifi_sighting_t s = {.ssid = ev.name, .sec = map_auth(ap->authmode)};
-        ev.type = food_classify_wifi(&s);
-        note_surroundings(ap, ev.name, ev.type);
-        bool eaten_before = seen_recently(&s_seen, ap->bssid, sizeof(ap->bssid), now_s(), REGROW_S);
-        int before = seen_note_rssi(&s_seen, ap->bssid, sizeof(ap->bssid), ap->rssi);
-        if (eaten_before) {
-            if (before != SEEN_NO_RSSI && ap->rssi >= before + HEARD_STEP_DB && s_cb.on_heard) {
+        char name[33];
+        hearing_clean_name(name, sizeof(name), ap->ssid, strnlen((const char *)ap->ssid, 32));
+        const heard_network_t heard = {
+            .addr = ap->bssid, .rssi = ap->rssi, .what = {.ssid = name, .sec = map_auth(ap->authmode)}};
+        food_event_t ev;
+        switch (hearing_network(s_hearing, &heard, now_s(), &ev)) {
+        case HEARD_EATEN:
+            snprintf(ev.detail, sizeof(ev.detail), "auth=%d ch=%d", (int)ap->authmode, (int)ap->primary);
+            emit(&ev);
+            break;
+        case HEARD_NEARER:
+            if (s_cb.on_heard) {
                 s_cb.on_heard(&ev);
             }
-            continue;
+            break;
+        default:
+            break;
         }
-        snprintf(ev.detail, sizeof(ev.detail), "auth=%d ch=%d", (int)ap->authmode, (int)ap->primary);
-        s_cycle.wifi_new++;
-        emit(&ev);
     }
     xSemaphoreGive(s_lock);
     /* The scan results hold addresses; do not leave them lying in the buffer. */
@@ -262,47 +186,28 @@ static void add_uuid(ble_heard_t *h, uint16_t uuid)
 /* Caller holds s_lock. */
 static void eat_heard(const ble_heard_t *h)
 {
-    if (seen_recently(&s_seen, h->addr, sizeof(h->addr), now_s(), REGROW_S)) {
-        return;
-    }
-    food_event_t ev = {.rssi = h->rssi};
-    strlcpy(ev.name, h->name, sizeof(ev.name));
-
-    const ble_sighting_t s = {
-        .name = ev.name,
-        .has_company = h->has_company,
-        .company_id = h->company_id,
-        .mfg_payload = h->payload,
-        .mfg_payload_len = h->payload_len,
-        .has_appearance = h->has_appearance,
-        .appearance = h->appearance,
-        .uuids16 = h->uuids,
-        .num_uuids16 = h->num_uuids,
-        .has_svc_byte = h->has_svc_byte,
-        .svc_uuid = h->svc_uuid,
-        .svc_byte = h->svc_byte,
+    const heard_device_t heard = {
+        .addr = h->addr,
+        .rssi = h->rssi,
+        .what = {
+            .name = h->name,
+            .has_company = h->has_company,
+            .company_id = h->company_id,
+            .mfg_payload = h->payload,
+            .mfg_payload_len = h->payload_len,
+            .has_appearance = h->has_appearance,
+            .appearance = h->appearance,
+            .uuids16 = h->uuids,
+            .num_uuids16 = h->num_uuids,
+            .has_svc_byte = h->has_svc_byte,
+            .svc_uuid = h->svc_uuid,
+            .svc_byte = h->svc_byte,
+        },
     };
-    ev.type = food_classify_ble(&s);
-
-    int len = 0;
-    if (s.has_company) {
-        len += snprintf(ev.detail + len, sizeof(ev.detail) - len, "co=%04X", s.company_id);
-        if (s.mfg_payload_len > 0) {
-            len += snprintf(ev.detail + len, sizeof(ev.detail) - len, "/%02X", s.mfg_payload[0]);
-        }
+    food_event_t ev;
+    if (hearing_device(s_hearing, &heard, now_s(), &ev)) {
+        emit(&ev);
     }
-    if (s.has_appearance && len < (int)sizeof(ev.detail) - 1) {
-        len += snprintf(ev.detail + len, sizeof(ev.detail) - len, " app=%04X", s.appearance);
-    }
-    for (int i = 0; i < h->num_uuids && len < (int)sizeof(ev.detail) - 8; i++) {
-        len += snprintf(ev.detail + len, sizeof(ev.detail) - len, " u=%04X", h->uuids[i]);
-        if (h->has_svc_byte && h->uuids[i] == h->svc_uuid && len < (int)sizeof(ev.detail) - 4) {
-            len += snprintf(ev.detail + len, sizeof(ev.detail) - len, "/%02X", h->svc_byte);
-        }
-    }
-
-    s_cycle.ble_new++;
-    emit(&ev);
 }
 
 static void handle_advert(const struct ble_gap_disc_desc *d)
@@ -323,7 +228,6 @@ static void handle_advert(const struct ble_gap_disc_desc *d)
     }
     ble_heard_t overflow;
     if (!h) {
-        s_cycle.ble_seen++;
         /* Table full (a very busy place): eat this one unmerged. */
         h = s_heard_count < BLE_MAX_PER_SCAN ? &s_heard[s_heard_count++] : &overflow;
         memset(h, 0, sizeof(*h));
@@ -332,7 +236,7 @@ static void handle_advert(const struct ble_gap_disc_desc *d)
     }
 
     if (f.name && !h->name[0]) {
-        copy_name(h->name, sizeof(h->name), f.name, f.name_len);
+        hearing_clean_name(h->name, sizeof(h->name), f.name, f.name_len);
     }
     if (f.mfg_data && f.mfg_data_len >= 2 && !h->has_company) {
         h->has_company = true;
@@ -468,8 +372,7 @@ static void sensing_task(void *arg)
 
         if (period_s != 0) {
             xSemaphoreTake(s_lock, portMAX_DELAY);
-            memset(&s_cycle, 0, sizeof(s_cycle));
-            memset(&s_scan, 0, sizeof(s_scan));
+            hearing_begin(s_hearing);
             s_scan_ok = false;
             xSemaphoreGive(s_lock);
 
@@ -485,15 +388,13 @@ static void sensing_task(void *arg)
             }
 
             xSemaphoreTake(s_lock, portMAX_DELAY);
-            s_cycle.prints = s_scan.prints;
-            s_cycle.matches = s_scan.matches;
+            const pet_scan_t *scan;
+            const sensing_cycle_t *cycle = hearing_end(s_hearing, &scan);
             if (s_cb.on_cycle) {
-                s_cb.on_cycle(&s_cycle);
+                s_cb.on_cycle(cycle);
             }
             if (s_cb.on_scan && s_scan_ok) {
-                s_scan.wifi_heard = (uint16_t)s_cycle.wifi_seen;
-                s_scan.ble_heard = (uint16_t)s_cycle.ble_seen;
-                s_cb.on_scan(&s_scan);
+                s_cb.on_scan(scan);
             }
             xSemaphoreGive(s_lock);
         }
@@ -530,11 +431,11 @@ esp_err_t sensing_start(const sensing_callbacks_t *cb)
     s_lock = xSemaphoreCreateMutex();
     s_ble_synced = xSemaphoreCreateBinary();
     s_ble_done = xSemaphoreCreateBinary();
-    s_seen_list = heap_caps_malloc(sizeof(seen_list_t), MALLOC_CAP_SPIRAM);
-    if (!s_seen_list || !s_lock || !s_ble_synced || !s_ble_done) {
+    s_hearing = heap_caps_malloc(sizeof(pet_hearing_t), MALLOC_CAP_SPIRAM);
+    if (!s_hearing || !s_lock || !s_ble_synced || !s_ble_done) {
         return ESP_ERR_NO_MEM;
     }
-    seen_init(&s_seen, esp_random());
+    hearing_init(s_hearing, s_cb.place_salt, esp_random);
 
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {

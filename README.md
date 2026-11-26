@@ -129,6 +129,9 @@ Three kinds of row are there for tuning, whichever way the setting is:
 Built by `sim\build.ps1`, run on the desktop:
 
 - `sim\build\food_test.exe` checks the food classifier and the seen list.
+- `sim\build\pet_hearing_test.exe` checks what is done with a network or a
+  device once it is heard: eaten once a day, the prints and place names
+  that say where the pet is, and the counts of one scan.
 - `sim\build\pet_core_test.exe` checks the pet core: stomach, mood, eating
   rules, cravings and the underfed state.
 - `sim\build\pet_brain_test.exe` checks the action picker, personality

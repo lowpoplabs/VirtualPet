@@ -18,33 +18,10 @@
 #include <stdint.h>
 
 #include "esp_err.h"
-#include "pet_food.h"
-#include "pet_motion.h"
-#include "pet_places.h"
+#include "pet_hearing.h"
 
-typedef struct {
-    food_type_t type;
-    float value;
-    int8_t rssi;
-    /* Network or device name, for showing on screen while it is eaten. May be "". */
-    char name[33];
-    /* How it was classified (security mode, company id...). No address, no name. */
-    char detail[48];
-} food_event_t;
-
-typedef struct {
-    int wifi_seen;   /* networks heard this cycle */
-    int wifi_best;   /* the strongest of them in dBm; 0 if none */
-    int prints;      /* fixed networks strong enough to say where the pet is */
-    int matches;     /* place names among them */
-    int wifi_new;    /* of those, eaten (not on the seen list) */
-    /* For telling a ride: the fixed networks heard, nearest first, as scrambled prints. */
-    uint16_t ride_print[RIDE_PRINTS];
-    int ride_prints;
-    int wifi_same;   /* of those, how many were in one of the last few scans; filled in by the listener */
-    int ble_seen;
-    int ble_new;
-} sensing_cycle_t;
+/* food_event_t, and the counts of one cycle, come from the shared pet_hearing.h. */
+typedef hearing_cycle_t sensing_cycle_t;
 
 typedef struct {
     /* Called once per newly eaten food. May run on the Bluetooth task. */

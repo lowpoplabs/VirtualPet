@@ -57,6 +57,9 @@ target_link_libraries(pet_days_test PRIVATE pet_app)
 add_executable(pet_places_test pet_places_test.c)
 target_link_libraries(pet_places_test PRIVATE pet_app)
 
+add_executable(pet_hearing_test pet_hearing_test.c)
+target_link_libraries(pet_hearing_test PRIVATE pet_app)
+
 add_executable(pet_config_test pet_config_test.c)
 target_link_libraries(pet_config_test PRIVATE pet_app)
 

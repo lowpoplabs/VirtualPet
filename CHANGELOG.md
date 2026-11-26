@@ -4,6 +4,16 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.10 - 2026-11-25
+
+### Changed
+- **What the pet does with a network or a device once it is heard** (what food it is,
+  eaten once a day, the scrambled prints and place names that say where it is, the counts
+  of one scan) has moved out of the watch's own code into the part shared with other
+  devices, so they cannot drift apart. The watch eats, settles and logs as before.
+- **In a very busy place,** with more than 64 Bluetooth devices in one scan, the count of
+  devices heard no longer counts some of them several times.
+
 ## 0.4.9 - 2026-11-25
 
 Nothing changes on the watch. This release is for other devices that run the same pet.
