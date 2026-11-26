@@ -5,7 +5,14 @@
 #include "pet_app.h"
 #include "pet_brain.h"
 
-/* Creates the pet inside parent (expected to be PET_AREA_SIZE square). */
+/*
+ * The side of the square the pet is drawn for, in pixels. 0 or
+ * PET_AREA_SIZE is the size it was designed at; any other size is drawn
+ * smooth at that size, not enlarged. Call before pet_view_create().
+ */
+void pet_view_set_size(int32_t pixels);
+
+/* Creates the pet inside parent (expected to be a square of that size). */
 void pet_view_create(lv_obj_t *parent);
 
 /*

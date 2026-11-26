@@ -17,6 +17,7 @@
  *   virtualpet_sim --board square        480x480 instead of the watch's 410x502
  *   virtualpet_sim --pet-only            as a phone runs it: the pet's square alone,
  *                                        and what the app would have shown printed
+ *   virtualpet_sim --pet-only 800        the same, with the pet drawn 800 pixels square
  *   virtualpet_sim --page diet           open a screen: diet, journal, recent, menu,
  *                                        dex, badges, farm, pet, settings, name
  *   virtualpet_sim --screenshot out.bmp [--after-ms 1500]
@@ -394,7 +395,7 @@ static uint32_t tick_cb(void) { return SDL_GetTicks(); }
 static int usage(const char *exe)
 {
     fprintf(stderr,
-            "usage: %s [--board watch|square] [--pet-only] [--replay LOG.csv] [--speed N]\n"
+            "usage: %s [--board watch|square] [--pet-only [SIZE]] [--replay LOG.csv] [--speed N]\n"
             "       [--save PET.bin] [--sound off|rare|all] [--battery PERCENT] [--carry]\n"
             "       [--growth SPEED] [--page NAME]\n"
             "       [--screenshot file.bmp [--after-ms N]]\n",
@@ -423,6 +424,9 @@ int main(int argc, char **argv)
             }
         } else if (!strcmp(argv[i], "--pet-only")) {
             w = h = PET_AREA_SIZE;
+            if (i + 1 < argc && atoi(argv[i + 1]) > 0) {
+                w = h = s_hal.pet_size = atoi(argv[++i]);
+            }
             s_hal.pet_only = true;
             s_hal.screen_managed = true;
             s_hal.notice = sim_notice;

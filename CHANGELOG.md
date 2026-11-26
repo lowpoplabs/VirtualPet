@@ -4,6 +4,21 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.13 - 2026-11-26
+
+Nothing changes on the watch. This release is for other devices that run the same pet.
+
+### Added
+- **The pet at another size.** A device that shows the pet's square alone can say how big
+  that square is. The pet is then drawn at that size, as smooth as on the watch, and not
+  enlarged afterwards. The watch draws it at 400 pixels exactly as before.
+- **Simulator:** `--pet-only 800` shows the pet's square at 800 pixels, and `look_sheet`
+  takes a size as its last argument.
+
+### Changed
+- **`look_sheet` counts its time** and no longer measures it, so the same arguments give
+  the same picture nearly every time.
+
 ## 0.4.12 - 2026-11-26
 
 Nothing changes on the watch. This release is for other devices that run the same pet.

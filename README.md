@@ -59,6 +59,7 @@ The first build downloads SDL2 and LVGL.
 .\sim\build\virtualpet_sim.exe --battery 80                  # as if on battery: screen goes dark after 15 s
 .\sim\build\virtualpet_sim.exe --board square
 .\sim\build\virtualpet_sim.exe --pet-only                    # as a phone runs it: the pet's square alone
+.\sim\build\virtualpet_sim.exe --pet-only 800                # the same, with the pet drawn 800 pixels square
 .\sim\build\virtualpet_sim.exe --page diet                   # open a screen straight away
 .\sim\build\virtualpet_sim.exe --screenshot frame.bmp
 ```
@@ -153,9 +154,9 @@ Built by `sim\build.ps1`, run on the desktop:
   each kind of mistake, and that every `-defaults.txt` copy reads back as
   the built-in values.
 
-`sim\build\look_sheet.exe OUT.bmp STAGE FORM [MOOD [ACTION]]` saves a picture
-of the pet alone in a chosen stage, form, mood and action, for checking
-artwork.
+`sim\build\look_sheet.exe OUT.bmp STAGE FORM [MOOD [ACTION [MS [UNDERFED [SIZE]]]]]`
+saves a picture of the pet alone in a chosen stage, form, mood and action, for
+checking artwork. SIZE draws it at another size than the watch's 400 pixels.
 
 ## Replaying a log
 

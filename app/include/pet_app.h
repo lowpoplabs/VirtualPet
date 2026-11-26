@@ -141,10 +141,16 @@ typedef struct {
      * then builds the pet's square and nothing else: no clock and battery
      * strip, no stomach, mood or bell, no line under the pet, no pages, no
      * swipes, no card on a long press, and no burn-in drift. A tap still
-     * pats the pet. The display should be PET_AREA_SIZE square. It also
-     * hides "Text size", which sizes the pages.
+     * pats the pet. The display should be PET_AREA_SIZE square (or
+     * pet_size, below). It also hides "Text size", which sizes the pages.
      */
     bool pet_only;
+    /*
+     * With pet_only: the side of the pet's square in pixels, for a screen
+     * bigger than the watch's. The pet is drawn at that size, as smooth as
+     * at its own. 0 = PET_AREA_SIZE. The display should be that size square.
+     */
+    int pet_size;
     /*
      * Told what the app would have shown on its own screen, and when to
      * read again (see pet_notice_t). Called with the LVGL lock held, from

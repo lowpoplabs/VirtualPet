@@ -136,11 +136,56 @@ static pet_action_t s_action = ACT_IDLE;
 static uint32_t s_last_tap;
 static void (*s_tap_cb)(void);
 
+/* ---- Size ---------------------------------------------------------------
+ * Every size and position in this file is written for a square of
+ * PET_AREA_SIZE, the size the pet was drawn at. They are turned into the
+ * screen's pixels only here, at the last step, so a bigger pet is drawn
+ * smooth at its own size and not enlarged afterwards. At PET_AREA_SIZE
+ * nothing changes at all.
+ */
+
+static int32_t s_size = PET_AREA_SIZE;
+
+/* A distance or an offset, in the screen's pixels. */
+static int32_t px(int32_t v)
+{
+    if (s_size == PET_AREA_SIZE) {
+        return v;
+    }
+    int32_t n = v * s_size;
+    return (n >= 0 ? n + PET_AREA_SIZE / 2 : n - PET_AREA_SIZE / 2) / PET_AREA_SIZE;
+}
+
+/* A width or a height: a part never shrinks away to nothing, and a percentage stays one. */
+static int32_t len(int32_t v)
+{
+    if (LV_COORD_IS_PCT(v)) {
+        return v;
+    }
+    int32_t n = px(v);
+    return v > 0 && n < 1 ? 1 : n;
+}
+
+static void place(lv_obj_t *o, lv_align_t align, int32_t x, int32_t y)
+{
+    (lv_obj_align)(o, align, px(x), px(y));
+}
+
+static void size(lv_obj_t *o, int32_t w, int32_t h)
+{
+    lv_obj_set_size(o, len(w), len(h));
+}
+
+void pet_view_set_size(int32_t pixels)
+{
+    s_size = pixels > 0 ? pixels : PET_AREA_SIZE;
+}
+
 static lv_obj_t *shape(lv_obj_t *parent, int32_t w, int32_t h, uint32_t color)
 {
     lv_obj_t *o = lv_obj_create(parent);
     lv_obj_remove_style_all(o);
-    lv_obj_set_size(o, w, h);
+    size(o, w, h);
     lv_obj_set_style_radius(o, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(o, lv_color_hex(color), 0);
     lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
@@ -194,19 +239,19 @@ static void show_curve(int32_t diameter, int32_t half_angle, bool up)
 {
     /* LVGL angles run clockwise from 3 o'clock, so 90 is the bottom, 270 the top. */
     int32_t mid = up ? 90 : 270;
-    lv_obj_set_size(s_mouth_curve, diameter, diameter);
+    size(s_mouth_curve, diameter, diameter);
     lv_arc_set_bg_angles(s_mouth_curve, mid - half_angle, mid + half_angle);
     /* Keep the middle of the curve at the mouth line whatever the circle size. */
     int32_t dy = up ? s_mouth_y + 5 - diameter / 2 : s_mouth_y - 3 + diameter / 2;
-    lv_obj_align(s_mouth_curve, LV_ALIGN_CENTER, 0, dy);
+    place(s_mouth_curve, LV_ALIGN_CENTER, 0, dy);
     lv_obj_remove_flag(s_mouth_curve, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(s_mouth_open, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void show_open(int32_t w, int32_t h)
 {
-    lv_obj_set_size(s_mouth_open, w, h < 2 ? 2 : h);
-    lv_obj_align(s_mouth_open, LV_ALIGN_CENTER, 0, s_mouth_y);
+    size(s_mouth_open, w, h < 2 ? 2 : h);
+    place(s_mouth_open, LV_ALIGN_CENTER, 0, s_mouth_y);
     lv_obj_remove_flag(s_mouth_open, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(s_mouth_curve, LV_OBJ_FLAG_HIDDEN);
 }
@@ -274,30 +319,30 @@ static void eye_h_cb(void *var, int32_t h)
 {
     LV_UNUSED(var);
     for (int i = 0; i < 2 && s_eye[i]; i++) {
-        lv_obj_set_height(s_eye[i], h);
+        lv_obj_set_height(s_eye[i], len(h));
         /* Pupil hides once the lid is nearly closed. */
         int32_t ph = h - 16;
         if (ph < 0) ph = 0;
         if (ph > 34) ph = 34;
-        lv_obj_set_height(s_pupil[i], ph);
+        lv_obj_set_height(s_pupil[i], px(ph));
     }
 }
 
 static void bob_cb(void *var, int32_t y)
 {
-    lv_obj_set_style_translate_y((lv_obj_t *)var, y, 0);
+    lv_obj_set_style_translate_y((lv_obj_t *)var, px(y), 0);
 }
 
 static void hop_cb(void *var, int32_t y)
 {
-    lv_obj_set_style_translate_y((lv_obj_t *)var, y, 0);
+    lv_obj_set_style_translate_y((lv_obj_t *)var, px(y), 0);
 }
 
 static void look_cb(void *var, int32_t x)
 {
     LV_UNUSED(var);
     for (int i = 0; i < 2 && s_pupil[i]; i++) {
-        lv_obj_set_style_translate_x(s_pupil[i], x, 0);
+        lv_obj_set_style_translate_x(s_pupil[i], px(x), 0);
     }
 }
 
@@ -308,23 +353,23 @@ static void sniff_cb(void *var, int32_t x)
         /* The tips swing further than the stalks, in opposite directions per side. */
         int32_t dir = i == 0 ? 1 : -1;
         if (s_tip[i]) {
-            lv_obj_set_style_translate_x(s_tip[i], dir * x, 0);
+            lv_obj_set_style_translate_x(s_tip[i], px(dir * x), 0);
         }
         if (s_stalk[i]) {
-            lv_obj_set_style_translate_x(s_stalk[i], dir * x / 3, 0);
+            lv_obj_set_style_translate_x(s_stalk[i], px(dir * x / 3), 0);
         }
     }
 }
 
 static void shake_cb(void *var, int32_t x)
 {
-    lv_obj_set_style_translate_x((lv_obj_t *)var, x, 0);
+    lv_obj_set_style_translate_x((lv_obj_t *)var, px(x), 0);
 }
 
 static void zzz_cb(void *var, int32_t v)
 {
     lv_obj_t *z = var;
-    lv_obj_set_style_translate_y(z, -v / 4, 0);
+    lv_obj_set_style_translate_y(z, px(-v / 4), 0);
     lv_obj_set_style_opa(z, (lv_opa_t)(v < 128 ? v * 2 : (255 - v) * 2), 0);
 }
 
@@ -347,7 +392,7 @@ static void wing_cb(void *var, int32_t percent)
 {
     LV_UNUSED(var);
     for (int i = 0; i < 4 && s_wing[i]; i++) {
-        lv_obj_set_width(s_wing[i], s_wing_w[i] * percent / 100);
+        lv_obj_set_width(s_wing[i], len(s_wing_w[i] * percent / 100));
     }
 }
 
@@ -356,7 +401,7 @@ static void fin_cb(void *var, int32_t y)
 {
     LV_UNUSED(var);
     for (int i = 0; i < 2 && s_fin[i]; i++) {
-        lv_obj_set_style_translate_y(s_fin[i], y, 0);
+        lv_obj_set_style_translate_y(s_fin[i], px(y), 0);
     }
 }
 
@@ -365,7 +410,7 @@ static void arm_cb(void *var, int32_t y)
 {
     LV_UNUSED(var);
     for (int i = 0; i < 6 && s_arm[i]; i++) {
-        lv_obj_set_style_translate_y(s_arm[i], i % 2 ? y : -y, 0);
+        lv_obj_set_style_translate_y(s_arm[i], px(i % 2 ? y : -y), 0);
     }
 }
 
@@ -400,7 +445,7 @@ static void snap_cb(void *var, int32_t w)
 {
     LV_UNUSED(var);
     for (int i = 0; i < 2 && s_claw_gap[i]; i++) {
-        lv_obj_set_width(s_claw_gap[i], w);
+        lv_obj_set_width(s_claw_gap[i], len(w));
     }
 }
 
@@ -409,8 +454,8 @@ static void wave_cb(void *var, int32_t y)
 {
     LV_UNUSED(var);
     if (s_claw[0] && s_claw[1]) {
-        lv_obj_set_style_translate_y(s_claw[0], -y, 0);
-        lv_obj_set_style_translate_y(s_claw[1], y - 14, 0);
+        lv_obj_set_style_translate_y(s_claw[0], px(-y), 0);
+        lv_obj_set_style_translate_y(s_claw[1], px(y - 14), 0);
     }
 }
 
@@ -559,7 +604,7 @@ static void tap_cb(lv_event_t *e)
 
 static void walk_cb(void *var, int32_t x)
 {
-    lv_obj_set_style_translate_x((lv_obj_t *)var, x, 0);
+    lv_obj_set_style_translate_x((lv_obj_t *)var, px(x), 0);
 }
 
 static void slide(int32_t from, int32_t to, uint32_t ms, lv_anim_path_cb_t path)
@@ -592,7 +637,7 @@ void pet_view_roll_in(uint32_t ms)
     if (!s_root) {
         return;
     }
-    lv_obj_set_style_translate_x(s_root, -PET_AREA_SIZE, 0);
+    lv_obj_set_style_translate_x(s_root, px(-PET_AREA_SIZE), 0);
     slide(-PET_AREA_SIZE, 0, ms, lv_anim_path_overshoot);
     if (s_is_egg) {
         start_wobble();
@@ -758,7 +803,7 @@ static void make_root(int32_t w, int32_t h)
 {
     s_root = lv_obj_create(s_parent);
     lv_obj_remove_style_all(s_root);
-    lv_obj_set_size(s_root, w, h);
+    size(s_root, w, h);
     lv_obj_center(s_root);
     lv_obj_remove_flag(s_root, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(s_root, LV_OBJ_FLAG_CLICKABLE);
@@ -771,11 +816,11 @@ static void build_egg(void)
 {
     make_root(EGG_W + 60, EGG_H + 40);
     s_body = shape(s_root, EGG_W, EGG_H, EGG_COLOR);
-    lv_obj_align(s_body, LV_ALIGN_BOTTOM_MID, 0, -10);
+    place(s_body, LV_ALIGN_BOTTOM_MID, 0, -10);
     static const int16_t SPOTS[][3] = {{-34, -40, 30}, {30, -8, 38}, {-18, 44, 24}, {26, -62, 18}};
     for (int i = 0; i < 4; i++) {
         lv_obj_t *spot = shape(s_body, SPOTS[i][2], SPOTS[i][2], LOOK_HATCHLING.color);
-        lv_obj_align(spot, LV_ALIGN_CENTER, SPOTS[i][0], SPOTS[i][1]);
+        place(spot, LV_ALIGN_CENTER, SPOTS[i][0], SPOTS[i][1]);
     }
     loop_anim(s_body, bob_cb, 0, 3, 1500, true);
 }
@@ -791,12 +836,12 @@ static void build_horn(int side, const look_t *k, int32_t body_top)
     int i = side < 0 ? 0 : 1;
     lv_obj_t *box = lv_obj_create(s_root);
     lv_obj_remove_style_all(box);
-    lv_obj_set_size(box, BOX_W, BOX_H);
+    size(box, BOX_W, BOX_H);
     lv_obj_remove_flag(box, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     /* The horn starts at the box's lower inner corner, on the body's shoulder. */
     int32_t root_dx = side * (k->body_w * 30 / 100 + BOX_W / 2 - DOT / 2);
     int32_t box_top = body_top + 34 - BOX_H;
-    lv_obj_align(box, LV_ALIGN_TOP_MID, root_dx, box_top);
+    place(box, LV_ALIGN_TOP_MID, root_dx, box_top);
     int32_t x = 0, y = 0;
     for (int d = 0; d < DOTS; d++) {
         /* t runs 0..100 along the horn: mostly outward at first, mostly upward at the end. */
@@ -804,11 +849,11 @@ static void build_horn(int side, const look_t *k, int32_t body_top)
         x = t * 54 / 100;
         y = t * t * 52 / 10000 + t * 7 / 100;
         lv_obj_t *dot = shape(box, DOT - d / 5, DOT - d / 5, 0xE9DFCB);
-        lv_obj_align(dot, side < 0 ? LV_ALIGN_BOTTOM_RIGHT : LV_ALIGN_BOTTOM_LEFT, side * x, -y);
+        place(dot, side < 0 ? LV_ALIGN_BOTTOM_RIGHT : LV_ALIGN_BOTTOM_LEFT, side * x, -y);
     }
     s_stalk[i] = box;
     s_tip[i] = shape(s_root, 28, 28, TIP_COLOR);
-    lv_obj_align(s_tip[i], LV_ALIGN_TOP_MID,
+    place(s_tip[i], LV_ALIGN_TOP_MID,
                  side * (k->body_w * 30 / 100 + x + 2), box_top + BOX_H - y - 30);
 }
 
@@ -816,15 +861,16 @@ static void build_horn(int side, const look_t *k, int32_t body_top)
 static void dot_at(lv_obj_t *box, int side, int32_t x, int32_t y, int32_t d, uint32_t color, bool tinted)
 {
     lv_obj_t *dot = tinted ? body_part(box, d, d, color) : shape(box, d, d, color);
-    int32_t cx = side < 0 ? lv_obj_get_style_width(box, 0) - x : x;
-    lv_obj_set_pos(dot, cx - d / 2, y - d / 2);
+    int32_t cx = side < 0 ? (int32_t)(intptr_t)lv_obj_get_user_data(box) - x : x;
+    lv_obj_set_pos(dot, px(cx) - len(d) / 2, px(y) - len(d) / 2);
 }
 
 static lv_obj_t *part_box(int32_t w, int32_t h)
 {
     lv_obj_t *box = lv_obj_create(s_root);
     lv_obj_remove_style_all(box);
-    lv_obj_set_size(box, w, h);
+    size(box, w, h);
+    lv_obj_set_user_data(box, (void *)(intptr_t)w);     /* its width as written, for dot_at() */
     lv_obj_remove_flag(box, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     return box;
 }
@@ -837,7 +883,7 @@ static void build_fox_ear(int side, const look_t *k, int32_t body_top)
 {
     enum { W = 150, H = 176, X0 = 46, Y0 = H - 44, X1 = 104, Y1 = 16, DOTS = 24 };
     lv_obj_t *box = part_box(W, H);
-    lv_obj_align(box, LV_ALIGN_TOP_MID, side * (k->body_w * 23 / 100 + W / 2 - X0),
+    place(box, LV_ALIGN_TOP_MID, side * (k->body_w * 23 / 100 + W / 2 - X0),
                  body_top + 38 - Y0);
     for (int d = 0; d < DOTS; d++) {
         int32_t t = d * 100 / (DOTS - 1);
@@ -858,7 +904,7 @@ static void build_fox_tail(const look_t *k)
     enum { W = 130, H = 150, DOTS = 16 };
     lv_obj_t *box = part_box(W, H);
     int32_t left = k->body_w / 2 - 34, bottom = -26;
-    lv_obj_align(box, LV_ALIGN_BOTTOM_MID, left + W / 2, bottom);
+    place(box, LV_ALIGN_BOTTOM_MID, left + W / 2, bottom);
     int32_t x = 0, y = 0;
     for (int d = 0; d < DOTS; d++) {
         int32_t t = d * 100 / (DOTS - 1);
@@ -868,7 +914,7 @@ static void build_fox_tail(const look_t *k)
         dot_at(box, 1, x, y, fat, d >= DOTS - 5 ? FOX_PALE : k->color, false);
     }
     s_tip[1] = shape(s_root, 24, 24, TIP_COLOR);
-    lv_obj_align(s_tip[1], LV_ALIGN_BOTTOM_MID, left + x + 4, bottom - (H - y) - 4);
+    place(s_tip[1], LV_ALIGN_BOTTOM_MID, left + x + 4, bottom - (H - y) - 4);
 }
 
 /*
@@ -883,19 +929,19 @@ static void build_wings(int32_t body_top)
     static const int16_t SPOTS[3][2] = {{12, -34}, {5, 0}, {12, 34}};
     for (int side = -1; side <= 1; side += 2) {
         lv_obj_t *box = part_box(W, H);
-        lv_obj_align(box, LV_ALIGN_TOP_MID, side * (30 + W / 2), body_top - 14);
+        place(box, LV_ALIGN_TOP_MID, side * (30 + W / 2), body_top - 14);
         for (int part = 0; part < 2; part++) {
             int i = (side < 0 ? 0 : 2) + part;
             lv_obj_t *wing = shape(box, SIZE[part][0], SIZE[part][1], FLY_EDGE);
-            lv_obj_align(wing, part == 0 ? (side < 0 ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT)
+            place(wing, part == 0 ? (side < 0 ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT)
                                          : (side < 0 ? LV_ALIGN_BOTTOM_RIGHT : LV_ALIGN_BOTTOM_LEFT),
                          0, 0);
             lv_obj_t *inner = shape(wing, lv_pct(80), lv_pct(80), FLY_WING);
-            lv_obj_align(inner, LV_ALIGN_CENTER, -side * 4, 0);
+            place(inner, LV_ALIGN_CENTER, -side * 4, 0);
             for (int d = 0; d < 3; d++) {
                 int32_t y = SPOTS[d][1] * (part == 0 ? 10 : 7) / 10;
                 lv_obj_t *spot = shape(wing, 9, 9, FLY_SPOT);
-                lv_obj_align(spot, side < 0 ? LV_ALIGN_LEFT_MID : LV_ALIGN_RIGHT_MID,
+                place(spot, side < 0 ? LV_ALIGN_LEFT_MID : LV_ALIGN_RIGHT_MID,
                              -side * SPOTS[d][0], y);
             }
             s_wing[i] = wing;
@@ -908,7 +954,7 @@ static void build_wings(int32_t body_top)
 static lv_obj_t *bar(lv_obj_t *parent, int32_t w, int32_t h, uint32_t color, int32_t radius)
 {
     lv_obj_t *o = shape(parent, w, h, color);
-    lv_obj_set_style_radius(o, radius, 0);
+    lv_obj_set_style_radius(o, len(radius), 0);
     return o;
 }
 
@@ -925,17 +971,17 @@ static void build_claws(const look_t *k, int32_t body_top)
             int32_t reach = k->body_w / 2 + (leg == 0 ? 34 : 8);
             int32_t y = body_top + k->body_h * (leg == 0 ? 77 : 90) / 100;
             lv_obj_t *limb = body_part(s_root, 90, 18, k->color);
-            lv_obj_align(limb, LV_ALIGN_TOP_MID, side * (reach - 45), y);
-            lv_obj_align(shape(s_root, 22, 22, CRAB_BLUE), LV_ALIGN_TOP_MID, side * (reach - 6), y - 2);
+            place(limb, LV_ALIGN_TOP_MID, side * (reach - 45), y);
+            place(shape(s_root, 22, 22, CRAB_BLUE), LV_ALIGN_TOP_MID, side * (reach - 6), y - 2);
         }
         int32_t y = body_top + k->body_h * 56 / 100;
         lv_obj_t *arm = body_part(s_root, 84, 26, k->color);
-        lv_obj_align(arm, LV_ALIGN_TOP_MID, side * (k->body_w / 2 + 6), y);
+        place(arm, LV_ALIGN_TOP_MID, side * (k->body_w / 2 + 6), y);
         s_claw[i] = shape(s_root, 72, 78, CRAB_BLUE);
-        lv_obj_align(s_claw[i], LV_ALIGN_TOP_MID, side * (k->body_w / 2 + 46), y - 58);
+        place(s_claw[i], LV_ALIGN_TOP_MID, side * (k->body_w / 2 + 46), y - 58);
         /* The screen behind the pet is black, so a black sliver reads as the open pincer. */
         s_claw_gap[i] = bar(s_claw[i], CLAW_GAP_OPEN, 40, 0x000000, 7);
-        lv_obj_align(s_claw_gap[i], LV_ALIGN_TOP_MID, side * 5, -6);
+        place(s_claw_gap[i], LV_ALIGN_TOP_MID, side * 5, -6);
     }
     claws_idle();
 }
@@ -947,7 +993,7 @@ static void build_speckles(void)
         {-84, -40, 12}, {-48, -68, 14}, {0, -76, 18}, {46, -68, 12}, {84, -42, 14},
     };
     for (int i = 0; i < 5; i++) {
-        lv_obj_align(shape(s_body, SPOT[i][2], SPOT[i][2], CRAB_SPECKLE), LV_ALIGN_CENTER,
+        place(shape(s_body, SPOT[i][2], SPOT[i][2], CRAB_SPECKLE), LV_ALIGN_CENTER,
                      SPOT[i][0], SPOT[i][1]);
     }
 }
@@ -962,7 +1008,7 @@ static void build_hare_ear(int i, const look_t *k, int32_t body_top, int32_t bas
 {
     enum { W = 150, H = 200, X0 = W - 40, Y0 = H - 22, LONG = 162, DOTS = 28 };
     lv_obj_t *box = part_box(W, H);
-    lv_obj_align(box, LV_ALIGN_TOP_MID, base_dx - W / 2 + 40, body_top + 30 - Y0);
+    place(box, LV_ALIGN_TOP_MID, base_dx - W / 2 + 40, body_top + 30 - Y0);
     for (int pass = 0; pass < 2; pass++) {
         for (int d = pass ? 3 : 0; d < DOTS - (pass ? 3 : 0); d++) {
             int32_t t = d * 100 / (DOTS - 1);
@@ -989,12 +1035,12 @@ static void build_hare_ear(int i, const look_t *k, int32_t body_top, int32_t bas
 static void build_hare_face(int32_t eye_y)
 {
     lv_obj_t *muzzle = shape(s_body, 92, 58, HARE_PALE);
-    lv_obj_align(muzzle, LV_ALIGN_CENTER, 0, eye_y + 70);
-    lv_obj_align(shape(muzzle, 18, 12, HARE_NOSE), LV_ALIGN_TOP_MID, 0, 7);
+    place(muzzle, LV_ALIGN_CENTER, 0, eye_y + 70);
+    place(shape(muzzle, 18, 12, HARE_NOSE), LV_ALIGN_TOP_MID, 0, 7);
     for (int i = 0; i < 4; i++) {
         int side = i < 2 ? -1 : 1;
         lv_obj_t *whisker = bar(s_body, 30, 3, HARE_PALE, 2);
-        lv_obj_align(whisker, LV_ALIGN_CENTER, side * 68, eye_y + 62 + (i % 2) * 12);
+        place(whisker, LV_ALIGN_CENTER, side * 68, eye_y + 62 + (i % 2) * 12);
     }
 }
 
@@ -1009,7 +1055,7 @@ static void build_octopus_back(const look_t *k, int32_t body_top)
     for (int i = 0; i < 2; i++) {
         int side = i == 0 ? -1 : 1;
         s_fin[i] = part_box(W, H);
-        lv_obj_align(s_fin[i], LV_ALIGN_TOP_MID, side * (k->body_w / 2 - 8 + W / 2 - X0),
+        place(s_fin[i], LV_ALIGN_TOP_MID, side * (k->body_w / 2 - 8 + W / 2 - X0),
                      body_top + 36 - Y0);
         for (int pass = 0; pass < 2; pass++) {
             for (int d = pass ? 3 : 0; d < DOTS - pass; d++) {
@@ -1027,7 +1073,7 @@ static void build_octopus_back(const look_t *k, int32_t body_top)
     static const int16_t LONG[OCTO_ARMS] = {84, 100, 110, 110, 100, 84};
     for (int i = 0; i < OCTO_ARMS; i++) {
         s_arm[i] = body_part(s_root, 25, LONG[i], k->color);
-        lv_obj_align(s_arm[i], LV_ALIGN_TOP_MID, -85 + i * 34, body_top + k->body_h - 62);
+        place(s_arm[i], LV_ALIGN_TOP_MID, -85 + i * 34, body_top + k->body_h - 62);
     }
     loop_anim(s_arm, arm_cb, -5, 5, 900, true);
 }
@@ -1038,13 +1084,13 @@ static void build_octopus_front(int32_t eye_y)
     static const int16_t SPOT[][3] = {{-56, -64, 12}, {-20, -76, 16}, {22, -74, 12}, {58, -62, 14}};
     for (int i = 0; i < 4; i++) {
         lv_obj_t *spot = shape(s_body, SPOT[i][2], SPOT[i][2], OCTO_GLOW);
-        lv_obj_align(spot, LV_ALIGN_CENTER, SPOT[i][0], SPOT[i][1]);
+        place(spot, LV_ALIGN_CENTER, SPOT[i][0], SPOT[i][1]);
         loop_anim(spot, glow_cb, 60, 255, 1400, true);
     }
     for (int i = 0; i < 2; i++) {
         lv_obj_t *blush = shape(s_body, 30, 16, OCTO_BLUSH);
         lv_obj_set_style_bg_opa(blush, LV_OPA_60, 0);
-        lv_obj_align(blush, LV_ALIGN_CENTER, i == 0 ? -62 : 62, eye_y + 44);
+        place(blush, LV_ALIGN_CENTER, i == 0 ? -62 : 62, eye_y + 44);
     }
 }
 
@@ -1071,7 +1117,7 @@ static void blush(int32_t eye_y, int32_t dx)
     for (int i = 0; i < 2; i++) {
         lv_obj_t *b = shape(s_body, 30, 16, PRISM_BLUSH);
         lv_obj_set_style_bg_opa(b, LV_OPA_60, 0);
-        lv_obj_align(b, LV_ALIGN_CENTER, i == 0 ? -dx : dx, eye_y + 44);
+        place(b, LV_ALIGN_CENTER, i == 0 ? -dx : dx, eye_y + 44);
     }
 }
 
@@ -1079,9 +1125,9 @@ static void blush(int32_t eye_y, int32_t dx)
 static void snout(int32_t eye_y, int32_t w)
 {
     lv_obj_t *m = shape(s_body, w, 58, PRISM_PALE);
-    lv_obj_align(m, LV_ALIGN_CENTER, 0, eye_y + 70);
+    place(m, LV_ALIGN_CENTER, 0, eye_y + 70);
     for (int i = 0; i < 2; i++) {
-        lv_obj_align(shape(m, 10, 8, PRISM_BLUSH), LV_ALIGN_TOP_MID, i == 0 ? -16 : 16, 10);
+        place(shape(m, 10, 8, PRISM_BLUSH), LV_ALIGN_TOP_MID, i == 0 ? -16 : 16, 10);
     }
     s_mouth_y = eye_y + 80;
 }
@@ -1091,26 +1137,26 @@ static void unicorn_back(const look_t *k, int32_t body_top)
 {
     for (int i = 0; i < 3; i++) {       /* tail, fanned out at one hip */
         lv_obj_t *lock = bar(s_root, 74, 24, RAINBOW[i * 2], 12);
-        lv_obj_align(lock, LV_ALIGN_BOTTOM_MID, -(k->body_w / 2 + 8) + (i == 1 ? -10 : 0), -28 - i * 20);
+        place(lock, LV_ALIGN_BOTTOM_MID, -(k->body_w / 2 + 8) + (i == 1 ? -10 : 0), -28 - i * 20);
     }
     for (int i = 0; i < 6; i++) {       /* mane, down the other side of the head */
         lv_obj_t *lock = bar(s_root, 60, 26, RAINBOW[i], 13);
-        lv_obj_align(lock, LV_ALIGN_TOP_MID, k->body_w / 2 - 12 + (i % 2) * 12, body_top + 4 + i * 20);
+        place(lock, LV_ALIGN_TOP_MID, k->body_w / 2 - 12 + (i % 2) * 12, body_top + 4 + i * 20);
     }
     for (int side = -1; side <= 1; side += 2) {
         lv_obj_t *box = part_box(90, 100);
-        lv_obj_align(box, LV_ALIGN_TOP_MID, side * (k->body_w * 30 / 100 + 15), body_top + 34 - 80);
+        place(box, LV_ALIGN_TOP_MID, side * (k->body_w * 30 / 100 + 15), body_top + 34 - 80);
         chain(box, side, 14, 30, 80, 54, 16, 0, 48, 12, k->color, true);
         chain(box, side, 9, 32, 74, 48, 34, 0, 24, 8, PRISM_BLUSH, false);
         s_stalk[side < 0 ? 0 : 1] = box;
     }
     lv_obj_t *horn = part_box(60, 112);
-    lv_obj_align(horn, LV_ALIGN_TOP_MID, 0, body_top + 24 - 104);
+    place(horn, LV_ALIGN_TOP_MID, 0, body_top + 24 - 104);
     for (int d = 0; d < 15; d++) {
         dot_at(horn, 1, 30, 100 - d * 6, 30 - d * 3 / 2, d % 2 ? PRISM_GOLD : PRISM_CREAM, false);
     }
     s_tip[0] = shape(s_root, 22, 22, TIP_COLOR);
-    lv_obj_align(s_tip[0], LV_ALIGN_TOP_MID, 0, body_top + 24 - 104 - 6);
+    place(s_tip[0], LV_ALIGN_TOP_MID, 0, body_top + 24 - 104 - 6);
 }
 
 static void unicorn_top(int32_t body_top)
@@ -1118,7 +1164,7 @@ static void unicorn_top(int32_t body_top)
     static const int16_t LOCK[3][3] = {{20, 26, 50}, {42, 26, 62}, {64, 24, 44}};
     for (int i = 0; i < 3; i++) {       /* forelock, swept to the mane's side */
         lv_obj_t *lock = bar(s_root, LOCK[i][1], LOCK[i][2], RAINBOW[i * 2], 12);
-        lv_obj_align(lock, LV_ALIGN_TOP_MID, LOCK[i][0], body_top - 12);
+        place(lock, LV_ALIGN_TOP_MID, LOCK[i][0], body_top - 12);
     }
 }
 
@@ -1128,7 +1174,7 @@ static void build_locks(lv_obj_t *parent, lv_align_t align, int32_t top, const i
 {
     for (int i = 0; i < count; i++) {
         lv_obj_t *lock = shape(parent, locks[i][1], locks[i][2], i % 2 ? COW_HAIR_B : COW_HAIR_A);
-        lv_obj_align(lock, align, locks[i][0], top);
+        place(lock, align, locks[i][0], top);
     }
 }
 
@@ -1159,7 +1205,7 @@ static void build_critter(const look_t *k)
     if (k->style == LOOK_HARE) {
         /* A puff of a tail, then the ears: both blown the same way. */
         lv_obj_t *tail = shape(s_root, 48, 48, HARE_PALE);
-        lv_obj_align(tail, LV_ALIGN_BOTTOM_MID, k->body_w / 2 + 6, -26);
+        place(tail, LV_ALIGN_BOTTOM_MID, k->body_w / 2 + 6, -26);
         build_hare_ear(0, k, body_top, -36, 58, false);
         build_hare_ear(1, k, body_top, 36, 42, true);
     }
@@ -1169,7 +1215,7 @@ static void build_critter(const look_t *k)
         for (int i = 0; i < 2; i++) {
             int32_t dx = (i == 0 ? -1 : 1) * (k->body_w * 34 / 100);
             lv_obj_t *ear = body_part(s_root, k->ear, k->ear, k->color);
-            lv_obj_align(ear, LV_ALIGN_TOP_MID, dx, body_top - k->ear * 45 / 100);
+            place(ear, LV_ALIGN_TOP_MID, dx, body_top - k->ear * 45 / 100);
             lv_obj_t *inner = shape(ear, k->ear * 55 / 100, k->ear * 55 / 100, 0xFFFFFF);
             lv_obj_set_style_bg_opa(inner, LV_OPA_30, 0);
             lv_obj_center(inner);
@@ -1183,9 +1229,9 @@ static void build_critter(const look_t *k)
         int32_t dx = (i == 0 ? -1 : 1) * (k->body_w * 24 / 100);
         int32_t y = body_top - stalks[i] + 16;
         s_stalk[i] = body_part(s_root, 14, stalks[i], k->color);
-        lv_obj_align(s_stalk[i], LV_ALIGN_TOP_MID, dx, y);
+        place(s_stalk[i], LV_ALIGN_TOP_MID, dx, y);
         s_tip[i] = shape(s_root, 30, 30, TIP_COLOR);
-        lv_obj_align(s_tip[i], LV_ALIGN_TOP_MID, dx, y - 22);
+        place(s_tip[i], LV_ALIGN_TOP_MID, dx, y - 22);
     }
 
     if (k->style == LOOK_COW) {
@@ -1195,7 +1241,7 @@ static void build_critter(const look_t *k)
         for (int i = 0; i < 2; i++) {
             int32_t dx = (i == 0 ? -1 : 1) * (k->body_w / 2 + 4);
             lv_obj_t *ear = body_part(s_root, 58, 32, k->color);
-            lv_obj_align(ear, LV_ALIGN_TOP_MID, dx, body_top + 44);
+            place(ear, LV_ALIGN_TOP_MID, dx, body_top + 44);
             lv_obj_t *inner = shape(ear, 34, 16, COW_MUZZLE);
             lv_obj_set_style_bg_opa(inner, LV_OPA_50, 0);
             lv_obj_center(inner);
@@ -1209,12 +1255,12 @@ static void build_critter(const look_t *k)
     }
 
     s_body = body_part(s_root, k->body_w, k->body_h, k->color);
-    lv_obj_align(s_body, LV_ALIGN_BOTTOM_MID, 0, -under);
+    place(s_body, LV_ALIGN_BOTTOM_MID, 0, -under);
 
     /* Belly: a shade lighter than the body, so it reads as colouring, not a feature. */
     s_belly = shape(s_body, k->body_w * 38 / 100, k->body_h * 20 / 100, 0xFFFFFF);
     lv_obj_set_style_bg_opa(s_belly, k->glow ? LV_OPA_70 : LV_OPA_20, 0);
-    lv_obj_align(s_belly, LV_ALIGN_BOTTOM_MID, 0, -12);
+    place(s_belly, LV_ALIGN_BOTTOM_MID, 0, -12);
     if (k->style == LOOK_COW) {
         lv_obj_add_flag(s_belly, LV_OBJ_FLAG_HIDDEN);   /* the muzzle sits there instead */
     }
@@ -1224,7 +1270,7 @@ static void build_critter(const look_t *k)
         /* A hare has long back feet. */
         int32_t foot_w = k->style == LOOK_HARE ? 84 : 56;
         lv_obj_t *foot = body_part(s_root, foot_w, 26, k->color);
-        lv_obj_align(foot, LV_ALIGN_BOTTOM_MID,
+        place(foot, LV_ALIGN_BOTTOM_MID,
                      (i == 0 ? -1 : 1) * (k->body_w * 23 / 100 + (foot_w - 56) / 2), 0);
     }
 
@@ -1238,9 +1284,9 @@ static void build_critter(const look_t *k)
     for (int i = 0; i < 2; i++) {
         int32_t dx = (i == 0) ? -(EYE_W + EYE_GAP) / 2 : (EYE_W + EYE_GAP) / 2;
         s_eye[i] = shape(s_body, EYE_W, EYE_OPEN_H, 0xFFFFFF);
-        lv_obj_align(s_eye[i], LV_ALIGN_CENTER, dx, eye_y);
+        place(s_eye[i], LV_ALIGN_CENTER, dx, eye_y);
         s_pupil[i] = shape(s_eye[i], PUPIL_W, 34, FACE_COLOR);
-        lv_obj_align(s_pupil[i], LV_ALIGN_CENTER, 0, 4);
+        place(s_pupil[i], LV_ALIGN_CENTER, 0, 4);
     }
 
     /* Mouth: a curve and an oval, one shown at a time. */
@@ -1256,18 +1302,18 @@ static void build_critter(const look_t *k)
     if (k->style == LOOK_FOX) {
         /* A narrow pale muzzle with a dark nose; the mouth sits under the nose. */
         lv_obj_t *muzzle = shape(s_body, 88, 60, FOX_PALE);
-        lv_obj_align(muzzle, LV_ALIGN_CENTER, 0, eye_y + 70);
+        place(muzzle, LV_ALIGN_CENTER, 0, eye_y + 70);
         lv_obj_t *nose = shape(muzzle, 20, 13, FOX_NOSE);
-        lv_obj_align(nose, LV_ALIGN_TOP_MID, 0, 8);
+        place(nose, LV_ALIGN_TOP_MID, 0, 8);
         s_mouth_y = eye_y + 78;
     }
     if (k->style == LOOK_COW) {
         /* A pale muzzle with nostrils; the mouth moves down onto it. */
         lv_obj_t *muzzle = shape(s_body, k->body_w * 54 / 100, 70, COW_MUZZLE);
-        lv_obj_align(muzzle, LV_ALIGN_CENTER, 0, eye_y + 72);
+        place(muzzle, LV_ALIGN_CENTER, 0, eye_y + 72);
         for (int i = 0; i < 2; i++) {
             lv_obj_t *nostril = shape(muzzle, 12, 9, COW_NOSTRIL);
-            lv_obj_align(nostril, LV_ALIGN_TOP_MID, i == 0 ? -20 : 20, 12);
+            place(nostril, LV_ALIGN_TOP_MID, i == 0 ? -20 : 20, 12);
         }
         s_mouth_y = eye_y + 82;
         /* The fringe: long locks over the forehead, down to the tops of the eyes. */
@@ -1279,7 +1325,7 @@ static void build_critter(const look_t *k)
     }
     s_mouth_curve = lv_arc_create(s_body);
     lv_obj_remove_style_all(s_mouth_curve);
-    lv_obj_set_style_arc_width(s_mouth_curve, 5, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(s_mouth_curve, len(5), LV_PART_MAIN);
     lv_obj_set_style_arc_color(s_mouth_curve, lv_color_hex(FACE_COLOR), LV_PART_MAIN);
     lv_obj_set_style_arc_opa(s_mouth_curve, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_arc_rounded(s_mouth_curve, true, LV_PART_MAIN);
@@ -1299,7 +1345,18 @@ static void build_critter(const look_t *k)
     s_zzz = lv_label_create(s_parent);
     lv_label_set_text(s_zzz, "z z");
     lv_obj_set_style_text_color(s_zzz, lv_color_hex(0x8FA3C7), 0);
-    lv_obj_align(s_zzz, LV_ALIGN_TOP_RIGHT, -70, 70);
+    /* Letters come in the sizes that were built in: the nearest one that is not too big. */
+#if LV_FONT_MONTSERRAT_28
+    if (px(14) >= 28) {
+        lv_obj_set_style_text_font(s_zzz, &lv_font_montserrat_28, 0);
+    } else
+#endif
+#if LV_FONT_MONTSERRAT_20
+    if (px(14) >= 20) {
+        lv_obj_set_style_text_font(s_zzz, &lv_font_montserrat_20, 0);
+    }
+#endif
+    place(s_zzz, LV_ALIGN_TOP_RIGHT, -70, 70);
     lv_obj_add_flag(s_zzz, LV_OBJ_FLAG_HIDDEN);
 
     /* Breathing bob, always on. */

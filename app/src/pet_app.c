@@ -1410,7 +1410,10 @@ void pet_app_start(const pet_hal_t *hal)
     /* The panels have rounded corners, so keep strip content off the edges. */
     int32_t strip_w = sw - 2 * 44;
 
-    lv_obj_t *area = plain_box(scr, PET_AREA_SIZE, PET_AREA_SIZE);
+    /* Only a platform with nothing around the pet can have it at another size. */
+    int32_t pet_size = hal->pet_only && hal->pet_size > 0 ? hal->pet_size : PET_AREA_SIZE;
+    lv_obj_t *area = plain_box(scr, pet_size, pet_size);
+    pet_view_set_size(pet_size);
     lv_obj_center(area);
     pet_view_set_look(s_pet.stage, s_pet.form, s_pet.is_static);
     pet_view_create(area);
