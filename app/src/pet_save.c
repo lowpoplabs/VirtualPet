@@ -9,7 +9,9 @@
 #include "pet_core.h"
 
 #define PET_SAVE_MAGIC   0x54455056u   /* "VPET" */
-#define PET_SAVE_VERSION 9
+#define PET_SAVE_VERSION 10
+/* Version 9 kept no distances. It is still read: a pet that has gone nowhere yet. */
+#define PET_SAVE_VERSION_NO_DISTANCE 9
 /* Version 8 knew nothing of pastures: no ids, and always a pet. It is still read. */
 #define PET_SAVE_VERSION_NO_PASTURES 8
 /* Before the owner could pick a favourite food. */
@@ -306,6 +308,8 @@ size_t pet_save(const pet_t *pet, uint8_t *buf, size_t cap)
     put_f32(&c, pet->places.carried_total);
     put_f32(&c, pet->places.carried_top);
     put(&c, pet->secret, PET_SECRET_BYTES);
+    put_u32(&c, pet->rode_m);
+    put_u32(&c, pet->walked_m);
     if (!c.ok) {
         return 0;
     }
@@ -335,7 +339,8 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
         return false;
     }
     uint32_t version = get_u32(&c);
-    if ((version != PET_SAVE_VERSION && version != PET_SAVE_VERSION_NO_PASTURES &&
+    if ((version != PET_SAVE_VERSION && version != PET_SAVE_VERSION_NO_DISTANCE &&
+         version != PET_SAVE_VERSION_NO_PASTURES &&
          version != PET_SAVE_VERSION_NO_FAVOURITE &&
          version != PET_SAVE_VERSION_NO_FARM &&
          version != PET_SAVE_VERSION_NO_SPEED &&
@@ -427,6 +432,10 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
         p.places.carried_total = get_f32(&c);
         p.places.carried_top = get_f32(&c);
         get(&c, p.secret, PET_SECRET_BYTES);
+        if (version > PET_SAVE_VERSION_NO_DISTANCE) {
+            p.rode_m = get_u32(&c);
+            p.walked_m = get_u32(&c);
+        }
         if (away > 1 || p.id == 0 || hops > UINT16_MAX || left_hops > UINT16_MAX ||
             !(p.places.carried_top >= 0 && p.places.carried_total >= p.places.carried_top)) {
             return false;

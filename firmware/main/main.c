@@ -581,10 +581,10 @@ static void on_scan(const pet_scan_t *scan)
         /* The other task is still adding readings; a reading lost here does not matter. */
         int samples, shake, steps;
         pet_gait_take(&s_gait, &samples, &shake, &steps);
-        if (pet_ride_scan(&s_ride, with_motion.motion == 2, s_last_cycle.ride_print, s_last_cycle.ride_prints,
-                          &s_last_cycle.wifi_same)) {
-            with_motion.motion = 3;
-        }
+        /* The watch has no way to know its speed: a ride is told by the networks going by. */
+        with_motion.motion = pet_travel_scan(&s_ride, with_motion.motion, PET_SPEED_UNKNOWN,
+                                             s_last_cycle.ride_print, s_last_cycle.ride_prints,
+                                             &s_last_cycle.wifi_same);
         const char *state = with_motion.motion == 3 ? "riding" : (with_motion.motion == 2 ? "carried" : "still");
         ESP_LOGI(TAG, "motion: %s, shake %d mg, %d steps a minute (%d readings); scan: %d prints, %d names, best %d dBm",
                  state, shake, steps, samples, s_last_cycle.prints, s_last_cycle.matches,

@@ -203,6 +203,35 @@ bool pet_ride_passing(const pet_ride_t *r)
     return r->run > 0;
 }
 
+uint8_t pet_travel_scan(pet_ride_t *r, uint8_t sensor, float speed_mps, const uint16_t *prints, int heard,
+                        int *same)
+{
+    bool known = speed_mps >= 0;    /* false for PET_SPEED_UNKNOWN, and for a number that is not one */
+    bool walking = known && speed_mps >= WALK_SPEED_MPS;
+    /* The networks are remembered either way, for when the speed drops out. */
+    bool passing = pet_ride_scan(r, sensor == 2 || walking, prints, heard, same);
+
+    if (known && speed_mps >= RIDE_SPEED_MPS) {
+        if (r->fast < 2) {
+            r->fast++;
+        }
+        r->slow = 0;
+    } else if (r->fast >= 2 && r->slow < RIDE_SLOW_MAX) {
+        r->slow++;      /* stopped at a light, or under a bridge: still on the way */
+    } else {
+        r->fast = 0;
+        r->slow = 0;
+    }
+
+    if (r->fast >= 2) {
+        return 3;       /* through a few slow scans, and a few with no speed at all: a tunnel */
+    }
+    if (!known) {
+        return passing ? 3 : (sensor <= 2 ? sensor : 0);
+    }
+    return walking || sensor == 2 ? 2 : 1;
+}
+
 /* ---- Gait --------------------------------------------------------------- */
 
 #define STEP_UP_MG    70    /* the pull must rise this far above its average to start a step */

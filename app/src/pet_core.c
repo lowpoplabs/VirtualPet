@@ -659,6 +659,12 @@ uint32_t pet_scan(pet_t *pet, const pet_scan_t *scan, place_kind_t *badge_kind)
     if (scan->motion == 3) {
         pet->today.flags |= DAY_RODE;
     }
+    /* Lying still it went nowhere, whatever a wandering position says. */
+    if (scan->motion >= 2 && scan->moved_m > 0 && scan->moved_m <= PET_MOVED_MAX_M) {
+        uint32_t *total = scan->motion == 3 ? &pet->rode_m : &pet->walked_m;
+        uint32_t add = (uint32_t)(scan->moved_m + 0.5f);
+        *total = add > UINT32_MAX - *total ? UINT32_MAX : *total + add;
+    }
     return ev;
 }
 

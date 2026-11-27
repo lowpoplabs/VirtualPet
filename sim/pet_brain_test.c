@@ -193,6 +193,49 @@ int main(void)
             CHECK(!pet_ride_scan(&r, true, NULL, 0, &same) && same == 0, "and a scan that heard nothing is taken as such");
         }
 
+        /* A platform that knows its speed: the speed decides, and the networks are the fallback. */
+        {
+            static const uint16_t home[3] = {11, 12, 13};
+            const float U = PET_SPEED_UNKNOWN;
+            r = (pet_ride_t){0};
+            CHECK(pet_travel_scan(&r, 0, 0.0f, home, 3, NULL) == 1, "no speed and no sensor to say otherwise: still");
+            CHECK(pet_travel_scan(&r, 0, 1.4f, home, 3, NULL) == 2, "walking pace is carried, with no sensor at all");
+            CHECK(pet_travel_scan(&r, 2, 0.0f, home, 3, NULL) == 2, "the sensor's word for carried stands when the speed is nought");
+            CHECK(pet_travel_scan(&r, 2, 14.0f, home, 3, NULL) == 2, "one fast reading is not yet a ride");
+            CHECK(pet_travel_scan(&r, 2, 14.0f, home, 3, NULL) == 3, "two are, though the networks have not changed");
+            bool lasted = true;
+            for (int k = 0; k < RIDE_SLOW_MAX; k++) {
+                lasted = lasted && pet_travel_scan(&r, 1, 0.0f, NULL, 0, NULL) == 3;
+            }
+            CHECK(lasted, "a ride lasts through a few scans stopped at the lights");
+            CHECK(pet_travel_scan(&r, 1, 0.0f, NULL, 0, NULL) == 1, "but not for ever: parked");
+            CHECK(pet_travel_scan(&r, 2, 4.0f, NULL, 0, NULL) == 2, "a run is not a ride");
+            CHECK(pet_travel_scan(&r, 2, 4.0f, NULL, 0, NULL) == 2, "however long it is kept up");
+
+            /* Into a tunnel: the speed goes, the ride does not, for a while. */
+            r = (pet_ride_t){0};
+            pet_travel_scan(&r, 2, 20.0f, NULL, 0, NULL);
+            pet_travel_scan(&r, 2, 20.0f, NULL, 0, NULL);
+            CHECK(pet_travel_scan(&r, 2, U, NULL, 0, NULL) == 3, "a ride lasts through scans with no speed");
+            CHECK(pet_travel_scan(&r, 2, 20.0f, NULL, 0, NULL) == 3, "and is still one out the other side");
+
+            /* No speed at all is the watch: exactly the networks' answer, or else the sensor's. */
+            static const uint16_t street[3][3] = {{101, 102, 103}, {201, 202, 203}, {301, 302, 303}};
+            int same = -1;
+            r = (pet_ride_t){0};
+            CHECK(pet_travel_scan(&r, 0, U, home, 3, NULL) == 0, "no sensor and no speed: it cannot say");
+            CHECK(pet_travel_scan(&r, 1, U, home, 3, NULL) == 1, "the sensor's still");
+            r = (pet_ride_t){0};
+            pet_travel_scan(&r, 2, U, street[0], 3, NULL);
+            pet_travel_scan(&r, 2, U, street[1], 3, NULL);
+            CHECK(pet_travel_scan(&r, 2, U, street[2], 3, &same) == 3 && same == 0,
+                  "with no speed, networks going by are a ride as before");
+            CHECK(pet_travel_scan(&r, 2, 1.0f, street[0], 3, NULL) == 2, "a known walking speed overrules them");
+            volatile float nought = 0.0f;
+            float bad = nought / nought;
+            CHECK(pet_travel_scan(&r, 1, bad, home, 3, NULL) == 1, "a speed that is not a number is no speed");
+        }
+
         /* Things that are not rides, however long they last. */
         static const struct {
             bool carried;

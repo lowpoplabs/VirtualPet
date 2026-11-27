@@ -132,6 +132,12 @@ typedef struct {
     uint16_t ble_heard;
     /* Motion since the last scan: 0 = no sensor, 1 = lay still, 2 = was carried, 3 = rode in a vehicle. */
     uint8_t motion;
+    /*
+     * How far it went since the last scan, in metres, for a platform that
+     * can tell (GPS). 0 = nowhere, or not known: either way nothing is added.
+     * Only the totals are kept (pet_t.rode_m, walked_m), never where.
+     */
+    float moved_m;
 } pet_scan_t;
 
 typedef struct {

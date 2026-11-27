@@ -162,6 +162,46 @@ int main(void)
         pet_scan(&walker, &walk, NULL);
         CHECK(!(walker.today.flags & DAY_RODE), "one taken while walking does not");
 
+        /* Distance, where a platform can tell: two totals, and nothing about where. */
+        {
+            static uint8_t buf[PET_SAVE_MAX];
+            pet_t t, back;
+            pet_init(&t, NULL, T0, 5);
+            pet_scan_t s = {.motion = 2, .moved_m = 40.4f};
+            pet_scan(&t, &s, NULL);
+            s = (pet_scan_t){.motion = 3, .moved_m = 900.6f};
+            pet_scan(&t, &s, NULL);
+            CHECK(t.walked_m == 40 && t.rode_m == 901, "metres go to the walking or the riding total");
+            s = (pet_scan_t){.motion = 1, .moved_m = 35.0f};
+            pet_scan(&t, &s, NULL);
+            s = (pet_scan_t){.motion = 2};
+            pet_scan(&t, &s, NULL);
+            s = (pet_scan_t){.motion = 3, .moved_m = PET_MOVED_MAX_M * 2};
+            pet_scan(&t, &s, NULL);
+            s = (pet_scan_t){.motion = 3, .moved_m = -50.0f};
+            pet_scan(&t, &s, NULL);
+            CHECK(t.walked_m == 40 && t.rode_m == 901,
+                  "lying still, not known, absurd or backwards: nothing is added");
+            t.rode_m = UINT32_MAX - 10;
+            s = (pet_scan_t){.motion = 3, .moved_m = 500.0f};
+            pet_scan(&t, &s, NULL);
+            CHECK(t.rode_m == UINT32_MAX, "a total stops at its top and does not wrap");
+            t.rode_m = 901;
+            size_t n = pet_save(&t, buf, sizeof(buf));
+            CHECK(n > 0 && pet_load(&back, NULL, buf, n, t.now) && back.rode_m == 901 && back.walked_m == 40,
+                  "the totals are saved");
+
+            /* The save as it was before distances: the same, less the two totals, and marked 9. */
+            uint32_t pet_crc32(const uint8_t *data, size_t len);
+            uint32_t nine = 9;
+            memcpy(buf + 4, &nine, 4);
+            uint32_t crc = pet_crc32(buf, n - 4 - 8);
+            memcpy(buf + n - 4 - 8, &crc, 4);
+            CHECK(pet_load(&back, NULL, buf, n - 8, t.now) && back.rode_m == 0 && back.walked_m == 0 &&
+                  back.id == t.id && back.meals == t.meals,
+                  "a save from before distances loads, as a pet that has gone nowhere");
+        }
+
         d.flags = DAY_QUEASY;
         pet_journal_entry(&p, &d, false, a, sizeof(a));
         CHECK(strstr(a, "junk") || strstr(a, "tummy") || strstr(a, "open networks"),

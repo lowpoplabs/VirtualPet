@@ -104,6 +104,8 @@ typedef struct {
     uint8_t at;     /* where the next scan's prints go */
     uint8_t count[RIDE_SCANS];
     uint16_t recent[RIDE_SCANS][RIDE_PRINTS];
+    uint8_t fast;   /* scans in a row at a ride's speed, where the speed is known */
+    uint8_t slow;   /* scans since then that were not */
 } pet_ride_t;
 
 /*
@@ -116,6 +118,31 @@ bool pet_ride_scan(pet_ride_t *r, bool carried, const uint16_t *prints, int hear
 
 /* True from the first scan of networks going by: worth looking again soon. */
 bool pet_ride_passing(const pet_ride_t *r);
+
+/*
+ * The whole of the question, for a platform that may know its speed (from
+ * GPS, say): still, carried or riding, as pet_scan_t.motion wants it.
+ *
+ * sensor is the motion sensor's word since the last scan: 0 = there is
+ * none, 1 = lay still, 2 = was carried. speed_mps is the speed at the scan
+ * in metres a second, or PET_SPEED_UNKNOWN. prints, heard and same are as
+ * for pet_ride_scan(), which this calls: do not call both.
+ *
+ * A known speed decides. Two scans in a row at RIDE_SPEED_MPS or more are a
+ * ride, and it lasts through RIDE_SLOW_MAX slower ones: lights, a queue, a
+ * station. Below that, WALK_SPEED_MPS or the sensor makes it carried. When
+ * the speed is not known (indoors, a tunnel, no GPS at all) it is the
+ * networks going by that tell a ride, as before.
+ *
+ * Returns 0 = cannot say, 1 = still, 2 = carried, 3 = riding.
+ */
+#define PET_SPEED_UNKNOWN (-1.0f)
+#define RIDE_SPEED_MPS    6.0f  /* 22 km/h: faster than a run is kept up, slower than a town street is driven */
+#define WALK_SPEED_MPS    0.5f  /* below this a position that wanders is as likely as a walk */
+#define RIDE_SLOW_MAX     4
+
+uint8_t pet_travel_scan(pet_ride_t *r, uint8_t sensor, float speed_mps, const uint16_t *prints, int heard,
+                        int *same);
 
 #ifdef __cplusplus
 }

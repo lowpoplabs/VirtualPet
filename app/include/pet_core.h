@@ -317,7 +317,16 @@ typedef struct {
     uint16_t hops;              /* how many times it has moved to another device */
     uint32_t left_id;           /* the pet that last left this device (0 = none), and the */
     uint16_t left_hops;         /* hops it left with, to know it if it comes back */
+    /*
+     * How far this pet has travelled, in metres, where a platform can tell:
+     * while riding, and otherwise (on foot, mostly). Numbers only; nothing
+     * about where. They go with the pet when it moves.
+     */
+    uint32_t rode_m, walked_m;
 } pet_t;
+
+/* More than this in one scan is a mistake, not a journey: an airliner for a quarter of an hour is 225 km. */
+#define PET_MOVED_MAX_M 300000.0f
 
 /*
  * What a device that holds the pet answers to a question (nonce) about it:
