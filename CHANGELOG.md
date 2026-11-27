@@ -12,6 +12,8 @@ Nothing changes on the watch.
 - **Site:** how to install the Android app, under "Install it", beside the watch's
   installer. The app is released from its own repository,
   [VirtualPet-Android](https://github.com/lowpoplabs/VirtualPet-Android).
+- **Manual:** a section, "On a phone", on what is different there: tabs in place of
+  swipes, how it listens, the settings a phone does not have, and how to keep the pet.
 
 ### Changed
 - **Site:** "What's next" is now two lists, one for the ESP32 watch (tuning, battery life,
