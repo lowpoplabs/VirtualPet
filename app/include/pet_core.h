@@ -216,6 +216,7 @@ typedef struct {
     uint16_t days;              /* how long it lived, in pet days */
     uint32_t retired_day;       /* the day it retired (days since 1970) */
     uint32_t meals;
+    uint32_t id;                /* the id it had as a pet: tells two residents apart when farms are joined */
 } pet_resident_t;
 
 typedef struct {
@@ -295,6 +296,18 @@ typedef struct {
      * steer what it grows into.
      */
     uint8_t favourite;
+
+    /*
+     * Pastures. A pet lives on one device at a time and can be moved to
+     * another (see "Moving between devices" below). `away` is a device with
+     * no pet on it: an empty pasture. It still learns places and earns
+     * place badges for the owner, and eats nothing.
+     */
+    bool away;
+    uint32_t id;                /* this pet's own number, given when its egg is laid; never 0 */
+    uint16_t hops;              /* how many times it has moved to another device */
+    uint32_t left_id;           /* the pet that last left this device (0 = none), and the */
+    uint16_t left_hops;         /* hops it left with, to know it if it comes back */
 } pet_t;
 
 #define PET_FAVOURITE_MAX GROUP_OTHER   /* the largest value pet_t.favourite takes */
@@ -484,6 +497,60 @@ size_t pet_save(const pet_t *pet, uint8_t *buf, size_t cap);
  * false, leaving *pet untouched, if the data is not a valid save.
  */
 bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t len, uint32_t now);
+
+/* ---- Moving between devices ------------------------------------------- */
+
+/*
+ * A parcel is what travels from one device to another: the owner's
+ * collection (the farm, the badges, the place badges and off the grid),
+ * and with it, or not, the pet. Habitats never travel: their prints are
+ * scrambled with a number of the device's own, and stay there.
+ *
+ * It is separate from the save, with a format number of its own, a marker
+ * saying whether a release or a test build made it, and a checksum.
+ */
+#define PET_PARCEL_MAX 6144
+
+typedef enum {
+    PET_REALM_RELEASE,      /* the owner's real pets and farm */
+    PET_REALM_TEST,         /* a test build or the simulator: never trades with the real ones */
+} pet_realm_t;
+
+typedef enum {
+    PET_IMPORT_OK,          /* the collections are joined, and the pet has arrived if one was sent */
+    PET_IMPORT_DAMAGED,     /* not a parcel, or it did not arrive whole */
+    PET_IMPORT_NEWER,       /* made by a newer build than this one: update this device first */
+    PET_IMPORT_WRONG_REALM, /* a test parcel for a release build, or the other way about */
+    PET_IMPORT_OCCUPIED,    /* a hatched pet lives here: move or retire it first */
+    PET_IMPORT_SAME_PET,    /* the pet in the parcel is the one already living here */
+} pet_import_t;
+
+/*
+ * Writes a parcel into buf: the collection, and the pet too if with_pet.
+ * Returns the number of bytes; 0 if cap is too small, or if the pet was
+ * asked for and the pasture is empty. Nothing changes: the pet is still
+ * here until pet_leave() says it has gone, so a sender can keep it until
+ * the other side has it whole.
+ */
+size_t pet_export(const pet_t *pet, pet_realm_t realm, bool with_pet, uint8_t *buf, size_t cap);
+
+/* The pet has gone to another device: this pasture is empty. Nothing happens if it already is. */
+void pet_leave(pet_t *pet);
+
+/* Starts a first-generation egg in an empty pasture. False, changing nothing, if a pet lives here. */
+bool pet_new_egg(pet_t *pet, uint32_t seed);
+
+/*
+ * Takes a parcel in. The collection is joined with this device's: the
+ * same parcel any number of times, or two devices' in either order, give
+ * the same farm. A pet in the parcel moves in if the pasture is empty or
+ * holds an unhatched egg, which gives way. Time stands still for the pet
+ * in the crossing, as it does while a device is off, so the two clocks
+ * need not agree. Anything but PET_IMPORT_OK changes nothing at all.
+ * *pet_arrived (may be NULL) says whether a pet moved in.
+ */
+pet_import_t pet_import(pet_t *pet, pet_realm_t realm, const uint8_t *buf, size_t len,
+                        uint32_t now, bool *pet_arrived);
 
 #ifdef __cplusplus
 }

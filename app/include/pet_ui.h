@@ -185,6 +185,40 @@ bool pet_app_retire(void);
 /* A new egg in place of the pet and everything it had; the settings stay. Ask the owner first. */
 void pet_app_start_over(void);
 
+/* ---- Moving between devices --------------------------------------------- */
+
+/*
+ * A pet lives on one device at a time and can be moved to another; the
+ * owner's collection (the farm, the badges, the place badges and off the
+ * grid) is joined between devices whenever a parcel passes. Habitats stay
+ * on the device that learned them. See "Moving between devices" in
+ * pet_core.h for the rules, and pet_exchange.c for the bytes.
+ *
+ * To send: pet_app_export() into a buffer of PET_PARCEL_MAX bytes, get the
+ * bytes to the other device (a file, a link), and only when they are known
+ * to be safe there call pet_app_pet_left(). To receive: pet_app_import().
+ * A parcel without the pet brings the two farms level and moves nothing.
+ */
+
+/* True when no pet lives here. The pet's square is then empty, and the pet's own lines mean nothing. */
+bool pet_app_pasture_empty(void);
+
+/* Writes a parcel. Returns its length; 0 if the pet was asked for and there is none, or cap is too small. */
+size_t pet_app_export(bool with_pet, uint8_t *buf, size_t cap);
+
+/* The pet that was exported is safe elsewhere: it leaves, and this pasture is empty. Saves. */
+void pet_app_pet_left(void);
+
+/*
+ * Takes a parcel in, and saves. Anything but PET_IMPORT_OK changed
+ * nothing: say why (pet_import_t). *pet_arrived (may be NULL) is true
+ * when a pet moved in; it is told as news too ("Mossy has arrived").
+ */
+pet_import_t pet_app_import(const uint8_t *buf, size_t len, bool *pet_arrived);
+
+/* Starts a first-generation egg in an empty pasture. False if a pet lives here. Ask the owner first. */
+bool pet_app_new_egg(void);
+
 /*
  * The preview of every form: the pet's square shows each stage and form in
  * turn, the egg first, moving on at each tap on the pet and going back to

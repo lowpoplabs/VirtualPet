@@ -245,6 +245,7 @@ static void refresh_pet(void)
     if (s_preview < 0) {
         pet_view_set_look(s_pet.stage, s_pet.form, s_pet.is_static);
     }
+    pet_view_set_empty(s_pet.away && s_preview < 0);
 
     int32_t stomach = (int32_t)(s_pet.stomach * 10);
     if (stomach != shown_stomach) {
@@ -968,11 +969,100 @@ void pet_app_start_over(void)
     }
 }
 
-/* "Retire": the pet moves to the farm and the egg it leaves takes its place. */
 #define FAREWELL_MS 2600    /* the pet hops out of the picture */
-#define ARRIVAL_MS  1100    /* the egg comes in */
+#define ARRIVAL_MS  1100    /* the egg, or a pet from another device, comes in */
 
-static lv_timer_t *s_farewell;      /* running while the pet is on its way out */
+static lv_timer_t *s_farewell;      /* running while the pet is on its way out to the farm */
+
+/* ---- Moving between devices (see pet_core.h) ---------------------------- */
+
+static pet_realm_t realm(void)
+{
+    return s_hal->test_build ? PET_REALM_TEST : PET_REALM_RELEASE;
+}
+
+/* Another pet is here now, or none: what was remembered about the last one goes. */
+static void pasture_changed(const char *news)
+{
+    uint32_t seed = (s_hal->random ? s_hal->random() : 0) ^ (s_pet.now * 2654435761u) ^ lv_tick_get();
+    settings_apply();
+    pet_brain_init(&s_brain, NULL, (seed >> 7) ^ lv_rand(1, 0x7FFFFFFF));
+    s_recent_count = 0;
+    s_best_name[0] = '\0';
+    s_best_value = 0;
+    s_last_pat = 0;
+    s_retire_told = false;
+    pet_app_save_now();
+    pet_view_set_look(s_pet.stage, s_pet.form, s_pet.is_static);
+    pet_view_set_empty(s_pet.away);
+    changed();
+    pet_app_show_find(news);
+}
+
+bool pet_app_pasture_empty(void)
+{
+    return s_hal && s_pet.away;
+}
+
+size_t pet_app_export(bool with_pet, uint8_t *buf, size_t cap)
+{
+    if (!s_hal || s_farewell) {
+        return 0;
+    }
+    return pet_export(&s_pet, realm(), with_pet, buf, cap);
+}
+
+void pet_app_pet_left(void)
+{
+    if (!s_hal || s_pet.away) {
+        return;
+    }
+    pet_leave(&s_pet);
+    pasture_changed("the pasture is empty");
+}
+
+pet_import_t pet_app_import(const uint8_t *buf, size_t len, bool *pet_arrived)
+{
+    bool arrived = false;
+    if (pet_arrived) {
+        *pet_arrived = false;
+    }
+    if (!s_hal || s_farewell) {
+        return PET_IMPORT_OCCUPIED;     /* a pet is on its way to the farm: ask again in a moment */
+    }
+    pet_tick(&s_pet, s_hal->now_s(), NULL);     /* the pet is loaded at this clock's now */
+    pet_import_t r = pet_import(&s_pet, realm(), buf, len, s_pet.now, &arrived);
+    if (r != PET_IMPORT_OK) {
+        return r;
+    }
+    if (arrived) {
+        char text[64];
+        snprintf(text, sizeof(text), "%s has arrived", s_pet.name[0] ? s_pet.name : "a pet");
+        pasture_changed(text);
+        pet_view_roll_in(ARRIVAL_MS);
+    } else {
+        pet_app_save_now();
+        changed();
+    }
+    if (pet_arrived) {
+        *pet_arrived = arrived;
+    }
+    return r;
+}
+
+bool pet_app_new_egg(void)
+{
+    if (!s_hal || !s_pet.away) {
+        return false;
+    }
+    uint32_t seed = (s_hal->random ? s_hal->random() : 0) ^ (s_pet.now * 2654435761u) ^ lv_tick_get();
+    pet_new_egg(&s_pet, seed | 1);
+    pasture_changed("a new egg");
+    pet_view_roll_in(ARRIVAL_MS);
+    return true;
+}
+
+/* "Retire": the pet moves to the farm and the egg it leaves takes its place. */
 
 /* The pet has gone: now it really moves to the farm, and its egg comes in. */
 static void retire_finish(lv_timer_t *t)
@@ -1239,6 +1329,10 @@ int pet_app_recent(const pet_recent_t **list)
 
 void pet_app_describe(char *out, size_t size)
 {
+    if (s_pet.away) {
+        snprintf(out, size, "an empty pasture, %d at the farm", s_pet.farm.count);
+        return;
+    }
     float time_done, meals_done;
     pet_growth_progress(&s_pet, &time_done, &meals_done);
     int len = snprintf(out, size, "%s, %s%s%s (stage %d%% by time, %d%% by meals), %lu meals, "

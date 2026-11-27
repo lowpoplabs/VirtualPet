@@ -707,7 +707,7 @@ int places_count(const pet_places_t *p)
 
 float places_top_share(const pet_places_t *p)
 {
-    float total = p->away_points, top = 0;
+    float total = p->away_points + p->carried_total, top = p->carried_top;
     for (int i = 0; i < HABITAT_MAX; i++) {
         if (p->habitat[i].prints) {
             total += p->habitat[i].net_points;

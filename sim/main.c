@@ -18,6 +18,15 @@
  *   virtualpet_sim --pet-only            as a phone runs it: the pet's square alone,
  *                                        and what the app would have shown printed
  *   virtualpet_sim --pet-only 800        the same, with the pet drawn 800 pixels square
+ *   virtualpet_sim --save a.bin --send pet.parcel
+ *                                        the pet moves out into a file, with the farm;
+ *                                        this pasture is then empty
+ *   virtualpet_sim --save b.bin --receive pet.parcel
+ *                                        and moves in from one. Says why if it is refused
+ *   virtualpet_sim --save a.bin --send-farm farm.parcel
+ *                                        the farm and badges alone, to bring two level
+ *   virtualpet_sim --save a.bin --new-egg
+ *                                        start an egg in an empty pasture
  *   virtualpet_sim --page diet           open a screen: diet, journal, recent, menu,
  *                                        dex, badges, farm, pet, settings, name
  *   virtualpet_sim --screenshot out.bmp [--after-ms 1500]
@@ -42,6 +51,7 @@
 #include "log_reader.h"
 #include "lvgl.h"
 #include "pet_app.h"
+#include "pet_ui.h"
 #include "pet_sound.h"
 #include "screenshot.h"
 
@@ -392,12 +402,62 @@ static void swipe_start(lv_timer_t *t)
 
 static uint32_t tick_cb(void) { return SDL_GetTicks(); }
 
+/* --send, --send-farm, --receive: a parcel out to a file, or in from one. */
+static bool parcel_out(const char *path, bool with_pet)
+{
+    static uint8_t buf[PET_PARCEL_MAX];
+    size_t n = pet_app_export(with_pet, buf, sizeof(buf));
+    if (n == 0) {
+        printf("nothing to send: %s\n", with_pet ? "no pet lives here" : "the parcel could not be made");
+        return false;
+    }
+    FILE *f = fopen(path, "wb");
+    if (!f || fwrite(buf, 1, n, f) != n || fclose(f) != 0) {
+        printf("could not write %s; the pet stays\n", path);
+        return false;
+    }
+    if (with_pet) {
+        pet_app_pet_left();     /* only now that the file is whole */
+    }
+    printf("%s: %u bytes written to %s\n", with_pet ? "the pet has left" : "the farm was sent", (unsigned)n, path);
+    return true;
+}
+
+static bool parcel_in(const char *path)
+{
+    static uint8_t buf[PET_PARCEL_MAX + 1];
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        printf("could not read %s\n", path);
+        return false;
+    }
+    size_t n = fread(buf, 1, sizeof(buf), f);
+    fclose(f);
+    bool arrived = false;
+    pet_import_t r = n > PET_PARCEL_MAX ? PET_IMPORT_DAMAGED : pet_app_import(buf, n, &arrived);
+    static const char *const why[] = {
+        [PET_IMPORT_OK] = "",
+        [PET_IMPORT_DAMAGED] = "it is damaged, or not a parcel",
+        [PET_IMPORT_NEWER] = "it was made by a newer build than this one",
+        [PET_IMPORT_WRONG_REALM] = "it is from a release build, and this is a test one",
+        [PET_IMPORT_OCCUPIED] = "a hatched pet lives here: move or retire it first",
+        [PET_IMPORT_SAME_PET] = "that pet already lives here",
+    };
+    if (r != PET_IMPORT_OK) {
+        printf("refused: %s\n", why[r]);
+        return false;
+    }
+    printf("%s\n", arrived ? "a pet has arrived, and the farms are joined" : "the farms are joined");
+    return true;
+}
+
 static int usage(const char *exe)
 {
     fprintf(stderr,
             "usage: %s [--board watch|square] [--pet-only [SIZE]] [--replay LOG.csv] [--speed N]\n"
             "       [--save PET.bin] [--sound off|rare|all] [--battery PERCENT] [--carry]\n"
             "       [--growth SPEED] [--page NAME]\n"
+            "       [--send FILE | --send-farm FILE | --receive FILE | --new-egg]\n"
             "       [--screenshot file.bmp [--after-ms N]]\n",
             exe);
     return 2;
@@ -412,6 +472,9 @@ int main(int argc, char **argv)
     int sound_level = -1;
     bool carry = false, swipe = false;
     double growth = 0;      /* 0 = not asked for */
+    const char *send = NULL, *send_farm = NULL, *receive = NULL;
+    bool new_egg = false;
+    s_hal.test_build = true;    /* the simulator never trades with a release build */
 
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--board") && i + 1 < argc) {
@@ -430,6 +493,14 @@ int main(int argc, char **argv)
             s_hal.pet_only = true;
             s_hal.screen_managed = true;
             s_hal.notice = sim_notice;
+        } else if (!strcmp(argv[i], "--send") && i + 1 < argc) {
+            send = argv[++i];
+        } else if (!strcmp(argv[i], "--send-farm") && i + 1 < argc) {
+            send_farm = argv[++i];
+        } else if (!strcmp(argv[i], "--receive") && i + 1 < argc) {
+            receive = argv[++i];
+        } else if (!strcmp(argv[i], "--new-egg")) {
+            new_egg = true;
         } else if (!strcmp(argv[i], "--replay") && i + 1 < argc) {
             replay = argv[++i];
         } else if (!strcmp(argv[i], "--save") && i + 1 < argc) {
@@ -515,6 +586,23 @@ int main(int argc, char **argv)
 
     sim_audio_open();
     pet_app_start(&s_hal);
+    if (receive) {
+        parcel_in(receive);
+    }
+    if (new_egg && !pet_app_new_egg()) {
+        printf("no new egg: a pet lives here\n");
+    }
+    if (send_farm) {
+        parcel_out(send_farm, false);
+    }
+    if (send) {
+        parcel_out(send, true);
+    }
+    if (send || send_farm || receive || new_egg) {
+        char say[400];
+        pet_app_describe(say, sizeof(say));
+        printf("%s\n", say);
+    }
     if (pet_app_config_warning()[0]) {
         printf("settings file ignored: %s\n", pet_app_config_warning());
     }

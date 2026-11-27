@@ -645,6 +645,13 @@ static void slide(int32_t from, int32_t to, uint32_t ms, lv_anim_path_cb_t path)
     lv_anim_start(&a);
 }
 
+void pet_view_set_empty(bool empty)
+{
+    if (s_root && lv_obj_has_flag(s_root, LV_OBJ_FLAG_HIDDEN) != empty) {
+        lv_obj_update_flag(s_root, LV_OBJ_FLAG_HIDDEN, empty);
+    }
+}
+
 void pet_view_walk_off(uint32_t ms)
 {
     if (!s_root) {

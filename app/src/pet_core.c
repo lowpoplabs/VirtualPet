@@ -85,6 +85,18 @@ static float clampf(float v, float lo, float hi)
     return v < lo ? lo : (v > hi ? hi : v);
 }
 
+/* A number to know a pet by. Never 0. */
+uint32_t pet_make_id(uint32_t a, uint32_t b)
+{
+    uint32_t h = (a ^ 0x9E3779B9u) * 2654435761u;
+    h ^= h >> 15;
+    h = (h ^ b) * 2246822519u;
+    h ^= h >> 13;
+    h *= 3266489917u;
+    h ^= h >> 16;
+    return h ? h : 1;
+}
+
 void pet_init(pet_t *pet, const pet_tuning_t *tune, uint32_t now, uint32_t seed)
 {
     memset(pet, 0, sizeof(*pet));
@@ -101,6 +113,7 @@ void pet_init(pet_t *pet, const pet_tuning_t *tune, uint32_t now, uint32_t seed)
     pet->today.best = FOOD_TYPE_COUNT;
     places_init(&pet->places);
     pet->generation = 1;
+    pet->id = pet_make_id(pet->rng, now);     /* not drawn from rng: the draws that follow stay as they were */
 
     /* A new egg: two different traits at random. */
     pet->born = now;
@@ -120,7 +133,7 @@ void pet_badges_check(pet_t *pet, bool day_ended);      /* pet_badges.c */
 
 bool pet_can_retire(const pet_t *pet)
 {
-    return pet->stage == STAGE_ADULT && pet->retire_ready;
+    return !pet->away && pet->stage == STAGE_ADULT && pet->retire_ready;
 }
 
 bool pet_retire(pet_t *pet, uint32_t seed)
@@ -140,6 +153,7 @@ bool pet_retire(pet_t *pet, uint32_t seed)
     r.days = days > 65535 ? 65535 : (uint16_t)days;
     r.retired_day = pet->day;
     r.meals = pet->meals;
+    r.id = pet->id;
     float g[GROUP_COUNT];
     pet_group_points(pet, g);
     r.favourite = GROUP_COUNT;
@@ -165,8 +179,12 @@ bool pet_retire(pet_t *pet, uint32_t seed)
     uint32_t badges = pet->badges, new_badges = pet->new_badges, now = pet->now;
     uint16_t generation = pet->generation;
     uint8_t parent_traits = pet->traits;
+    uint32_t left_id = pet->left_id;
+    uint16_t left_hops = pet->left_hops;
 
     pet_init(pet, &tune, now, seed);
+    pet->left_id = left_id;
+    pet->left_hops = left_hops;
     pet->farm = farm;
     pet->places = places;
     pet->badges = badges;
@@ -217,9 +235,61 @@ const char *pet_trait_name(pet_trait_t t)
     }
 }
 
+/*
+ * What a device keeps when its pet goes, by leaving or by giving way to
+ * one that arrives: the collection, and the habitats, which are the
+ * device's. The food counted against those habitats was the pet's, and
+ * goes with it.
+ */
+void pet_pasture_clear(pet_t *pet, uint32_t seed, bool away)
+{
+    const pet_tuning_t tune = pet->tune;
+    static pet_places_t places;     /* static: too big for a small stack */
+    places = pet->places;
+    const pet_farm_t farm = pet->farm;
+    uint32_t badges = pet->badges, new_badges = pet->new_badges, now = pet->now;
+    uint32_t left_id = pet->left_id;
+    uint16_t left_hops = pet->left_hops;
+
+    for (int i = 0; i < HABITAT_MAX; i++) {
+        places.habitat[i].net_points = 0;
+    }
+    places.away_points = places.carried_total = places.carried_top = 0;
+
+    pet_init(pet, &tune, now, seed);
+    pet->places = places;
+    pet->farm = farm;
+    pet->badges = badges;
+    pet->new_badges = new_badges;
+    pet->left_id = left_id;
+    pet->left_hops = left_hops;
+    pet->away = away;
+}
+
+void pet_leave(pet_t *pet)
+{
+    if (pet->away) {
+        return;
+    }
+    uint32_t id = pet->id;
+    uint16_t hops = (uint16_t)(pet->hops < UINT16_MAX ? pet->hops + 1 : pet->hops);
+    pet_pasture_clear(pet, 1, true);
+    pet->left_id = id;
+    pet->left_hops = hops;
+}
+
+bool pet_new_egg(pet_t *pet, uint32_t seed)
+{
+    if (!pet->away) {
+        return false;
+    }
+    pet_pasture_clear(pet, seed, false);
+    return true;
+}
+
 float pet_feed(pet_t *pet, food_type_t type, float base_value)
 {
-    if (type >= FOOD_TYPE_COUNT) {
+    if (type >= FOOD_TYPE_COUNT || pet->away) {
         return 0;
     }
     const pet_tuning_t *t = &pet->tune;
@@ -412,6 +482,12 @@ bool pet_tick(pet_t *pet, uint32_t now, pet_meal_t *meal)
     if (now < pet->now) {
         now = pet->now;   /* clock went backwards: stand still rather than undo */
     }
+    if (pet->away) {
+        /* An empty pasture: the clock goes on and nothing else does. */
+        pet->now = now;
+        pet->day = pet->today.day = now / 86400;
+        return false;
+    }
 
     /* Step in chunks so a long gap (device off) still crosses midnights properly. */
     while (pet->now < now) {
@@ -484,6 +560,9 @@ uint32_t pet_scan(pet_t *pet, const pet_scan_t *scan, place_kind_t *badge_kind)
 {
     int home_before = places_home(&pet->places);
     uint32_t ev = places_scan(&pet->places, scan, pet->now, pet->day, badge_kind);
+    if (pet->away) {
+        return ev;      /* the places are learned and the badges earned; there is no pet to cheer */
+    }
     if (ev & PLACE_EV_NEW) {
         pet->mood = clampf(pet->mood + pet->tune.new_place_mood, 0, 100);
         pet->today.flags |= DAY_NEW_PLACE;
@@ -506,6 +585,9 @@ uint32_t pet_scan(pet_t *pet, const pet_scan_t *scan, place_kind_t *badge_kind)
 
 void pet_pat(pet_t *pet)
 {
+    if (pet->away) {
+        return;
+    }
     pet->mood = clampf(pet->mood + MOOD_PAT, 0, MOOD_MAX);
 }
 

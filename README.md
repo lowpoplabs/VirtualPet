@@ -150,6 +150,10 @@ Built by `sim\build.ps1`, run on the desktop:
   coming back, slow scans), place-name matching, place badge tiers, off
   the grid, Homebody or Roamer, and the save format, including saves from
   before chains were remembered by spelling.
+- `sim\build\pet_exchange_test.exe` checks a pet moving between devices
+  and farms being joined: there and back unchanged, habitats staying
+  behind, every refusal, an empty pasture and a new egg in one, and
+  farms joined twice and in any order coming out the same.
 - `sim\build\pet_config_test.exe` checks the settings files: good files,
   each kind of mistake, and that every `-defaults.txt` copy reads back as
   the built-in values.

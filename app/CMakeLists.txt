@@ -7,6 +7,7 @@ set(PET_APP_SRCS
     src/pet_badges.c
     src/pet_brain.c
     src/pet_core.c
+    src/pet_exchange.c
     src/pet_power.c
     src/pet_save.c
     src/pet_sound.c

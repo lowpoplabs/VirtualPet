@@ -148,6 +148,12 @@ typedef struct {
 typedef struct {
     habitat_t habitat[HABITAT_MAX];
     float away_points;                  /* plain-network food eaten in no known habitat */
+    /*
+     * Plain-network food a pet ate on devices it has since left: all of it,
+     * and the most in any one habitat there. Habitats do not travel, and
+     * this is what the Homebody or Roamer question needs of them.
+     */
+    float carried_total, carried_top;
 
     struct {
         uint8_t count;                  /* different chains, plus days with a general match */

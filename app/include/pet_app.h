@@ -151,6 +151,13 @@ typedef struct {
      * at its own. 0 = PET_AREA_SIZE. The display should be that size square.
      */
     int pet_size;
+
+    /*
+     * A test build, or the simulator. Its parcels (see pet_app_export() in
+     * pet_ui.h) are marked so, and it never trades a pet or a farm with a
+     * release build: development can go on beside the owner's real pet.
+     */
+    bool test_build;
     /*
      * Told what the app would have shown on its own screen, and when to
      * read again (see pet_notice_t). Called with the LVGL lock held, from

@@ -54,6 +54,10 @@ target_link_libraries(pet_growth_test PRIVATE pet_app)
 add_executable(pet_days_test pet_days_test.c)
 target_link_libraries(pet_days_test PRIVATE pet_app)
 
+# A pet moving between devices, and farms joined.
+add_executable(pet_exchange_test pet_exchange_test.c)
+target_link_libraries(pet_exchange_test PRIVATE pet_app)
+
 add_executable(pet_places_test pet_places_test.c)
 target_link_libraries(pet_places_test PRIVATE pet_app)
 

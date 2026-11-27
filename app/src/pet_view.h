@@ -46,6 +46,9 @@ void pet_view_walk_off(uint32_t ms);
 void pet_view_roll_in(uint32_t ms);
 
 /* Called when the pet is tapped (the hop has its own short cooldown). */
+/* An empty pasture: the pet is not drawn. Ask again after pet_view_set_look(), which draws it anew. */
+void pet_view_set_empty(bool empty);
+
 void pet_view_set_tap_cb(void (*cb)(void));
 
 /* Called when the pet is pressed and held. */

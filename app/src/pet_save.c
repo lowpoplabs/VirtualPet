@@ -9,7 +9,9 @@
 #include "pet_core.h"
 
 #define PET_SAVE_MAGIC   0x54455056u   /* "VPET" */
-#define PET_SAVE_VERSION 8
+#define PET_SAVE_VERSION 9
+/* Version 8 knew nothing of pastures: no ids, and always a pet. It is still read. */
+#define PET_SAVE_VERSION_NO_PASTURES 8
 /* Before the owner could pick a favourite food. */
 #define PET_SAVE_VERSION_NO_FAVOURITE 7
 /* Version 6 had no generation or farm. It is still read: a first-generation pet with an empty farm. */
@@ -27,6 +29,7 @@
 
 void pet_day_roll(pet_t *pet, uint32_t new_day);        /* pet_core.c */
 void pet_badges_check(pet_t *pet, bool day_ended);      /* pet_badges.c */
+uint32_t pet_make_id(uint32_t a, uint32_t b);           /* pet_core.c */
 
 typedef struct {
     uint8_t *p;
@@ -181,10 +184,23 @@ static void put_farm(cursor_t *c, const pet_t *pet)
         put(c, &r->days, 2);
         put_u32(c, r->retired_day);
         put_u32(c, r->meals);
+        put_u32(c, r->id);
     }
 }
 
-static bool get_farm(cursor_t *c, pet_t *pet)
+/* For a resident saved before residents had ids: the same one always gets the same id. */
+static uint32_t resident_id(const pet_resident_t *r)
+{
+    uint32_t h = 2166136261u;
+    for (size_t i = 0; i < sizeof(r->name) && r->name[i]; i++) {
+        h = (h ^ (uint8_t)r->name[i]) * 16777619u;
+    }
+    h = pet_make_id(h, r->form | (uint32_t)r->traits << 8 | (uint32_t)r->generation << 16);
+    h = pet_make_id(h, r->retired_day);
+    return pet_make_id(h, r->meals ^ (uint32_t)r->days << 16);
+}
+
+static bool get_farm(cursor_t *c, pet_t *pet, uint32_t version)
 {
     pet_farm_t *f = &pet->farm;
     uint32_t generation = get_u32(c), moved_on = get_u32(c), forms = get_u32(c);
@@ -207,6 +223,7 @@ static bool get_farm(cursor_t *c, pet_t *pet)
         get(c, &r->days, 2);
         r->retired_day = get_u32(c);
         r->meals = get_u32(c);
+        r->id = version > PET_SAVE_VERSION_NO_PASTURES ? get_u32(c) : resident_id(r);
         if (r->form >= FORM_COUNT || r->traits >= (1u << TRAIT_COUNT) || r->favourite > GROUP_COUNT) {
             return false;
         }
@@ -214,7 +231,16 @@ static bool get_farm(cursor_t *c, pet_t *pet)
     return c->ok;
 }
 
-static uint32_t crc32(const uint8_t *data, size_t len)
+uint32_t pet_save_version(void)
+{
+    return PET_SAVE_VERSION;
+}
+
+/* Also the checksum of a parcel (pet_exchange.c). */
+uint32_t pet_crc32(const uint8_t *data, size_t len);
+#define crc32 pet_crc32
+
+uint32_t pet_crc32(const uint8_t *data, size_t len)
 {
     uint32_t crc = 0xFFFFFFFFu;
     for (size_t i = 0; i < len; i++) {
@@ -272,6 +298,13 @@ size_t pet_save(const pet_t *pet, uint8_t *buf, size_t cap)
     put_f32(&c, pet->tune.growth_speed > 0 ? pet->tune.growth_speed : 1);
     put_farm(&c, pet);
     put(&c, &pet->favourite, 1);
+    put_u32(&c, pet->away);
+    put_u32(&c, pet->id);
+    put_u32(&c, pet->hops);
+    put_u32(&c, pet->left_id);
+    put_u32(&c, pet->left_hops);
+    put_f32(&c, pet->places.carried_total);
+    put_f32(&c, pet->places.carried_top);
     if (!c.ok) {
         return 0;
     }
@@ -301,7 +334,8 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
         return false;
     }
     uint32_t version = get_u32(&c);
-    if ((version != PET_SAVE_VERSION && version != PET_SAVE_VERSION_NO_FAVOURITE &&
+    if ((version != PET_SAVE_VERSION && version != PET_SAVE_VERSION_NO_PASTURES &&
+         version != PET_SAVE_VERSION_NO_FAVOURITE &&
          version != PET_SAVE_VERSION_NO_FARM &&
          version != PET_SAVE_VERSION_NO_SPEED &&
          version != PET_SAVE_VERSION_CHAIN_BITS &&
@@ -374,7 +408,7 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
     /* Saved before the speed was recorded: taken to be the speed it wakes at. */
     float speed = p.tune.growth_speed > 0 ? p.tune.growth_speed : 1;
     float saved_speed = version > PET_SAVE_VERSION_NO_SPEED ? get_f32(&c) : speed;
-    if (version > PET_SAVE_VERSION_NO_FARM && !get_farm(&c, &p)) {
+    if (version > PET_SAVE_VERSION_NO_FARM && !get_farm(&c, &p, version)) {
         return false;
     }
     if (version > PET_SAVE_VERSION_NO_FAVOURITE) {
@@ -382,6 +416,25 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
         if (p.favourite > PET_FAVOURITE_MAX) {
             return false;
         }
+    }
+    if (version > PET_SAVE_VERSION_NO_PASTURES) {
+        uint32_t away = get_u32(&c), hops, left_hops;
+        p.id = get_u32(&c);
+        hops = get_u32(&c);
+        p.left_id = get_u32(&c);
+        left_hops = get_u32(&c);
+        p.places.carried_total = get_f32(&c);
+        p.places.carried_top = get_f32(&c);
+        if (away > 1 || p.id == 0 || hops > UINT16_MAX || left_hops > UINT16_MAX ||
+            !(p.places.carried_top >= 0 && p.places.carried_total >= p.places.carried_top)) {
+            return false;
+        }
+        p.away = away != 0;
+        p.hops = (uint16_t)hops;
+        p.left_hops = (uint16_t)left_hops;
+    } else {
+        /* It had no id. One is made from what it is, and kept from the next save on. */
+        p.id = pet_make_id(p.rng ^ p.traits, saved_at ^ p.meals);
     }
     if (!c.ok || c.p != c.end || stage >= STAGE_COUNT || form >= FORM_COUNT ||
         p.stage_meal_base > p.meals || !(saved_speed > 0 && saved_speed <= 1e6f)) {
