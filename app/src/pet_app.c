@@ -101,6 +101,9 @@ static pet_mood_t face_mood(void)
 
 const char *pet_app_mood_text(void)
 {
+    if (s_pet.away) {
+        return "Empty pasture";
+    }
     if (s_set.paused) {
         return "paused";
     }
@@ -246,6 +249,13 @@ static void refresh_pet(void)
         pet_view_set_look(s_pet.stage, s_pet.form, s_pet.is_static);
     }
     pet_view_set_empty(s_pet.away && s_preview < 0);
+    /* No pet, no stomach to show. */
+    if (s_stomach && lv_obj_has_flag(s_stomach, LV_OBJ_FLAG_HIDDEN) != s_pet.away) {
+        lv_obj_update_flag(s_stomach, LV_OBJ_FLAG_HIDDEN, s_pet.away);
+        if (s_mood) {
+            lv_obj_align(s_mood, LV_ALIGN_LEFT_MID, s_pet.away ? 0 : 72, -4);   /* the words move into its place */
+        }
+    }
 
     int32_t stomach = (int32_t)(s_pet.stomach * 10);
     if (stomach != shown_stomach) {

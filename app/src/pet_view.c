@@ -645,10 +645,115 @@ static void slide(int32_t from, int32_t to, uint32_t ms, lv_anim_path_cb_t path)
     lv_anim_start(&a);
 }
 
+/*
+ * ---- The empty pasture ---------------------------------------------------
+ * Where the pet stood while it lives on another device: a stretch of fence
+ * with its gate swung open towards us, and grass that sways a little, so
+ * the watch is seen to be alive and still listening. Drawn like the pets,
+ * from rounded shapes, and built only while it is shown.
+ */
+
+#define WOOD        0xA9794Au
+#define WOOD_NEAR   0xC99B63u   /* the gate, which is nearer */
+#define GRASS       0x3F8A4Eu
+#define GRASS_TIP   0x6CC27Au
+#define GROUND      0x1D3B28u
+
+static lv_obj_t *s_pasture;
+
+/* It is laid out small and drawn half as big again, to fill the place a grown pet does. */
+#define E(v) ((v) * 3 / 2)
+
+static void bar_at(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color, int32_t radius);
+static void long_cb(lv_event_t *e);
+
+static void sway_cb(void *var, int32_t x)
+{
+    lv_obj_set_style_translate_x((lv_obj_t *)var, x, 0);
+}
+
+/* A few blades, each a stem that stays put and a tip that leans with the wind. */
+static void tuft(int32_t x, int32_t y, int blades, uint32_t ms)
+{
+    for (int b = 0; b < blades; b++) {
+        int32_t lean = b - blades / 2;
+        int32_t h = 13 + ((b * 5 + (x < 0 ? -x : x)) % 8);
+        bar_at(x + lean * 7, y, 5, h, GRASS, 3);
+        lv_obj_t *tip = shape(s_pasture, E(5), E(h), GRASS_TIP);
+        place(tip, LV_ALIGN_BOTTOM_MID, E(x + lean * 8), E(y - h + 5));
+        loop_anim(tip, sway_cb, px(-2), px(3), ms + (uint32_t)b * 130, true);
+    }
+}
+
+static void build_pasture(void)
+{
+    enum { BASE = -30, POST_H = 72, NEAR = 16 };    /* the fence's foot, and how much nearer the gate's end is */
+    s_pasture = lv_obj_create(s_parent);
+    lv_obj_remove_style_all(s_pasture);
+    size(s_pasture, E(236), E(150));
+    lv_obj_center(s_pasture);
+    lv_obj_remove_flag(s_pasture, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(s_pasture, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(s_pasture, long_cb, LV_EVENT_LONG_PRESSED, NULL);   /* holding the field opens the card */
+    lv_obj_move_to_index(s_pasture, 0);
+
+    lv_obj_t *ground = shape(s_pasture, E(228), E(34), GROUND);
+    place(ground, LV_ALIGN_BOTTOM_MID, 0, E(-4));
+
+    /* Grass behind the fence. */
+    tuft(-78, BASE + 2, 3, 2300);
+    tuft(74, BASE + 2, 3, 2600);
+
+    /* The fence either side of the gateway: two rails, then the posts over them. */
+    static const int16_t SECTION[2][2] = {{-108, -58}, {46, 108}};
+    for (int s = 0; s < 2; s++) {
+        int32_t x0 = SECTION[s][0], x1 = SECTION[s][1];
+        bar_at((x0 + x1) / 2, BASE - 20, x1 - x0, 8, WOOD, 4);
+        bar_at((x0 + x1) / 2, BASE - 46, x1 - x0, 8, WOOD, 4);
+        bar_at(x0, BASE, 12, POST_H, WOOD, 5);
+        bar_at(x1, BASE, 12, POST_H, WOOD, 5);
+    }
+
+    /*
+     * The gate, hinged on the right-hand post and swung open towards us:
+     * its rails run down and to the left to its own end post, which stands
+     * nearer and so lower. Rows of dots, like the cow's horns: no rotation.
+     */
+    enum { HINGE = 46, END = 2, DOTS = 18 };
+    for (int rail = 0; rail < 2; rail++) {
+        int32_t top = rail ? -46 : -20;
+        for (int i = 0; i <= DOTS; i++) {
+            lv_obj_t *dot = shape(s_pasture, E(9), E(9), WOOD_NEAR);
+            place(dot, LV_ALIGN_BOTTOM_MID, E(HINGE) + E(END - HINGE) * i / DOTS,
+                  E(BASE + top) + E(NEAR) * i / DOTS);
+        }
+    }
+    bar_at(END, BASE + NEAR, 12, POST_H + 4, WOOD_NEAR, 5);
+
+    /* Grass in front, where it has not been trodden. */
+    tuft(-90, -8, 4, 2100);
+    tuft(-30, -4, 3, 2500);
+    tuft(40, -6, 4, 2800);
+    tuft(92, -10, 3, 2200);
+}
+
+static void bar_at(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color, int32_t radius)
+{
+    lv_obj_t *o = shape(s_pasture, E(w), E(h), color);
+    lv_obj_set_style_radius(o, len(E(radius)), 0);
+    place(o, LV_ALIGN_BOTTOM_MID, E(x), E(y));
+}
+
 void pet_view_set_empty(bool empty)
 {
     if (s_root && lv_obj_has_flag(s_root, LV_OBJ_FLAG_HIDDEN) != empty) {
         lv_obj_update_flag(s_root, LV_OBJ_FLAG_HIDDEN, empty);
+    }
+    if (empty && !s_pasture && s_parent) {
+        build_pasture();
+    } else if (!empty && s_pasture) {
+        lv_obj_delete(s_pasture);   /* and the sway with it: the animations are keyed on its parts */
+        s_pasture = NULL;
     }
 }
 
