@@ -4,6 +4,43 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.17 - 2026-11-27
+
+The watch's half of moving a pet between devices. The other half, which does the calling,
+is the Android app's and is not released yet: until it is, the watch waits and nobody calls.
+
+### Added
+- **Pastures.** A pet lives on one device at a time. When it moves to another of your
+  devices, this one's pasture stands empty: a fence with its gate open. An empty pasture
+  eats nothing, still learns habitats and earns place badges, and can be given a new egg.
+- **"Move or visit", on the pet's card.** A visit brings the farm and badges level between
+  two devices; a move also sends the pet. The watch waits for up to three minutes and shows
+  a six-digit code to type on the other device. The pet leaves only when the other device
+  has it safe, and a dropped link loses nothing.
+- **One farm everywhere.** The farm, badges and place badges are joined when two devices
+  meet. Habitats and settings stay with each device.
+- **Distance badges,** "On foot" and "On the road", with bronze, silver and gold: 10, 50
+  and 200 miles on foot, and 100, 1,000 and 5,000 riding. All your pets count together.
+  They need a device that can tell how far it went, which the watch by itself cannot.
+- **"Moving day",** a badge for the first time a pet moves. There are now 36 badges.
+- **Speed and distance as inputs** in the shared code, for a device that knows them. A
+  known speed decides whether the pet is still, carried or riding. The watch has neither
+  and tells a ride from the networks going by, as before.
+- **Manual:** "Moving between devices", and the distance badges.
+
+### Changed
+- **It now connects in one case.** Baandwidth Farms only listens, with one exception:
+  while you have the exchange screen open on two of your own devices, they connect to each
+  other over Bluetooth to move a pet and bring your farm level. It connects to nothing
+  else, ever, and the listening itself never connects or pairs. While it waits the watch
+  announces only that it is waiting, with no name and a fresh random address, and the
+  pairing is forgotten when the exchange ends.
+- **The save format is version 11.** Older saves load as before. A pet saved by this
+  version cannot be read by an older one, so going back to an earlier version means
+  starting a new egg.
+- **Manual:** the badge count, the "Name" row, and a clearer part on what to do when a
+  phone is not listening.
+
 ## 0.4.16 - 2026-11-26
 
 Nothing changes on the watch.
