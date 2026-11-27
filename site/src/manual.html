@@ -64,7 +64,7 @@
         <tr><td>Swipe right</td><td>Journal: today's entry, then the last seven days</td></tr>
         <tr><td>Swipe up</td><td>Menu: food-dex, badges, places, farm, pet card and settings</td></tr>
         <tr><td>Swipe down</td><td>Recent finds: the last eight meals, as kinds of food</td></tr>
-        <tr><td>Hold the pet</td><td>Its card: name, stage, generation, age and traits. Tap the pencil there to name it</td></tr>
+        <tr><td>Hold the pet</td><td>Its card: name, stage, generation, age and traits. Tap the pencil there to name it, up to twelve letters</td></tr>
         <tr><td>Tap the pet</td><td>A pat. It cheers the pet up, though only every so often</td></tr>
       </table>
       <p>To go back, swipe the opposite way or tap the title at the top. A screen left alone
@@ -166,7 +166,7 @@
         <tr><td>Prism</td><td>Either</td><td>A bit of everything: many kinds of food, and no one group far ahead</td></tr>
       </table>
       <p>The diet screen says what yours is drifting toward, so you can see whether a change
-      of habits is working. The more kinds of food it finds counts for more than how much of
+      of habits is working. Finding many kinds of food counts for more than finding a lot of
       one: the same food eaten again in a day is worth half each time.</p>
       <h3>Raising a different one</h3>
       <p>A pet raised on the same daily round eats the same food, and grows into the same
@@ -209,7 +209,7 @@
 
     <section id="badges">
       <h2>Badges</h2>
-      <p>There are 32 badges: for first times, for big days, for filling the food-dex, for
+      <p>There are 33 badges: for first times, for big days, for filling the food-dex, for
       places, and for raising generations. The Badges screen lists the ones you have first,
       then the rest with how to earn each.</p>
       <p>Badges belong to you, not to one pet. They carry on from each pet to the next.</p>
@@ -245,7 +245,6 @@
       <p>Swipe up, then Settings. Each row has a minus and a plus.</p>
       <table>
         <tr><th>Setting</th><th>What it does</th></tr>
-        <tr><td>Name</td><td>Names the pet, up to twelve letters</td></tr>
         <tr><td>Brightness</td><td>20% to 100%</td></tr>
         <tr><td>Text size</td><td>"large" makes the letters on every page bigger, for reading without glasses</td></tr>
         <tr><td>Sound</td><td>All sounds, rare ones only, or off</td></tr>
@@ -383,14 +382,23 @@ best = Oh, {food}! Lovely.</code></pre>
         <li><strong>Dev log</strong> is "on" or "off". On a phone the log never holds names
         or addresses. Phone settings can save it to Downloads or delete it.</li>
       </ul>
-      <h3>Keeping the pet</h3>
+      <h3>When it is not listening</h3>
+      <p>A line on the More tab says whether the pet is listening. If the pet has stopped
+      eating, look there first.</p>
       <table>
-        <tr><th>What you see or want</th><th>What to do</th></tr>
-        <tr><td>"Not listening"</td><td>Open Phone settings from the More tab, turn listening on and give the permissions it asks for</td></tr>
-        <tr><td>"Listening for Bluetooth only"</td><td>Open the app, and Wi-Fi comes back. See "After the phone restarts" above</td></tr>
-        <tr><td>You want to update</td><td>Install the newer file over the old one. The pet and its farm are kept</td></tr>
-        <tr><td>You remove the app</td><td>The pet goes with it. It is left out of Android's backups, so it does not move to a new phone either</td></tr>
+        <tr><th>The line says</th><th>What it means</th><th>What to do</th></tr>
+        <tr><td>"Not listening"</td><td>Listening is turned off, or a permission is missing. The pet hears nothing</td><td>On the More tab, open Phone settings, turn listening on, and give each permission it asks for</td></tr>
+        <tr><td>"Listening for Bluetooth only"</td><td>The phone has restarted and the app has not been opened since. The pet hears no Wi-Fi</td><td>Nothing more: opening the app has brought Wi-Fi back. To stop it happening, see "After the phone restarts" above</td></tr>
       </table>
+      <h3>Updating and removing the app</h3>
+      <ul class="plain">
+        <li><strong>To update,</strong> install the newer version over the old one, the same
+        way you installed it. Do not remove the old one first. The pet and its farm are
+        kept.</li>
+        <li><strong>Removing the app deletes the pet</strong> and its farm for good.</li>
+        <li><strong>A new phone starts with a new egg.</strong> The pet is not part of
+        Android's backups, so it does not come across with your other apps.</li>
+      </ul>
     </section>
   </article>
 </div>
