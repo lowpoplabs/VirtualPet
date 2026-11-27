@@ -18,6 +18,8 @@
 #include <stdint.h>
 
 #include "pet_core.h"
+#include "pet_app.h"
+#include "pet_link.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -218,6 +220,28 @@ pet_import_t pet_app_import(const uint8_t *buf, size_t len, bool *pet_arrived);
 
 /* Starts a first-generation egg in an empty pasture. False if a pet lives here. Ask the owner first. */
 bool pet_app_new_egg(void);
+
+/*
+ * The exchange over a link between two devices (pet_link.h), on the app's
+ * pet. Start it when the link is up, hand arriving bytes to
+ * pet_app_link_in(), and use pet_link_out(), pet_link_lost() and
+ * pet_link_state() on the same struct for the rest. Each change is saved
+ * as it is made, and a pet arriving or leaving is told as news. False if
+ * the pet is at this moment on its way to the farm.
+ */
+bool pet_app_link_start(pet_link_t *link, bool give_pet, bool caller);
+void pet_app_link_in(pet_link_t *link, const uint8_t *data, size_t len);
+
+/*
+ * The exchange page of a device that runs the pages (pet_pages.c): what
+ * it shows, and what its buttons do. A device with screens of its own
+ * runs the link itself and needs none of these.
+ */
+bool pet_app_can_exchange(void);
+bool pet_app_exchange_open(bool give_pet);
+void pet_app_exchange_close(void);
+pet_exchange_step_t pet_app_exchange_step(uint32_t *code);
+const char *pet_app_exchange_result(void);
 
 /*
  * The preview of every form: the pet's square shows each stage and form in

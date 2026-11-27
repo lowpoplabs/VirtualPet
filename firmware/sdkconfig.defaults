@@ -51,15 +51,20 @@ CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y
 CONFIG_FREERTOS_HZ=1000
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 
-# Bluetooth LE through NimBLE, as a scanner only. With the central,
-# peripheral and broadcaster roles compiled out the firmware cannot
-# connect, pair or advertise even by mistake.
+# Bluetooth LE through NimBLE. The pet listens as a scanner, and that is
+# all it does but for one thing: while the owner has the exchange screen
+# open, the watch waits for another Baandwidth Farms to call, to move a pet
+# or bring the farms level (the peripheral and broadcaster roles). The
+# central role stays compiled out: the watch can never call anything.
+# One connection at a time, and no pairing is kept once it ends.
 CONFIG_BT_ENABLED=y
 CONFIG_BT_NIMBLE_ENABLED=y
 CONFIG_BT_NIMBLE_ROLE_OBSERVER=y
 # CONFIG_BT_NIMBLE_ROLE_CENTRAL is not set
-# CONFIG_BT_NIMBLE_ROLE_PERIPHERAL is not set
-# CONFIG_BT_NIMBLE_ROLE_BROADCASTER is not set
+CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y
+CONFIG_BT_NIMBLE_ROLE_BROADCASTER=y
+CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1
+# CONFIG_BT_NIMBLE_NVS_PERSIST is not set
 CONFIG_ESP_COEX_SW_COEXIST_ENABLE=y
 
 # Long file names on the card

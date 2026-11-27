@@ -154,6 +154,10 @@ Built by `sim\build.ps1`, run on the desktop:
   and farms being joined: there and back unchanged, habitats staying
   behind, every refusal, an empty pasture and a new egg in one, and
   farms joined twice and in any order coming out the same.
+- `sim\build\pet_link_test.exe` runs the exchange between two devices,
+  one against the other: a pet given, a visit, every refusal, and the
+  link dropped after each possible number of bytes, where the pet must
+  never be lost and a second copy must be dropped when the two meet again.
 - `sim\build\pet_config_test.exe` checks the settings files: good files,
   each kind of mistake, and that every `-defaults.txt` copy reads back as
   the built-in values.

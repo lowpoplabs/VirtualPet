@@ -175,6 +175,7 @@ typedef struct {
 #define DAY_RODE    0x80    /* rode in a car, a bus or a train */
 
 #define PET_HISTORY_DAYS 7  /* finished days kept, newest first */
+#define PET_SECRET_BYTES 16
 #define PET_NAME_MAX     13 /* with the ending zero */
 
 /* Badges. Display only. The order is part of the save format: add new ones at the end. */
@@ -305,10 +306,25 @@ typedef struct {
      */
     bool away;
     uint32_t id;                /* this pet's own number, given when its egg is laid; never 0 */
+    /*
+     * Known only to the devices this pet has lived on: it travels inside
+     * the parcel and is never said aloud. A device proves with it that it
+     * holds this pet (pet_link.h). All zero = none, and nothing is proved.
+     * pet_init() makes one from its seed; a host with a real source of
+     * random numbers should put a better one in its place for each new egg.
+     */
+    uint8_t secret[PET_SECRET_BYTES];
     uint16_t hops;              /* how many times it has moved to another device */
     uint32_t left_id;           /* the pet that last left this device (0 = none), and the */
     uint16_t left_hops;         /* hops it left with, to know it if it comes back */
 } pet_t;
+
+/*
+ * What a device that holds the pet answers to a question (nonce) about it:
+ * a keyed hash of the question with the pet's hops and meals. 0 if the pet
+ * has no secret.
+ */
+uint64_t pet_proof(const pet_t *pet, uint64_t nonce, uint32_t hops, uint32_t meals);
 
 #define PET_FAVOURITE_MAX GROUP_OTHER   /* the largest value pet_t.favourite takes */
 

@@ -135,6 +135,7 @@ static pet_page_t parent_of(pet_page_t page)
     case PAGE_NAME:     return s_name_habitat >= 0 ? PAGE_PLACES : PAGE_INFO;
     case PAGE_RESET:    return PAGE_SETTINGS;
     case PAGE_RETIRE:   return PAGE_FARM;
+    case PAGE_MOVE:     return PAGE_INFO;
     default:            return PAGE_HOME;
     }
 }
@@ -778,11 +779,29 @@ static void name_cb(lv_event_t *e)
     pet_pages_open(PAGE_NAME);
 }
 
+static void move_open_cb(lv_event_t *e)
+{
+    LV_UNUSED(e);
+    pet_pages_open(PAGE_MOVE);
+}
+
 static void build_info(void)
 {
     const pet_t *pet = s_host->pet;
     lv_obj_t *body = page_begin(LV_SYMBOL_LEFT "  Pet", true);
     char buf[64];
+
+    if (pet->away) {
+        /* An empty pasture: no pet to describe, only how one comes to be here. */
+        para(body, "The pasture is empty.", COLOR_ACCENT);
+        para(body, "Its pet has moved to another device. The farm, your badges and your places "
+                   "are still here, and place badges still count.", COLOR_TEXT);
+        gap(body, 6);
+        if (pet_app_can_exchange()) {
+            button(body, s_body_w, 44, "Bring a pet here", move_open_cb, NULL);
+        }
+        return;
+    }
 
     /* Its name, and the button that names it: the pet's own, so here and not in Settings. */
     lv_obj_t *named = row(body, 44);
@@ -828,6 +847,12 @@ static void build_info(void)
     if (pet->is_static) {
         gap(body, 4);
         para(body, "Underfed: it needs a good few meals to recover.", COLOR_WARN);
+    }
+    if (pet_app_can_exchange()) {
+        gap(body, 4);
+        button(body, s_body_w, 44, "Move or visit", move_open_cb, NULL);
+        para(body, "Move this pet to another of your devices, or bring the farms on two of them level.",
+             COLOR_DIM);
     }
 }
 
@@ -1042,6 +1067,101 @@ static void build_retire(void)
          COLOR_DIM);
 }
 
+/* ---- Moving between devices --------------------------------------------- */
+
+static void move_give(void)
+{
+    pet_app_exchange_open(true);
+    pet_pages_open(PAGE_MOVE);
+}
+
+static void move_visit_cb(lv_event_t *e)
+{
+    LV_UNUSED(e);
+    pet_app_exchange_open(false);
+    pet_pages_open(PAGE_MOVE);
+}
+
+static void move_again_cb(lv_event_t *e)
+{
+    LV_UNUSED(e);
+    pet_app_exchange_close();
+    pet_pages_open(PAGE_MOVE);
+}
+
+static void move_egg(void)
+{
+    pet_app_new_egg();
+    pet_pages_open(PAGE_HOME);
+}
+
+static void build_move(void)
+{
+    lv_obj_t *body = page_begin(LV_SYMBOL_LEFT "  Move or visit", false);
+    const pet_t *pet = s_host->pet;
+    char buf[96];
+    uint32_t code = 0;
+
+    switch (pet_app_exchange_step(&code)) {
+    case PET_EXCHANGE_WAITING:
+        para(body, "Waiting for the other device.", COLOR_ACCENT);
+        para(body, "On the phone, open the exchange and choose this watch. Keep the two close together.",
+             COLOR_TEXT);
+        para(body, "Swipe right to stop waiting.", COLOR_DIM);
+        return;
+    case PET_EXCHANGE_CODE:
+        para(body, "Type this code on the other device:", COLOR_TEXT);
+        gap(body, 8);
+        snprintf(buf, sizeof(buf), "%03lu %03lu", (unsigned long)(code / 1000), (unsigned long)(code % 1000));
+        lv_obj_set_style_text_font(para(body, buf, COLOR_ACCENT), &lv_font_montserrat_28, 0);
+        gap(body, 8);
+        para(body, "It proves the other device is in your hand. If you did not start this, swipe right.",
+             COLOR_DIM);
+        return;
+    case PET_EXCHANGE_MOVING:
+        para(body, "Under way. Keep the two close together.", COLOR_ACCENT);
+        return;
+    case PET_EXCHANGE_ENDED:
+        para(body, pet_app_exchange_result(), COLOR_ACCENT);
+        gap(body, 8);
+        button(body, s_body_w, 44, "Again", move_again_cb, NULL);
+        para(body, "Swipe right to go back.", COLOR_DIM);
+        return;
+    default:
+        break;
+    }
+
+    if (pet->away) {
+        para(body, "The pasture is empty.", COLOR_ACCENT);
+        para(body, "To bring a pet here, send it from the other device while this watch waits. The same "
+                   "meeting brings the two farms level.", COLOR_TEXT);
+        gap(body, 6);
+        button(body, s_body_w, 44, "Wait for the other device", move_visit_cb, NULL);
+        gap(body, 12);
+        para(body, "Or start afresh here with an egg of the first generation.", COLOR_TEXT);
+        hold_button(body, "Hold for a new egg", COLOR_ACCENT, move_egg);
+        return;
+    }
+    para(body, "A pet lives on one device at a time. The farm and badges are the same on all of them "
+               "once they have met.", COLOR_TEXT);
+    gap(body, 6);
+    button(body, s_body_w, 44, "Visit: farms level", move_visit_cb, NULL);
+    para(body, "The pet stays here. Use this to receive a pet too, if this one is an unhatched egg.", COLOR_DIM);
+    gap(body, 12);
+    snprintf(buf, sizeof(buf), "Hold to send %s", pet->name[0] ? pet->name : "the pet");
+    hold_button(body, buf, COLOR_WARN, move_give);
+    para(body, "It leaves when the other device has it safe, and this pasture is then empty. The other "
+               "device does the calling: this watch only waits.", COLOR_DIM);
+}
+
+/* For an empty pasture, the pages that are all about the pet. */
+static void build_empty(void)
+{
+    lv_obj_t *body = page_begin(LV_SYMBOL_LEFT "  Empty pasture", false);
+    para(body, "No pet lives here just now, so there is nothing to show on this page.", COLOR_TEXT);
+    para(body, "Hold the empty field, or open Pet in the menu, to bring one here.", COLOR_DIM);
+}
+
 /* ---- Naming the pet ----------------------------------------------------- */
 
 static lv_obj_t *s_name_box;
@@ -1102,7 +1222,8 @@ pet_page_t pet_pages_current(void)
 
 void pet_pages_open(pet_page_t page)
 {
-    if (!s_screen || (page == s_current && page != PAGE_SETTINGS)) {
+    /* Settings and the exchange page are opened again over themselves, to draw what has changed. */
+    if (!s_screen || (page == s_current && page != PAGE_SETTINGS && page != PAGE_MOVE)) {
         return;
     }
     if (s_page) {
@@ -1111,7 +1232,16 @@ void pet_pages_open(pet_page_t page)
         s_page = NULL;
     }
     memset(s_value, 0, sizeof(s_value));
+    /* Leaving the exchange page ends the exchange: the watch waits only while it is open. */
+    if (s_current == PAGE_MOVE && page != PAGE_MOVE) {
+        pet_app_exchange_close();
+    }
     s_current = page;
+    if (s_host->pet->away && (page == PAGE_DIET || page == PAGE_JOURNAL || page == PAGE_RECENT ||
+                              page == PAGE_DEX || page == PAGE_RETIRE)) {
+        build_empty();
+        return;
+    }
     switch (page) {
     case PAGE_DIET:     build_diet(); break;
     case PAGE_JOURNAL:  build_journal(); break;
@@ -1125,6 +1255,7 @@ void pet_pages_open(pet_page_t page)
     case PAGE_NAME:     build_name(); break;
     case PAGE_RESET:    build_reset(); break;
     case PAGE_RETIRE:   build_retire(); break;
+    case PAGE_MOVE:     build_move(); break;
     case PAGE_PLACES:   build_places(); break;
     default:            s_current = PAGE_HOME; break;
     }

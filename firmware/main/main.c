@@ -20,6 +20,7 @@
 #include "esp_pm.h"
 #include "esp_attr.h"
 #include "esp_random.h"
+#include "exchange.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -318,6 +319,7 @@ static pet_hal_t s_hal = {
     .motion = hal_motion,
     .now_s = hal_now_s,
     .random = esp_random,
+    .exchange = exchange_ask,
     .load = hal_load,
     .save = hal_save,
     .play = hal_play,

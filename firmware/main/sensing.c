@@ -17,6 +17,7 @@
 #include "freertos/task.h"
 #include "host/ble_gap.h"
 #include "host/ble_hs.h"
+#include "exchange.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "nvs_flash.h"
@@ -312,6 +313,7 @@ static esp_err_t ble_init(void)
 {
     ESP_RETURN_ON_ERROR(nimble_port_init(), TAG, "nimble");
     ble_hs_cfg.sync_cb = ble_on_sync;
+    exchange_init();    /* the one service, for the exchange screen; nothing is offered until it is open */
     nimble_port_freertos_init(ble_host_task);
     if (xSemaphoreTake(s_ble_synced, pdMS_TO_TICKS(5000)) != pdTRUE) {
         return ESP_ERR_TIMEOUT;
@@ -383,7 +385,7 @@ static void sensing_task(void *arg)
             if (wifi_on) {
                 wifi_scan_once(records);
             }
-            if (ble_ok) {
+            if (ble_ok && !exchange_busy()) {    /* an exchange has the radio: listen again after it */
                 ble_scan_once();
             }
 

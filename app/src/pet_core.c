@@ -97,6 +97,81 @@ uint32_t pet_make_id(uint32_t a, uint32_t b)
     return h ? h : 1;
 }
 
+/* SipHash-2-4 (Aumasson and Bernstein): a keyed hash that cannot be worked back to its key. */
+#define ROTL(x, b) (uint64_t)(((x) << (b)) | ((x) >> (64 - (b))))
+#define SIPROUND            \
+    do {                    \
+        v0 += v1;           \
+        v1 = ROTL(v1, 13);  \
+        v1 ^= v0;           \
+        v0 = ROTL(v0, 32);  \
+        v2 += v3;           \
+        v3 = ROTL(v3, 16);  \
+        v3 ^= v2;           \
+        v0 += v3;           \
+        v3 = ROTL(v3, 21);  \
+        v3 ^= v0;           \
+        v2 += v1;           \
+        v1 = ROTL(v1, 17);  \
+        v1 ^= v2;           \
+        v2 = ROTL(v2, 32);  \
+    } while (0)
+
+static uint64_t le64(const uint8_t *p)
+{
+    uint64_t v = 0;
+    for (int i = 7; i >= 0; i--) {
+        v = v << 8 | p[i];
+    }
+    return v;
+}
+
+uint64_t pet_siphash(const uint8_t key[16], const uint8_t *in, size_t len)
+{
+    uint64_t k0 = le64(key), k1 = le64(key + 8);
+    uint64_t v0 = 0x736f6d6570736575ull ^ k0, v1 = 0x646f72616e646f6dull ^ k1;
+    uint64_t v2 = 0x6c7967656e657261ull ^ k0, v3 = 0x7465646279746573ull ^ k1;
+    uint64_t b = (uint64_t)len << 56;
+    for (; len >= 8; in += 8, len -= 8) {
+        uint64_t m = le64(in);
+        v3 ^= m;
+        SIPROUND;
+        SIPROUND;
+        v0 ^= m;
+    }
+    for (size_t i = 0; i < len; i++) {
+        b |= (uint64_t)in[i] << (8 * i);
+    }
+    v3 ^= b;
+    SIPROUND;
+    SIPROUND;
+    v0 ^= b;
+    v2 ^= 0xff;
+    SIPROUND;
+    SIPROUND;
+    SIPROUND;
+    SIPROUND;
+    return v0 ^ v1 ^ v2 ^ v3;
+}
+
+uint64_t pet_proof(const pet_t *pet, uint64_t nonce, uint32_t hops, uint32_t meals)
+{
+    bool any = false;
+    for (int i = 0; i < PET_SECRET_BYTES; i++) {
+        any = any || pet->secret[i] != 0;
+    }
+    if (!any || pet->away) {
+        return 0;
+    }
+    uint8_t msg[20];
+    memcpy(msg, &nonce, 8);
+    memcpy(msg + 8, &pet->id, 4);
+    memcpy(msg + 12, &hops, 4);
+    memcpy(msg + 16, &meals, 4);
+    uint64_t p = pet_siphash(pet->secret, msg, sizeof(msg));
+    return p ? p : 1;
+}
+
 void pet_init(pet_t *pet, const pet_tuning_t *tune, uint32_t now, uint32_t seed)
 {
     memset(pet, 0, sizeof(*pet));
@@ -114,6 +189,10 @@ void pet_init(pet_t *pet, const pet_tuning_t *tune, uint32_t now, uint32_t seed)
     places_init(&pet->places);
     pet->generation = 1;
     pet->id = pet_make_id(pet->rng, now);     /* not drawn from rng: the draws that follow stay as they were */
+    for (uint32_t i = 0, w = pet->id; i < PET_SECRET_BYTES; i += 4) {
+        w = pet_make_id(w ^ pet->rng, now + i);
+        memcpy(&pet->secret[i], &w, 4);
+    }
 
     /* A new egg: two different traits at random. */
     pet->born = now;

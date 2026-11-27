@@ -58,6 +58,10 @@ target_link_libraries(pet_days_test PRIVATE pet_app)
 add_executable(pet_exchange_test pet_exchange_test.c)
 target_link_libraries(pet_exchange_test PRIVATE pet_app)
 
+# The exchange between two devices, one run against the other.
+add_executable(pet_link_test pet_link_test.c)
+target_link_libraries(pet_link_test PRIVATE pet_app)
+
 add_executable(pet_places_test pet_places_test.c)
 target_link_libraries(pet_places_test PRIVATE pet_app)
 

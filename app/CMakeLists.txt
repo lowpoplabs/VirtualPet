@@ -18,6 +18,7 @@ set(PET_APP_SRCS
     src/pet_hearing.c
     src/pet_journal.c
     src/pet_lines.c
+    src/pet_link.c
     src/pet_pages.c
     src/pet_motion.c
     src/pet_places.c

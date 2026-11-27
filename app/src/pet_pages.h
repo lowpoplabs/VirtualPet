@@ -26,6 +26,7 @@ typedef enum {
     PAGE_RESET,     /* "Start over" */
     PAGE_PLACES,
     PAGE_RETIRE,    /* sending the pet to the farm */
+    PAGE_MOVE,      /* moving the pet to another device, or bringing the farms level */
     PAGE_COUNT,
 } pet_page_t;
 

@@ -15,6 +15,8 @@
 
 #include "pet_food.h"
 
+struct pet_link;    /* pet_link.h */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,6 +34,22 @@ typedef enum {
 } pet_mood_t;
 
 struct pet_sound;   /* pet_sound_t, in pet_sound.h */
+
+/* How an exchange is going (exchange in pet_hal_t). */
+typedef enum {
+    PET_EXCHANGE_IDLE,      /* not asked for */
+    PET_EXCHANGE_WAITING,   /* waiting for the other device to call */
+    PET_EXCHANGE_CODE,      /* it has called: show this code for the owner to type there */
+    PET_EXCHANGE_MOVING,    /* the code was right, and the exchange is under way */
+    PET_EXCHANGE_ENDED,     /* over: the link's state and flags say how */
+} pet_exchange_step_t;
+
+/*
+ * The platform says how the exchange it was asked for is going. code goes
+ * with PET_EXCHANGE_CODE (six digits). link is read at PET_EXCHANGE_ENDED.
+ * Call with the LVGL lock held.
+ */
+void pet_app_exchange_told(pet_exchange_step_t step, uint32_t code, const struct pet_link *link);
 
 /* What the app tells a platform that draws its own screens (notice in pet_hal_t). */
 typedef enum {
@@ -158,6 +176,16 @@ typedef struct {
      * release build: development can go on beside the owner's real pet.
      */
     bool test_build;
+
+    /*
+     * The exchange with another device, for a platform that runs the pages
+     * and waits to be called (the watch). what: 0 = the exchange page was
+     * left, stop; 1 = wait for a call that brings the farms level; 2 =
+     * wait, and give the pet to the caller. The platform then says how it
+     * goes with pet_app_exchange_told(). NULL = the pet's card has no
+     * exchange button. Called with the LVGL lock held.
+     */
+    bool (*exchange)(int what);
     /*
      * Told what the app would have shown on its own screen, and when to
      * read again (see pet_notice_t). Called with the LVGL lock held, from

@@ -558,6 +558,8 @@ static void show_missed(void)
     memset(&s_missed, 0, sizeof(s_missed));
 }
 
+static bool exchange_live(void);
+
 static void screen_update(void)
 {
     const pet_power_plan_t plan = pet_app_power_plan(s_hal);
@@ -578,7 +580,7 @@ static void screen_update(void)
     screen_state_t next;
     if (s_forced_dark) {
         next = SCREEN_DARK;
-    } else if (idle < idle_limit || s_hal->screen_managed) {
+    } else if (idle < idle_limit || s_hal->screen_managed || exchange_live()) {
         next = SCREEN_BRIGHT;   /* a platform that darkens its own screen is never idle to us */
     } else {
         next = plan.screen_stays_on ? SCREEN_DIM : SCREEN_DARK;
@@ -943,12 +945,15 @@ bool pet_app_name_place(int habitat, const char *name)
     return true;
 }
 
+static void fresh_secret(void);
+
 /* "Start over": a new egg in place of the pet and everything it had. Settings stay. */
 static void on_start_over(void)
 {
     uint32_t now = s_hal->now_s();
     uint32_t seed = (s_hal->random ? s_hal->random() : 0) ^ (now * 2654435761u) ^ lv_tick_get();
     pet_init(&s_pet, &s_tune, now, seed | 1);
+    fresh_secret();
     settings_apply();
     pet_brain_init(&s_brain, NULL, (seed >> 7) ^ lv_rand(1, 0x7FFFFFFF));
     s_recent_count = 0;
@@ -975,6 +980,20 @@ void pet_app_start_over(void)
 static lv_timer_t *s_farewell;      /* running while the pet is on its way out to the farm */
 
 /* ---- Moving between devices (see pet_core.h) ---------------------------- */
+
+static uint32_t random32(void)
+{
+    return (s_hal->random ? s_hal->random() : 0) ^ lv_rand(1, 0x7FFFFFFF) ^ (lv_tick_get() * 2654435761u);
+}
+
+/* A new egg, or a pet from before pets had secrets: one from the device's own random numbers. */
+static void fresh_secret(void)
+{
+    for (int i = 0; i < PET_SECRET_BYTES; i += 4) {
+        uint32_t w = random32();
+        memcpy(&s_pet.secret[i], &w, 4);
+    }
+}
 
 static pet_realm_t realm(void)
 {
@@ -1057,9 +1076,162 @@ bool pet_app_new_egg(void)
     }
     uint32_t seed = (s_hal->random ? s_hal->random() : 0) ^ (s_pet.now * 2654435761u) ^ lv_tick_get();
     pet_new_egg(&s_pet, seed | 1);
+    fresh_secret();
     pasture_changed("a new egg");
     pet_view_roll_in(ARRIVAL_MS);
     return true;
+}
+
+/* ---- The exchange page's side of it (pet_pages.c draws it) --------------- */
+
+#define EXCHANGE_WAIT_MS (3 * 60 * 1000)    /* how long the watch waits for a call before giving up */
+
+static pet_exchange_step_t s_xchg_step;
+static uint32_t s_xchg_code;
+static uint32_t s_xchg_since_ms;
+static char s_xchg_result[96];
+static char s_xchg_name[PET_NAME_MAX];
+
+/* Waiting or under way: the screen stays lit, and the page is not left for being idle. */
+static bool exchange_live(void)
+{
+    return s_xchg_step != PET_EXCHANGE_IDLE && s_xchg_step != PET_EXCHANGE_ENDED;
+}
+
+bool pet_app_can_exchange(void)
+{
+    return s_hal && s_hal->exchange != NULL;
+}
+
+pet_exchange_step_t pet_app_exchange_step(uint32_t *code)
+{
+    if (code) {
+        *code = s_xchg_code;
+    }
+    return s_xchg_step;
+}
+
+const char *pet_app_exchange_result(void)
+{
+    return s_xchg_result;
+}
+
+bool pet_app_exchange_open(bool give_pet)
+{
+    if (!pet_app_can_exchange() || s_farewell || exchange_live()) {
+        return false;
+    }
+    snprintf(s_xchg_name, sizeof(s_xchg_name), "%s", s_pet.name);
+    if (!s_hal->exchange(give_pet ? 2 : 1)) {
+        return false;
+    }
+    s_xchg_step = PET_EXCHANGE_WAITING;
+    s_xchg_since_ms = lv_tick_get();
+    return true;
+}
+
+void pet_app_exchange_close(void)
+{
+    if (pet_app_can_exchange() && s_xchg_step != PET_EXCHANGE_IDLE) {
+        s_hal->exchange(0);
+    }
+    s_xchg_step = PET_EXCHANGE_IDLE;
+}
+
+/* Called from the app's timer: nobody called, so stop waiting. */
+static void exchange_watch(void)
+{
+    if (s_xchg_step == PET_EXCHANGE_WAITING && lv_tick_elaps(s_xchg_since_ms) > EXCHANGE_WAIT_MS) {
+        s_hal->exchange(0);
+        s_xchg_step = PET_EXCHANGE_ENDED;
+        snprintf(s_xchg_result, sizeof(s_xchg_result), "Nobody called. Nothing has changed.");
+        if (pet_pages_current() == PAGE_MOVE) {
+            pet_pages_open(PAGE_MOVE);
+        }
+    }
+}
+
+void pet_app_exchange_told(pet_exchange_step_t step, uint32_t code, const pet_link_t *link)
+{
+    if (s_xchg_step == PET_EXCHANGE_IDLE) {
+        return;     /* the page was left: a late word from the platform */
+    }
+    s_xchg_step = step;
+    s_xchg_code = code;
+    s_xchg_since_ms = lv_tick_get();
+    if (step == PET_EXCHANGE_ENDED && link) {
+        const char *who = s_xchg_name[0] ? s_xchg_name : "The pet";
+        const char *say = "";
+        switch (pet_link_state(link)) {
+        case PET_LINK_DONE:
+            if (link->pet_sent) {
+                snprintf(s_xchg_result, sizeof(s_xchg_result), "%s has moved. This pasture is empty.", who);
+            } else if (link->pet_received) {
+                snprintf(s_xchg_result, sizeof(s_xchg_result), "%s has arrived.",
+                         s_pet.name[0] ? s_pet.name : "A pet");
+            } else if (link->copy_dropped) {
+                say = "It had already arrived over there. The pet is there, once.";
+            } else {
+                say = link->joined ? "The farms are level." : "Nothing needed doing.";
+            }
+            break;
+        case PET_LINK_LOST:        say = "The link dropped before the end. Nothing is lost: try again."; break;
+        case PET_LINK_NEWER:       say = "The other device is newer. Update this one first."; break;
+        case PET_LINK_OLDER:       say = "The other device is older. Update that one first."; break;
+        case PET_LINK_WRONG_REALM: say = "One of the two is a test build. They do not trade."; break;
+        case PET_LINK_NO_PET:      say = "No pet lives here to send."; break;
+        case PET_LINK_BOTH_GIVE:   say = "Both offered a pet. One at a time."; break;
+        case PET_LINK_OCCUPIED:    say = "A hatched pet lives where this one was going. Move or retire it first."; break;
+        case PET_LINK_REFUSED:     say = "The other device would not take it. Nothing has changed."; break;
+        default:                   say = "That was not a Baandwidth Farms exchange."; break;
+        }
+        if (say[0]) {
+            snprintf(s_xchg_result, sizeof(s_xchg_result), "%s", say);
+        }
+        s_hal->exchange(0);     /* one exchange to a session */
+    }
+    lv_display_trigger_activity(NULL);
+    if (pet_pages_current() == PAGE_MOVE) {
+        pet_pages_open(PAGE_MOVE);      /* draw the new step */
+    }
+}
+
+static void link_saved(void *ctx)
+{
+    LV_UNUSED(ctx);
+    pet_app_save_now();
+}
+
+bool pet_app_link_start(pet_link_t *link, bool give_pet, bool caller)
+{
+    if (!s_hal || s_farewell) {
+        return false;
+    }
+    pet_tick(&s_pet, s_hal->now_s(), NULL);
+    uint64_t nonce = (uint64_t)random32() << 32 | random32();
+    pet_link_start(link, &s_pet, realm(), give_pet, caller, nonce, link_saved, NULL);
+    return true;
+}
+
+void pet_app_link_in(pet_link_t *link, const uint8_t *data, size_t len)
+{
+    bool was_away = s_pet.away, was_joined = link->joined;
+    uint32_t was_id = s_pet.id;
+    pet_link_in(link, data, len);
+    if (s_pet.away != was_away || (!s_pet.away && s_pet.id != was_id)) {
+        char text[64];
+        if (s_pet.away) {
+            snprintf(text, sizeof(text), "the pasture is empty");
+        } else {
+            snprintf(text, sizeof(text), "%s has arrived", s_pet.name[0] ? s_pet.name : "a pet");
+        }
+        pasture_changed(text);
+        if (!s_pet.away) {
+            pet_view_roll_in(ARRIVAL_MS);
+        }
+    } else if (link->joined != was_joined) {
+        changed();
+    }
 }
 
 /* "Retire": the pet moves to the farm and the egg it leaves takes its place. */
@@ -1077,6 +1249,7 @@ static void retire_finish(lv_timer_t *t)
         pet_view_roll_in(ARRIVAL_MS);   /* cannot happen; but never leave the picture empty */
         return;
     }
+    fresh_secret();
     settings_apply();
     pet_brain_init(&s_brain, NULL, (seed >> 7) ^ lv_rand(1, 0x7FFFFFFF));
     s_recent_count = 0;
@@ -1147,7 +1320,7 @@ bool pet_app_open_page(const char *name)
 {
     static const char *const NAMES[PAGE_COUNT] = {
         "home", "diet", "journal", "recent", "menu", "dex", "badges", "farm", "pet",
-        "settings", "name", "reset", "places", "retire",
+        "settings", "name", "reset", "places", "retire", "move",
     };
     for (int i = 0; i < PAGE_COUNT; i++) {
         if (!strcmp(name, NAMES[i])) {
@@ -1256,6 +1429,7 @@ static void pet_timer(lv_timer_t *t)
 {
     LV_UNUSED(t);
     uint32_t ms = lv_tick_get();
+    exchange_watch();
 
     if (s_set.paused) {
         /* On a shelf: the pet's time stands still. The screen still works. */
@@ -1493,8 +1667,16 @@ void pet_app_start(const pet_hal_t *hal)
      * would give every egg the same traits. Mix in the platform's.
      */
     uint32_t seed = (hal->random ? hal->random() : 0) ^ (now * 2654435761u);
+    bool secret = false;
     if (!s_loaded) {
         pet_init(&s_pet, &s_tune, now, seed | 1);
+    } else {
+        for (int i = 0; i < PET_SECRET_BYTES; i++) {
+            secret = secret || s_pet.secret[i] != 0;
+        }
+    }
+    if (!secret) {
+        fresh_secret();     /* a new egg, or a pet saved before pets had one */
     }
     settings_apply();
     pet_brain_init(&s_brain, NULL, (seed >> 7) ^ lv_rand(1, 0x7FFFFFFF));

@@ -27,6 +27,9 @@
  *                                        the farm and badges alone, to bring two level
  *   virtualpet_sim --save a.bin --new-egg
  *                                        start an egg in an empty pasture
+ *   virtualpet_sim --page move --exchange code
+ *                                        the exchange page as the watch shows it, at a step:
+ *                                        idle, waiting, code, moving or ended. No radio here
  *   virtualpet_sim --page diet           open a screen: diet, journal, recent, menu,
  *                                        dex, badges, farm, pet, settings, name
  *   virtualpet_sim --screenshot out.bmp [--after-ms 1500]
@@ -451,6 +454,13 @@ static bool parcel_in(const char *path)
     return true;
 }
 
+/* --exchange: stands in for the watch's Bluetooth, so the exchange page can be looked at. */
+static bool sim_exchange(int what)
+{
+    printf("exchange: %s\n", what == 0 ? "stop" : (what == 1 ? "wait for a visit" : "wait, and give the pet"));
+    return true;
+}
+
 static int usage(const char *exe)
 {
     fprintf(stderr,
@@ -474,6 +484,8 @@ int main(int argc, char **argv)
     double growth = 0;      /* 0 = not asked for */
     const char *send = NULL, *send_farm = NULL, *receive = NULL;
     bool new_egg = false;
+    const char *exchange = NULL;
+    s_hal.exchange = sim_exchange;
     s_hal.test_build = true;    /* the simulator never trades with a release build */
 
     for (int i = 1; i < argc; i++) {
@@ -499,6 +511,8 @@ int main(int argc, char **argv)
             send_farm = argv[++i];
         } else if (!strcmp(argv[i], "--receive") && i + 1 < argc) {
             receive = argv[++i];
+        } else if (!strcmp(argv[i], "--exchange") && i + 1 < argc) {
+            exchange = argv[++i];
         } else if (!strcmp(argv[i], "--new-egg")) {
             new_egg = true;
         } else if (!strcmp(argv[i], "--replay") && i + 1 < argc) {
@@ -597,6 +611,19 @@ int main(int argc, char **argv)
     }
     if (send) {
         parcel_out(send, true);
+    }
+    if (exchange && strcmp(exchange, "idle")) {
+        static pet_link_t link;
+        link.state = PET_LINK_DONE;
+        link.joined = true;
+        pet_app_exchange_open(false);
+        if (!strcmp(exchange, "code")) {
+            pet_app_exchange_told(PET_EXCHANGE_CODE, 48213, &link);
+        } else if (!strcmp(exchange, "moving")) {
+            pet_app_exchange_told(PET_EXCHANGE_MOVING, 0, &link);
+        } else if (!strcmp(exchange, "ended")) {
+            pet_app_exchange_told(PET_EXCHANGE_ENDED, 0, &link);
+        }
     }
     if (send || send_farm || receive || new_egg) {
         char say[400];

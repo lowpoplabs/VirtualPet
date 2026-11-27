@@ -305,6 +305,7 @@ size_t pet_save(const pet_t *pet, uint8_t *buf, size_t cap)
     put_u32(&c, pet->left_hops);
     put_f32(&c, pet->places.carried_total);
     put_f32(&c, pet->places.carried_top);
+    put(&c, pet->secret, PET_SECRET_BYTES);
     if (!c.ok) {
         return 0;
     }
@@ -425,6 +426,7 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
         left_hops = get_u32(&c);
         p.places.carried_total = get_f32(&c);
         p.places.carried_top = get_f32(&c);
+        get(&c, p.secret, PET_SECRET_BYTES);
         if (away > 1 || p.id == 0 || hops > UINT16_MAX || left_hops > UINT16_MAX ||
             !(p.places.carried_top >= 0 && p.places.carried_total >= p.places.carried_top)) {
             return false;
@@ -435,6 +437,7 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
     } else {
         /* It had no id. One is made from what it is, and kept from the next save on. */
         p.id = pet_make_id(p.rng ^ p.traits, saved_at ^ p.meals);
+        memset(p.secret, 0, sizeof(p.secret));  /* none yet: for the host to make */
     }
     if (!c.ok || c.p != c.end || stage >= STAGE_COUNT || form >= FORM_COUNT ||
         p.stage_meal_base > p.meals || !(saved_speed > 0 && saved_speed <= 1e6f)) {
