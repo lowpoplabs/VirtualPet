@@ -199,6 +199,7 @@ typedef enum {
     BADGE_PRISM,            /* a pet grown into a Prism */
     BADGE_ALL_FORMS,        /* each of the six ordinary adult forms retired */
     BADGE_GEN_5,            /* the fifth generation */
+    BADGE_MOVED,            /* a pet moved from one device to another */
     BADGE_COUNT,
 } pet_badge_t;
 
@@ -225,6 +226,13 @@ typedef struct {
     uint8_t count;
     uint16_t moved_on;          /* retired before these, and no longer shown */
     uint16_t forms;             /* bit per pet_form_t that has ever retired */
+    /*
+     * How far the pets that have retired travelled between them, in metres,
+     * and the distance badges earned: 0 = none, then bronze, silver, gold.
+     * The badges count every pet's distance, this one's included.
+     */
+    uint32_t walked_m, rode_m;
+    uint8_t walk_tier, ride_tier;
 } pet_farm_t;
 
 typedef struct {
@@ -324,6 +332,21 @@ typedef struct {
      */
     uint32_t rode_m, walked_m;
 } pet_t;
+
+/*
+ * Distance badges, in miles: on foot at 10, 50 and 200, riding at 100,
+ * 1,000 and 5,000. They count all the owner's pets together.
+ */
+#define PET_MILE_M 1609.344
+#define PET_EV_DISTANCE 0x100   /* from pet_scan(), beside the PLACE_EV_ bits: a distance badge went up */
+
+/* Metres travelled by every pet so far, the one living here included. */
+uint32_t pet_distance_total(const pet_t *pet, bool riding);
+/* The tier that many metres earn, 0..3; and the miles a tier asks for. */
+int pet_distance_tier_for(bool riding, uint32_t metres);
+int pet_distance_goal_miles(bool riding, int tier);
+/* Raises the two badges to what the totals have earned. True if either went up. */
+bool pet_distance_check(pet_t *pet);
 
 /* More than this in one scan is a mistake, not a journey: an airliner for a quarter of an hour is 225 km. */
 #define PET_MOVED_MAX_M 300000.0f

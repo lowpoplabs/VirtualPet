@@ -98,6 +98,7 @@ static void test_there_and_back(void)
     static pet_t a, b, before;
     device(&a, 11, "Mossy");
     a.favourite = 2;
+    a.walked_m = (uint32_t)(20 * PET_MILE_M);   /* enough for bronze, not yet noticed */
     before = a;
 
     pet_init(&b, NULL, T0 + 5 * HOUR, 22);      /* another clock, and an unhatched egg */
@@ -115,6 +116,9 @@ static void test_there_and_back(void)
           "the pet arrives in an empty pasture");
     pet_leave(&a);
     CHECK(a.away && a.left_id == before.id && a.left_hops == 1, "the sender is left empty and remembers who went");
+    CHECK(pet_has_badge(&a, BADGE_MOVED) && pet_has_badge(&b, BADGE_MOVED), "a move earns its badge at both ends");
+    CHECK(b.walked_m == before.walked_m && b.farm.walk_tier == 1 && a.farm.walk_tier == 0,
+          "the pet's miles go with it, and earn their badge where it arrives");
     CHECK(pet_export(&a, PET_REALM_TEST, true, s_parcel, sizeof(s_parcel)) == 0, "an empty pasture has no pet to send");
 
     CHECK(!b.away && b.id == before.id && b.hops == 1, "it is the same pet, one hop on");
@@ -228,7 +232,8 @@ static void test_new_egg(void)
     retire(&a, FORM_ROAMER, 52);
     uint32_t badges = a.badges;
     pet_leave(&a);
-    CHECK(a.farm.count == 1 && a.badges == badges, "an empty pasture keeps the farm and the badges");
+    CHECK(a.farm.count == 1 && a.badges == (badges | (1u << BADGE_MOVED)),
+          "an empty pasture keeps the farm and the badges, with one more for the move");
     pet_tick(&a, a.now + 3 * DAY, NULL);
     CHECK(a.away && a.meals == 0, "and stays empty as the days go by");
     CHECK(pet_new_egg(&a, 53), "a new egg can be started there");

@@ -35,6 +35,7 @@
         <li><a href="#places">Places</a></li>
         <li><a href="#badges">Badges</a></li>
         <li><a href="#farm">Retiring to the farm</a></li>
+        <li><a href="#moving">Moving between devices</a></li>
         <li><a href="#settings">Settings</a></li>
         <li><a href="#power">Power and the screen</a></li>
         <li><a href="#card">The memory card</a></li>
@@ -209,10 +210,21 @@
 
     <section id="badges">
       <h2>Badges</h2>
-      <p>There are 33 badges: for first times, for big days, for filling the food-dex, for
-      places, and for raising generations. The Badges screen lists the ones you have first,
-      then the rest with how to earn each.</p>
+      <p>There are 36 badges: for first times, for big days, for filling the food-dex, for
+      places, for distance, and for raising generations. The Badges screen lists the ones you
+      have first, then the rest with how to earn each.</p>
       <p>Badges belong to you, not to one pet. They carry on from each pet to the next.</p>
+      <h3>Distance</h3>
+      <p>Two badges count how far your pets have travelled, all of them together. Each has
+      bronze, silver and gold.</p>
+      <table>
+        <tr><th>Badge</th><th>Bronze</th><th>Silver</th><th>Gold</th></tr>
+        <tr><td>On foot</td><td>10 miles</td><td>50 miles</td><td>200 miles</td></tr>
+        <tr><td>On the road</td><td>100 miles</td><td>1,000 miles</td><td>5,000 miles</td></tr>
+      </table>
+      <p>Distance needs a device that can tell how far it has gone, which today is a phone.
+      A watch by itself cannot, so its pet earns these while it lives on a phone, and the
+      badges come back with it. Only the distance is kept, never where.</p>
     </section>
 
     <section id="farm">
@@ -238,6 +250,63 @@
         generation, how long it lived and how much it ate.</li>
         <li>When a thirteenth retires, the oldest moves on. It is still counted.</li>
       </ul>
+    </section>
+
+    <section id="moving">
+      <h2>Moving between devices</h2>
+      <p>If you run the pet on more than one device, say a watch and a phone, there is still
+      one pet. It lives on one device at a time, and the other's pasture stands empty until it
+      comes back. The farm and your badges are the same on every device once they have met.</p>
+      <table>
+        <tr><th>Goes with the pet</th><th>Made the same on both</th><th>Stays on each device</th></tr>
+        <tr><td style="font-weight: 400; white-space: normal">Its name, animal and traits, its diet and history, the food-dex and the journal</td>
+            <td style="white-space: normal">The farm, your badges and your place badges</td>
+            <td style="white-space: normal">Habitats and their names, and settings</td></tr>
+      </table>
+      <h3>A move or a visit</h3>
+      <p>Two devices meet over Bluetooth. A <strong>visit</strong> brings the farm and badges
+      level and leaves the pet where it is. A <strong>move</strong> does the same and sends the
+      pet across. The watch only waits; the other device does the calling.</p>
+      <ol class="steps">
+        <li>On the watch, hold the pet to open its card, and tap "Move or visit" at the bottom.</li>
+        <li>Tap "Visit: farms level" for a visit. For a move, hold "Hold to send" until it
+        fills.</li>
+        <li>The watch says it is waiting. On the phone, open the exchange and choose the watch.
+        Keep the two close together.</li>
+        <li>The watch shows a six-digit code. Type it on the phone.</li>
+        <li>The watch says how it went: the farms are level, or the pet has moved.</li>
+      </ol>
+      <ul class="plain">
+        <li><strong>The code</strong> proves the other device is in your hand. If a code shows
+        and you did not start this, swipe right and nothing is exchanged.</li>
+        <li><strong>The watch waits three minutes,</strong> then gives up. Swipe right to stop
+        sooner. Leaving the page ends it.</li>
+        <li><strong>The pet is never lost.</strong> It leaves only when the other device has
+        it safe. If the link drops, nothing has changed, or at worst the pet shows on both
+        for a while: the next meeting settles it, and it is there once.</li>
+        <li><strong>Only an unhatched egg gives way.</strong> A pet cannot move to a device
+        where a hatched pet lives. Move or retire that one first.</li>
+        <li><strong>Both devices need the same version.</strong> If one is newer, it says so.
+        Update the older one and try again.</li>
+      </ul>
+      <h3>An empty pasture</h3>
+      <figure>
+        <div class="watch small"><img src="img/empty-pasture.png" alt="The home screen with no pet: a wooden fence with its gate open, grass, and the words Empty pasture" width="410" height="502" loading="lazy"></div>
+        <figcaption>The pet is living on another device. The gate is open for it.</figcaption>
+      </figure>
+      <ul class="plain">
+        <li>An empty pasture eats nothing. It still learns habitats and earns place badges.</li>
+        <li>Hold the field to open the card. "Bring a pet here" waits for one to be sent.</li>
+        <li>"Hold for a new egg" starts afresh here with a first-generation egg. The pet that
+        left stays where it went. It can come back only while that egg is unhatched.</li>
+      </ul>
+      <h3>What it connects to</h3>
+      <p>{{NAME}} only listens, with one exception: while you have the exchange screen open on
+      two of your own devices, they connect to each other over Bluetooth to move a pet and bring
+      your farm level. It connects to nothing else, ever, and the listening itself never connects
+      or pairs.</p>
+      <p>While it waits, the watch announces only that it is waiting: no name, and an address
+      made up afresh each time. The pairing lasts for that one exchange and is then forgotten.</p>
     </section>
 
     <section id="settings">
@@ -332,6 +401,9 @@ best = Oh, {food}! Lovely.</code></pre>
         <tr><td>The time is wrong</td><td>Set Clock hour and Clock minute in Settings</td></tr>
         <tr><td>A message naming a file at start-up</td><td>That settings file has a mistake on the line shown. Fix it or delete the file</td></tr>
         <tr><td>It never eats at home</td><td>It has eaten everything there today. Take it out, or wait until tomorrow</td></tr>
+        <tr><td>The home screen shows a fence and no pet</td><td>The pet lives on another of your devices. See Moving between devices</td></tr>
+        <tr><td>"Nobody called. Nothing has changed."</td><td>The other device did not find the watch in three minutes. Bring them close, tap "Again", and start the exchange on the other device</td></tr>
+        <tr><td>"The link dropped before the end."</td><td>Nothing is lost. Try again with the two closer together</td></tr>
         <tr><td>You want to update</td><td>Install again from this site and do not erase. The pet and its farm are kept</td></tr>
       </table>
       <p>One more thing. There is a hidden way to peek at every animal the pet can become.
@@ -397,7 +469,9 @@ best = Oh, {food}! Lovely.</code></pre>
         kept.</li>
         <li><strong>Removing the app deletes the pet</strong> and its farm for good.</li>
         <li><strong>A new phone starts with a new egg.</strong> The pet is not part of
-        Android's backups, so it does not come across with your other apps.</li>
+        Android's backups, so it does not come across with your other apps. To keep it, move
+        it to another device before you remove the app: see
+        <a href="#moving">Moving between devices</a>.</li>
       </ul>
     </section>
   </article>

@@ -9,7 +9,9 @@
 #include "pet_core.h"
 
 #define PET_SAVE_MAGIC   0x54455056u   /* "VPET" */
-#define PET_SAVE_VERSION 10
+#define PET_SAVE_VERSION 11
+/* Version 10 had no distance badges, or the retired pets' distance. It is still read. */
+#define PET_SAVE_VERSION_NO_DISTANCE_BADGES 10
 /* Version 9 kept no distances. It is still read: a pet that has gone nowhere yet. */
 #define PET_SAVE_VERSION_NO_DISTANCE 9
 /* Version 8 knew nothing of pastures: no ids, and always a pet. It is still read. */
@@ -310,6 +312,10 @@ size_t pet_save(const pet_t *pet, uint8_t *buf, size_t cap)
     put(&c, pet->secret, PET_SECRET_BYTES);
     put_u32(&c, pet->rode_m);
     put_u32(&c, pet->walked_m);
+    put_u32(&c, pet->farm.rode_m);
+    put_u32(&c, pet->farm.walked_m);
+    put(&c, &pet->farm.ride_tier, 1);
+    put(&c, &pet->farm.walk_tier, 1);
     if (!c.ok) {
         return 0;
     }
@@ -339,7 +345,8 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
         return false;
     }
     uint32_t version = get_u32(&c);
-    if ((version != PET_SAVE_VERSION && version != PET_SAVE_VERSION_NO_DISTANCE &&
+    if ((version != PET_SAVE_VERSION && version != PET_SAVE_VERSION_NO_DISTANCE_BADGES &&
+         version != PET_SAVE_VERSION_NO_DISTANCE &&
          version != PET_SAVE_VERSION_NO_PASTURES &&
          version != PET_SAVE_VERSION_NO_FAVOURITE &&
          version != PET_SAVE_VERSION_NO_FARM &&
@@ -436,6 +443,16 @@ bool pet_load(pet_t *pet, const pet_tuning_t *tune, const uint8_t *buf, size_t l
             p.rode_m = get_u32(&c);
             p.walked_m = get_u32(&c);
         }
+        if (version > PET_SAVE_VERSION_NO_DISTANCE_BADGES) {
+            p.farm.rode_m = get_u32(&c);
+            p.farm.walked_m = get_u32(&c);
+            get(&c, &p.farm.ride_tier, 1);
+            get(&c, &p.farm.walk_tier, 1);
+            if (p.farm.ride_tier > PLACE_TIER_MAX || p.farm.walk_tier > PLACE_TIER_MAX) {
+                return false;
+            }
+        }
+        pet_distance_check(&p);     /* a pet that travelled before the badges existed has earned them */
         if (away > 1 || p.id == 0 || hops > UINT16_MAX || left_hops > UINT16_MAX ||
             !(p.places.carried_top >= 0 && p.places.carried_total >= p.places.carried_top)) {
             return false;

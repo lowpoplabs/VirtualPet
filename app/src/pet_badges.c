@@ -28,6 +28,7 @@ static const struct {
     [BADGE_PRISM]         = {"Prism", "raise a pet into a Prism"},
     [BADGE_ALL_FORMS]     = {"Full house", "retire each of the six adult forms"},
     [BADGE_GEN_5]         = {"Dynasty", "reach the fifth generation"},
+    [BADGE_MOVED]         = {"Moving day", "move a pet to another device"},
 };
 
 const char *pet_badge_name(pet_badge_t badge)

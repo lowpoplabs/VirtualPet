@@ -3,8 +3,12 @@
 *A virtual pet that eats the Wi-Fi and Bluetooth it hears nearby.*
 
 A critter that lives on an ESP32-S3 touch watch and eats the Wi-Fi networks
-and Bluetooth devices it hears nearby. It never connects or pairs: Wi-Fi scans
-are passive, and Bluetooth scans only ask nearby devices for their name. What
+and Bluetooth devices it hears nearby. Baandwidth Farms only listens, with one
+exception: while you have the exchange screen open on two of your own devices,
+they connect to each other over Bluetooth to move a pet and bring your farm
+level. It connects to nothing else, ever, and the listening itself never
+connects or pairs: Wi-Fi scans are passive, and Bluetooth scans only ask
+nearby devices for their name. What
 it eats decides which of seven animals it grows into over about twelve weeks;
 then it retires to the farm and leaves an egg. The project is Baandwidth Farms
 (two a's: it is a pun on "baa"); each owner names their own pet. The

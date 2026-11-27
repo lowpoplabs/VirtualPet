@@ -70,6 +70,8 @@ pet_tuning_t pet_tuning_default(void)
     };
 }
 
+static uint32_t sat_add(uint32_t a, uint32_t b);
+
 static uint32_t next_random(pet_t *pet)
 {
     /* xorshift32: small, and repeatable from a seed for tests and replays. */
@@ -253,6 +255,8 @@ bool pet_retire(pet_t *pet, uint32_t seed)
     }
     farm.resident[farm.count++] = r;
     farm.forms |= (uint16_t)(1u << pet->form);
+    farm.walked_m = sat_add(farm.walked_m, pet->walked_m);  /* its miles stay counted */
+    farm.rode_m = sat_add(farm.rode_m, pet->rode_m);
     const pet_tuning_t tune = pet->tune;
     const pet_places_t places = pet->places;
     uint32_t badges = pet->badges, new_badges = pet->new_badges, now = pet->now;
@@ -350,6 +354,7 @@ void pet_leave(pet_t *pet)
     if (pet->away) {
         return;
     }
+    pet_badge_award(pet, BADGE_MOVED);
     uint32_t id = pet->id;
     uint16_t hops = (uint16_t)(pet->hops < UINT16_MAX ? pet->hops + 1 : pet->hops);
     pet_pasture_clear(pet, 1, true);
@@ -635,6 +640,46 @@ bool pet_tick(pet_t *pet, uint32_t now, pet_meal_t *meal)
     return true;
 }
 
+static uint32_t sat_add(uint32_t a, uint32_t b)
+{
+    return b > UINT32_MAX - a ? UINT32_MAX : a + b;
+}
+
+uint32_t pet_distance_total(const pet_t *pet, bool riding)
+{
+    uint32_t past = riding ? pet->farm.rode_m : pet->farm.walked_m;
+    return pet->away ? past : sat_add(past, riding ? pet->rode_m : pet->walked_m);
+}
+
+int pet_distance_goal_miles(bool riding, int tier)
+{
+    static const int16_t GOAL[2][PLACE_TIER_MAX] = {{10, 50, 200}, {100, 1000, 5000}};
+    return tier >= 1 && tier <= PLACE_TIER_MAX ? GOAL[riding ? 1 : 0][tier - 1] : 0;
+}
+
+int pet_distance_tier_for(bool riding, uint32_t metres)
+{
+    int tier = 0;
+    while (tier < PLACE_TIER_MAX && (double)metres >= pet_distance_goal_miles(riding, tier + 1) * PET_MILE_M) {
+        tier++;
+    }
+    return tier;
+}
+
+bool pet_distance_check(pet_t *pet)
+{
+    int walk = pet_distance_tier_for(false, pet_distance_total(pet, false));
+    int ride = pet_distance_tier_for(true, pet_distance_total(pet, true));
+    bool up = walk > pet->farm.walk_tier || ride > pet->farm.ride_tier;
+    if (walk > pet->farm.walk_tier) {
+        pet->farm.walk_tier = (uint8_t)walk;
+    }
+    if (ride > pet->farm.ride_tier) {
+        pet->farm.ride_tier = (uint8_t)ride;
+    }
+    return up;
+}
+
 uint32_t pet_scan(pet_t *pet, const pet_scan_t *scan, place_kind_t *badge_kind)
 {
     int home_before = places_home(&pet->places);
@@ -662,8 +707,11 @@ uint32_t pet_scan(pet_t *pet, const pet_scan_t *scan, place_kind_t *badge_kind)
     /* Lying still it went nowhere, whatever a wandering position says. */
     if (scan->motion >= 2 && scan->moved_m > 0 && scan->moved_m <= PET_MOVED_MAX_M) {
         uint32_t *total = scan->motion == 3 ? &pet->rode_m : &pet->walked_m;
-        uint32_t add = (uint32_t)(scan->moved_m + 0.5f);
-        *total = add > UINT32_MAX - *total ? UINT32_MAX : *total + add;
+        *total = sat_add(*total, (uint32_t)(scan->moved_m + 0.5f));
+        if (pet_distance_check(pet)) {
+            pet->today.flags |= DAY_BADGE_PLACE;
+            ev |= PET_EV_DISTANCE;
+        }
     }
     return ev;
 }

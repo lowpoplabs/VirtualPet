@@ -33,6 +33,7 @@
 uint32_t pet_crc32(const uint8_t *data, size_t len);            /* pet_save.c */
 uint32_t pet_save_version(void);                                /* pet_save.c */
 void pet_badges_check(pet_t *pet, bool day_ended);              /* pet_badges.c */
+void pet_badge_award(pet_t *pet, pet_badge_t badge);
 void pet_pasture_clear(pet_t *pet, uint32_t seed, bool away);   /* pet_core.c */
 
 typedef struct {
@@ -107,6 +108,11 @@ static void put_collection(cursor_t *c, const pet_t *pet)
         put_u32(c, pet->places.kind[k].last_day);
     }
     put_u8(c, pet->places.offgrid_tier);
+    /* Added later, at the end, where an older build steps over them. */
+    put_u32(c, f->walked_m);
+    put_u32(c, f->rode_m);
+    put_u8(c, f->walk_tier);
+    put_u8(c, f->ride_tier);
 }
 
 /* Reads what this build knows of a collection, and steps over the rest. */
@@ -160,7 +166,14 @@ static bool get_collection(cursor_t *c, collection_t *col)
         }
     }
     col->offgrid_tier = get_u8(c);
-    return c->ok && col->offgrid_tier <= PLACE_TIER_MAX;
+    if (c->ok && (size_t)(c->end - c->p) >= 10) {   /* a build from before distances sends none */
+        f->walked_m = get_u32(c);
+        f->rode_m = get_u32(c);
+        f->walk_tier = get_u8(c);
+        f->ride_tier = get_u8(c);
+    }
+    return c->ok && col->offgrid_tier <= PLACE_TIER_MAX && f->walk_tier <= PLACE_TIER_MAX &&
+           f->ride_tier <= PLACE_TIER_MAX;
 }
 
 /* Older first; two retired on the same day go by their ids, so every device agrees. */
@@ -213,6 +226,15 @@ static void farm_merge(pet_farm_t *into, const pet_farm_t *from)
     retired -= (uint32_t)shown;
     into->moved_on = (uint16_t)(retired > UINT16_MAX ? UINT16_MAX : retired);
     into->forms |= from->forms;
+    /*
+     * The retired pets' distance: the larger of what each side knew. Two
+     * farms that each retired a pet before they first met count a little
+     * short; the badges, once earned, are kept either way.
+     */
+    into->walked_m = from->walked_m > into->walked_m ? from->walked_m : into->walked_m;
+    into->rode_m = from->rode_m > into->rode_m ? from->rode_m : into->rode_m;
+    into->walk_tier = from->walk_tier > into->walk_tier ? from->walk_tier : into->walk_tier;
+    into->ride_tier = from->ride_tier > into->ride_tier ? from->ride_tier : into->ride_tier;
 }
 
 /*
@@ -437,6 +459,10 @@ pet_import_t pet_import(pet_t *pet, pet_realm_t realm, const uint8_t *buf, size_
         }
     }
     collection_merge(pet, &s_col);
+    if (has_pet) {
+        pet_badge_award(pet, BADGE_MOVED);
+    }
     pet_badges_check(pet, false);   /* the joined farm may complete a badge neither had */
+    pet_distance_check(pet);        /* and the pet that arrived brings its miles */
     return PET_IMPORT_OK;
 }

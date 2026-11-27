@@ -48,10 +48,11 @@ static int badges_earned(const pet_t *pet)
     for (int k = 0; k < PLACE_KIND_COUNT; k++) {
         n += pet->places.kind[k].count > 0;
     }
-    return n + (pet->places.offgrid_tier > 0);
+    return n + (pet->places.offgrid_tier > 0) + (pet->farm.walk_tier > 0) + (pet->farm.ride_tier > 0);
 }
 
-#define BADGES_IN_ALL (BADGE_COUNT + PLACE_KIND_COUNT + 1)
+/* The plain badges, a place badge for each kind, off the grid, and the two for distance. */
+#define BADGES_IN_ALL (BADGE_COUNT + PLACE_KIND_COUNT + 1 + 2)
 
 static void stage_text(const pet_t *pet, char *buf, size_t cap)
 {

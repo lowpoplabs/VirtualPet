@@ -191,13 +191,41 @@ int main(void)
             CHECK(n > 0 && pet_load(&back, NULL, buf, n, t.now) && back.rode_m == 901 && back.walked_m == 40,
                   "the totals are saved");
 
-            /* The save as it was before distances: the same, less the two totals, and marked 9. */
+            /* Distance badges: every pet's miles together, bronze, silver and gold. */
+            pet_t w;
+            pet_init(&w, NULL, T0, 6);
+            s = (pet_scan_t){.motion = 2, .moved_m = (float)(9.9 * PET_MILE_M)};
+            CHECK(!(pet_scan(&w, &s, NULL) & PET_EV_DISTANCE) && w.farm.walk_tier == 0, "9.9 miles on foot is no badge yet");
+            s = (pet_scan_t){.motion = 2, .moved_m = (float)(0.2 * PET_MILE_M)};
+            CHECK((pet_scan(&w, &s, NULL) & PET_EV_DISTANCE) && w.farm.walk_tier == 1 && w.farm.ride_tier == 0,
+                  "ten miles on foot is bronze, and says so once");
+            CHECK(!(pet_scan(&w, &s, NULL) & PET_EV_DISTANCE), "and not again on the next scan");
+            CHECK(pet_distance_tier_for(false, (uint32_t)(50 * PET_MILE_M) + 1) == 2 &&
+                  pet_distance_tier_for(false, (uint32_t)(200 * PET_MILE_M) + 1) == 3 &&
+                  pet_distance_tier_for(true, (uint32_t)(99 * PET_MILE_M)) == 0 &&
+                  pet_distance_tier_for(true, (uint32_t)(100 * PET_MILE_M) + 1) == 1 &&
+                  pet_distance_tier_for(true, (uint32_t)(1000 * PET_MILE_M) + 1) == 2 &&
+                  pet_distance_tier_for(true, (uint32_t)(5000 * PET_MILE_M) + 1) == 3,
+                  "the tiers are at 10, 50 and 200 miles on foot and 100, 1,000 and 5,000 riding");
+            uint32_t walked = w.walked_m;
+            pet_pasture_clear(&w, 9, false);
+            CHECK(w.walked_m == 0 && w.farm.walk_tier == 1, "a new egg starts from nought and the badge is kept");
+            w.walked_m = walked;
+            w.farm.walked_m = (uint32_t)(45 * PET_MILE_M);
+            CHECK(pet_distance_total(&w, false) == walked + w.farm.walked_m && pet_distance_check(&w) &&
+                  w.farm.walk_tier == 2, "retired pets' miles and this pet's count together");
+            n = pet_save(&w, buf, sizeof(buf));
+            CHECK(n > 0 && pet_load(&back, NULL, buf, n, w.now) && back.farm.walk_tier == 2 &&
+                  back.farm.walked_m == w.farm.walked_m, "the badges and the retired miles are saved");
+            n = pet_save(&t, buf, sizeof(buf));
+
+            /* The save as it was before distances: the same, less the totals and badges, and marked 9. */
             uint32_t pet_crc32(const uint8_t *data, size_t len);
             uint32_t nine = 9;
             memcpy(buf + 4, &nine, 4);
-            uint32_t crc = pet_crc32(buf, n - 4 - 8);
-            memcpy(buf + n - 4 - 8, &crc, 4);
-            CHECK(pet_load(&back, NULL, buf, n - 8, t.now) && back.rode_m == 0 && back.walked_m == 0 &&
+            uint32_t crc = pet_crc32(buf, n - 4 - 18);
+            memcpy(buf + n - 4 - 18, &crc, 4);
+            CHECK(pet_load(&back, NULL, buf, n - 18, t.now) && back.rode_m == 0 && back.walked_m == 0 &&
                   back.id == t.id && back.meals == t.meals,
                   "a save from before distances loads, as a pet that has gone nowhere");
         }

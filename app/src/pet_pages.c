@@ -558,7 +558,8 @@ static void build_badges(void)
         earned += pet->places.kind[k].count > 0;
     }
     earned += pet->places.offgrid_tier > 0;
-    snprintf(buf, sizeof(buf), "%d of %d earned", earned, BADGE_COUNT + PLACE_KIND_COUNT + 1);
+    earned += (pet->farm.walk_tier > 0) + (pet->farm.ride_tier > 0);
+    snprintf(buf, sizeof(buf), "%d of %d earned", earned, BADGE_COUNT + PLACE_KIND_COUNT + 1 + 2);
     para(body, buf, COLOR_DIM);
 
     /* Earned ones first. */
@@ -600,6 +601,30 @@ static void build_badges(void)
     }
     gap(body, 4);
     para(body, "Silver at 3, gold at 10. Only the kind of place is kept, never its name.", COLOR_DIM);
+
+    /* Distance: all the owner's pets together, where a device can tell how far it went. */
+    gap(body, 6);
+    text(body, "Travel", COLOR_TEXT, true);
+    for (int riding = 0; riding < 2; riding++) {
+        int tier = riding ? pet->farm.ride_tier : pet->farm.walk_tier;
+        long miles = (long)(pet_distance_total(pet, riding) / PET_MILE_M);
+        if (!tier && miles == 0) {
+            snprintf(buf, sizeof(buf), "%d miles %s", pet_distance_goal_miles(riding, 1),
+                     riding ? "riding" : "on foot");
+        } else if (!tier) {
+            snprintf(buf, sizeof(buf), "%ld of %d miles", miles, pet_distance_goal_miles(riding, 1));
+        } else {
+            snprintf(buf, sizeof(buf), "%s, %ld miles so far", place_tier_name(tier), miles);
+        }
+        lv_obj_t *mark = badge_row(body, TIER_COLOR[tier], riding ? "On the road" : "On foot",
+                                   tier ? COLOR_TEXT : COLOR_DIM, buf);
+        if (tier) {
+            lv_obj_center(text(mark, LV_SYMBOL_OK, 0x10141A, false));
+        }
+    }
+    gap(body, 4);
+    para(body, "On foot: 10, 50 and 200 miles. Riding: 100, 1,000 and 5,000. All your pets count "
+               "together. Only the distance is kept, never where.", COLOR_DIM);
 }
 
 /* ---- Places ------------------------------------------------------------- */

@@ -8,7 +8,7 @@ static int failures;
 
 /* What an empty farm adds to the end of a save: generation, moved on, forms, count. */
 /* An empty farm, the byte for the favourite food, the seven numbers and the secret, about pastures, and the two distances that end a save. */
-#define FARM_BYTES (14 + 28 + 16 + 8)
+#define FARM_BYTES (14 + 28 + 16 + 8 + 10)
 
 #define CHECK(cond, what)                                   \
     do {                                                    \

@@ -512,6 +512,7 @@ uint32_t pet_app_scan(const pet_scan_t *scan)
         return 0;
     }
     place_kind_t kind = PLACE_KIND_COUNT;
+    uint8_t walk_tier = s_pet.farm.walk_tier;
     uint32_t ev = pet_scan(&s_pet, scan, &kind);
     changed();
     char line[48], label[HABITAT_NAME_MAX + 4];
@@ -522,6 +523,11 @@ uint32_t pet_app_scan(const pet_scan_t *scan)
     } else if (ev & PLACE_EV_OFFGRID) {
         snprintf(line, sizeof(line), "badge: Off the grid (%s)",
                  place_tier_name(s_pet.places.offgrid_tier));
+        place_news(line, true);
+    } else if (ev & PET_EV_DISTANCE) {
+        bool walked = s_pet.farm.walk_tier > walk_tier;
+        snprintf(line, sizeof(line), "badge: %s (%s)", walked ? "On foot" : "On the road",
+                 place_tier_name(walked ? s_pet.farm.walk_tier : s_pet.farm.ride_tier));
         place_news(line, true);
     } else if (ev & PLACE_EV_NEW) {
         place_news("somewhere new!", true);
@@ -534,7 +540,7 @@ uint32_t pet_app_scan(const pet_scan_t *scan)
         }
         place_news(line, false);
     }
-    if (ev & (PLACE_EV_BADGE | PLACE_EV_OFFGRID | PLACE_EV_NEW)) {
+    if (ev & (PLACE_EV_BADGE | PLACE_EV_OFFGRID | PLACE_EV_NEW | PET_EV_DISTANCE)) {
         pet_app_save_now();
     }
     return ev;
