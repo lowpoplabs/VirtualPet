@@ -4,6 +4,20 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.16 - 2026-11-26
+
+Nothing changes on the watch.
+
+### Added
+- **Site:** how to install the Android app, under "Install it", beside the watch's
+  installer. The app is released from its own repository,
+  [VirtualPet-Android](https://github.com/lowpoplabs/VirtualPet-Android).
+
+### Changed
+- **Site:** "What's next" is now two lists, one for the ESP32 watch (tuning, battery life,
+  a GPS and 4G LTE add-on board) and one for Android (tuning, GPS, cellular, a Wear OS
+  app). It has a link at the top of both pages.
+
 ## 0.4.15 - 2026-11-26
 
 ### Changed

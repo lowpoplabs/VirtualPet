@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>{{NAME}}: a pet that eats Wi-Fi and Bluetooth</title>
-<meta name="description" content="{{NAME}}: a free virtual pet for an ESP32-S3 touch watch. It feeds on the Wi-Fi networks and Bluetooth devices around you, and never connects to any of them.">
+<meta name="description" content="{{NAME}}: a free virtual pet for an ESP32-S3 touch watch or an Android phone. It feeds on the Wi-Fi networks and Bluetooth devices around you, and never connects to any of them.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
@@ -19,6 +19,7 @@
     <a href="index.html" aria-current="page">The pet</a>
     <a href="manual.html">Manual</a>
     <a href="#install">Install</a>
+    <a href="#next">What's next</a>
   </nav>
 </header>
 
@@ -26,11 +27,12 @@
 <div class="wrap hero">
   <div>
     <h1>A pet that eats the signals around you</h1>
-    <p class="lead">The pet lives on a small touch watch. It feeds on the Wi-Fi networks and
-    Bluetooth devices it hears nearby, so where you take it decides what it eats, how it feels
-    and what it grows into.</p>
+    <p class="lead">The pet lives on a small touch watch, or on an Android phone. It feeds on
+    the Wi-Fi networks and Bluetooth devices it hears nearby, so where you take it decides
+    what it eats, how it feels and what it grows into.</p>
     <div class="actions">
       <a class="button" href="#install">Install it on a watch</a>
+      <a href="#install-android">Install it on a phone</a>
       <a href="manual.html">Read the manual</a>
     </div>
   </div>
@@ -159,6 +161,7 @@
         <li>A Waveshare ESP32-S3-Touch-AMOLED-2.06 watch. It is the only board supported so
         far.</li>
         <li>A USB-C cable that carries data, and a computer with Chrome or Edge.</li>
+        <li>Or, with no watch at all: a phone with Android 12 or later.</li>
         <li>Optional: a microSD card, formatted FAT32, if you want to change the pet's numbers
         and name lists.</li>
       </ul>
@@ -175,6 +178,7 @@
 <section class="band" id="install">
   <div class="wrap">
     <h2>Install it</h2>
+    <h3>On a watch</h3>
     <p>The pet is installed from this page, straight from the browser. Nothing is installed on
     your computer.</p>
     <ol class="steps">
@@ -197,6 +201,29 @@
       the port still stays missing, unplug the watch, hold its power button until the screen goes
       dark, and plug it back in.</p>
     </div>
+
+    <h3 id="install-android" class="second">On an Android phone</h3>
+    <p>The phone app runs the same pet as the watch, built from the same code. It is not in
+    the Play Store. It is one file, downloaded from GitHub and opened on the phone.</p>
+    <ol class="steps">
+      <li>On the phone, press the button below and download the file ending in ".apk" from
+      the newest release.</li>
+      <li>Open the file. The first time, Android asks whether your browser may install apps:
+      allow it, then go back and press Install.</li>
+      <li>Open the app and turn on listening. It asks for Nearby devices, Location and
+      Notifications. Android will not let any app hear Wi-Fi without Location; no position
+      is read.</li>
+      <li>To update later, install the newer file over the old one. The pet is kept. Removing
+      the app removes the pet.</li>
+    </ol>
+    <div class="install-box">
+      <a class="button" href="https://github.com/lowpoplabs/VirtualPet-Android/releases/latest"
+      target="_blank" rel="noopener">Get the Android app</a>
+      <p class="note">Needs Android 12 or later. Tried on one phone so far, a Galaxy S22+.
+      The phone's pet and the watch's are two separate pets. The app's code is in
+      <a href="https://github.com/lowpoplabs/VirtualPet-Android" target="_blank"
+      rel="noopener">its own repository</a>.</p>
+    </div>
   </div>
 </section>
 
@@ -206,25 +233,28 @@
     <p>This is a hobby project, so the list below is where it is heading, not a schedule.</p>
     <div class="next">
       <div>
-        <h3>Being worked on now</h3>
-        <p>Tuning. The pet is being carried through ordinary days, to work, to the shops and
-        out for coffee, and its numbers adjusted from what it finds: how fast it grows, which
-        places count as a visit, and how long the battery lasts on a wrist.</p>
-        <p>An Android app, so the pet can live on a phone. It runs the same pet as the
-        watch, built from the same code, and already listens and eats in the background.
-        It is not ready to hand out yet.</p>
+        <h3>ESP32 (watch)</h3>
+        <ul class="plain">
+          <li><b>Tuning.</b> The pet is being carried through ordinary days, to work, to the
+          shops and out for coffee, and its numbers adjusted from what it finds: how fast it
+          grows and which places count as a visit.</li>
+          <li><b>Battery life.</b> Longer on a wrist, once there are enough days of numbers
+          to do it without the pet missing meals.</li>
+          <li><b>A GPS and 4G LTE add-on board.</b> It would listen for mobile phone towers,
+          a third kind of food, and use GPS to set the pet's clock and tell how far it has
+          travelled, without keeping where.</li>
+        </ul>
       </div>
       <div>
-        <h3>After that</h3>
-        <p>Longer battery life on a wrist, once there are enough days of numbers to do it
-        without the pet missing meals.</p>
-      </div>
-      <div>
-        <h3>Being thought about</h3>
-        <p>An add-on board that listens for mobile phone towers, a third kind of food, and
-        uses GPS to set the pet's clock and tell how far it has travelled, without keeping
-        where. A view of the phone's pet on a Wear OS watch. More movement for the grown-up
-        forms, and more places to earn badges at.</p>
+        <h3>Android (phone and watch)</h3>
+        <ul class="plain">
+          <li><b>Tuning.</b> The phone app is new and has been tried on one phone. Its
+          numbers will be adjusted the same way, from days of being carried about.</li>
+          <li><b>GPS.</b> To tell how far the pet has travelled, without keeping where.</li>
+          <li><b>Cellular.</b> Mobile phone towers as a third kind of food, heard by the
+          phone itself.</li>
+          <li><b>A Wear OS app.</b> The phone's pet on an Android watch.</li>
+        </ul>
       </div>
     </div>
   </div>
