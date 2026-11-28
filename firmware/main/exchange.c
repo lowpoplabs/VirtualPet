@@ -13,6 +13,8 @@
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
 
+#include "lvgl.h"
+
 #include "board.h"
 #include "pet_app.h"
 #include "pet_link.h"
@@ -48,6 +50,16 @@ static bool s_over;                 /* this session has had its exchange: no mor
 static uint8_t s_piece[PIECE_MAX];
 static uint16_t s_piece_len;
 static int s_idle_ticks;
+
+/*
+ * What the caller has written and the exchange has yet to be given. The
+ * Bluetooth host's task only puts the bytes here: taking a pet in and
+ * saving it needs more stack than that task has, so it is done on the
+ * screen's task (take_in), where the pet is saved at any other time.
+ */
+#define INBOX_BYTES (PET_PARCEL_MAX + 1024)
+static uint8_t *s_inbox;
+static size_t s_inbox_len;
 
 /*
  * Between scans the Bluetooth controller dozes, and times its doze by the
@@ -156,15 +168,24 @@ static void start_if_ready(void)
     }
 }
 
+static void take_in(void *arg);
+
+/* On the screen's task: the link has gone. What it carried last is taken in first: it may be the end. */
+static void lost_late(void *arg)
+{
+    take_in(NULL);
+    if (s_link && s_running) {
+        pet_link_lost(s_link);      /* changes nothing if the exchange had finished */
+        s_running = false;
+        s_over = true;
+        pet_app_exchange_told(PET_EXCHANGE_ENDED, 0, s_link);
+    }
+}
+
 static void link_dropped(void)
 {
     if (board_lvgl_lock(1000)) {
-        if (s_running) {
-            pet_link_lost(s_link);
-            s_running = false;
-            s_over = true;
-            pet_app_exchange_told(PET_EXCHANGE_ENDED, 0, s_link);
-        }
+        lv_async_call(lost_late, NULL);
         board_lvgl_unlock();
     }
     s_conn = NO_CONN;
@@ -243,6 +264,21 @@ static int gap_event(struct ble_gap_event *event, void *arg)
     }
 }
 
+/* On the screen's task, with its lock held: the exchange is given what has arrived. */
+static void take_in(void *arg)
+{
+    if (!s_link || !s_inbox || s_inbox_len == 0) {
+        return;     /* the screen was closed meanwhile */
+    }
+    start_if_ready();
+    if (s_running) {
+        pet_app_link_in(s_link, s_inbox, s_inbox_len);
+        s_idle_ticks = 0;
+    }
+    memset(s_inbox, 0, s_inbox_len);
+    s_inbox_len = 0;
+}
+
 /* The caller's half of the stream arrives as writes. */
 static int on_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
@@ -257,17 +293,20 @@ static int on_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_
     if (!board_lvgl_lock(2000)) {
         return BLE_ATT_ERR_UNLIKELY;
     }
-    bool ok = s_link && conn_handle == s_conn;
-    if (ok) {
-        start_if_ready();
-        ok = s_running;
-    }
-    if (ok) {
-        pet_app_link_in(s_link, buf, n);
-        s_idle_ticks = 0;
+    /* Nothing is taken until the code was right and the caller can hear the answer. */
+    bool ok = s_link && s_inbox && conn_handle == s_conn && s_secure && s_listening && !s_over;
+    bool room = ok && s_inbox_len + n <= INBOX_BYTES;
+    if (room) {
+        memcpy(s_inbox + s_inbox_len, buf, n);
+        s_inbox_len += n;
+        lv_async_call(take_in, NULL);
     }
     board_lvgl_unlock();
-    return ok ? 0 : BLE_ATT_ERR_WRITE_NOT_PERMITTED;
+    memset(buf, 0, n);
+    if (!ok) {
+        return BLE_ATT_ERR_WRITE_NOT_PERMITTED;
+    }
+    return room ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;     /* the caller offers the piece again */
 }
 
 /* Our half goes out as notifications; there is nothing to read. */
@@ -413,6 +452,9 @@ bool exchange_ask(int what)
         s_running = false;
         heap_caps_free(s_link);
         s_link = NULL;
+        heap_caps_free(s_inbox);
+        s_inbox = NULL;
+        s_inbox_len = 0;
         /* Hanging up and going quiet take no lock of ours, so they are safe from here. */
         bool hanging_up = s_conn != NO_CONN &&
                           ble_gap_terminate(s_conn, BLE_ERR_REM_USER_CONN_TERM) == 0;
@@ -429,7 +471,13 @@ bool exchange_ask(int what)
         return true;
     }
     s_link = heap_caps_malloc(sizeof(*s_link), MALLOC_CAP_SPIRAM);
-    if (!s_link) {
+    s_inbox = heap_caps_malloc(INBOX_BYTES, MALLOC_CAP_SPIRAM);
+    s_inbox_len = 0;
+    if (!s_link || !s_inbox) {
+        heap_caps_free(s_link);
+        heap_caps_free(s_inbox);
+        s_link = NULL;
+        s_inbox = NULL;
         return false;
     }
     memset(s_link, 0, sizeof(*s_link));
@@ -443,6 +491,8 @@ bool exchange_ask(int what)
         stay_awake(false);
         heap_caps_free(s_link);
         s_link = NULL;
+        heap_caps_free(s_inbox);
+        s_inbox = NULL;
         return false;
     }
     return true;
