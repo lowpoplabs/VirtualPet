@@ -57,7 +57,12 @@ static uint32_t hal_now_s(void)
  * the pet survives a missing or swapped card. It holds numbers only.
  */
 #define SAVE_NAMESPACE "pet"
+#ifdef CONFIG_PET_TEST_BUILD
+/* A test build keeps a pet of its own and never reads or writes the real one. */
+#define SAVE_KEY       "save_test"
+#else
 #define SAVE_KEY       "save"
+#endif
 
 #define SETTINGS_KEY   "settings"
 
@@ -697,6 +702,13 @@ void app_main(void)
         if (board_lvgl_lock(1000)) {
             s_hal.set_dev_log = hal_set_dev_log;
             s_hal.version = esp_app_get_description()->version;
+#ifdef CONFIG_PET_TEST_BUILD
+            static char test_version[40];
+            snprintf(test_version, sizeof(test_version), "%s test", s_hal.version);
+            s_hal.version = test_version;
+            s_hal.test_build = true;
+            ESP_LOGW(TAG, "TEST BUILD: a pet of its own, and no trading with release builds");
+#endif
             if (board_card_can_lend()) {
                 s_hal.share_card = hal_share_card;
             }

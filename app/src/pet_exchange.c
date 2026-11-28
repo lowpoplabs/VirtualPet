@@ -34,7 +34,6 @@ uint32_t pet_crc32(const uint8_t *data, size_t len);            /* pet_save.c */
 uint32_t pet_save_version(void);                                /* pet_save.c */
 void pet_badges_check(pet_t *pet, bool day_ended);              /* pet_badges.c */
 void pet_badge_award(pet_t *pet, pet_badge_t badge);
-void pet_pasture_clear(pet_t *pet, uint32_t seed, bool away);   /* pet_core.c */
 
 typedef struct {
     uint8_t *p;

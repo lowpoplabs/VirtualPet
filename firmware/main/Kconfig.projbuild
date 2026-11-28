@@ -15,4 +15,16 @@ menu "VirtualPet"
             bool "ESP32-S3-Touch-AMOLED-2.16 (board, 480x480)"
     endchoice
 
+    config PET_TEST_BUILD
+        bool "Test build (never trades with a release build)"
+        default n
+        help
+            For trying the exchange without risking the owner's pet. A test
+            build is in the test realm, as the simulator and the phone's
+            test app are: it trades only with other test builds. It keeps
+            its pet in a save of its own, so flashing it over a release
+            build leaves that pet untouched, to be found again when the
+            release build is flashed back. Build with
+            firmware/build.ps1 -Board watch -Test.
+
 endmenu

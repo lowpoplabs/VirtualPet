@@ -6,10 +6,17 @@
 #   .\firmware\build.ps1 -Board watch -Flash -Port COM4
 #
 # -Monitor opens the serial monitor after flashing (Ctrl+] to leave).
+#
+# -Test makes a test build (see PET_TEST_BUILD in main/Kconfig.projbuild):
+# it trades only with other test builds and keeps a pet of its own. It has
+# its own build folder, so package.py can never ship one.
+#
+#   .\firmware\build.ps1 -Board watch -Test -Flash -Port COM4
 param(
     [Parameter(Mandatory = $true)][ValidateSet('watch', 'square')][string]$Board,
     [switch]$Flash,
     [switch]$Monitor,
+    [switch]$Test,
     [string]$Port
 )
 
@@ -23,6 +30,10 @@ if (-not $env:IDF_PATH) {
 
 $variant = $Board
 $defaults = "sdkconfig.defaults;sdkconfig.defaults.$Board"
+if ($Test) {
+    $variant = "$Board-test"
+    $defaults += ';sdkconfig.defaults.test'
+}
 
 $idfArgs = @(
     '-C', $here,

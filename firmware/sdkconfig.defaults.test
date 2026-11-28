@@ -1,0 +1,2 @@
+# Added by build.ps1 -Test. See PET_TEST_BUILD in main/Kconfig.projbuild.
+CONFIG_PET_TEST_BUILD=y

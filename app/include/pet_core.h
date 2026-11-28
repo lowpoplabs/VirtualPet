@@ -589,6 +589,15 @@ void pet_leave(pet_t *pet);
 bool pet_new_egg(pet_t *pet, uint32_t seed);
 
 /*
+ * What pet_leave() and pet_new_egg() are made of, and what an arriving pet
+ * does to an unhatched egg: the pet goes, and the device keeps its
+ * collection and its habitats. away = the pasture is left empty; otherwise
+ * a first-generation egg from seed is put in it. Unlike those two it does
+ * not ask what lives here first.
+ */
+void pet_pasture_clear(pet_t *pet, uint32_t seed, bool away);
+
+/*
  * Takes a parcel in. The collection is joined with this device's: the
  * same parcel any number of times, or two devices' in either order, give
  * the same farm. A pet in the parcel moves in if the pasture is empty or

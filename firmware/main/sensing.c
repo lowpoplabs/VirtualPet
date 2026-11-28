@@ -372,7 +372,12 @@ static void sensing_task(void *arg)
         uint32_t period_s = s_cb.scan_period_s ? s_cb.scan_period_s(&radio_off)
                                                : CYCLE_PERIOD_MS / 1000;
 
-        if (period_s != 0) {
+        /*
+         * One radio. A Wi-Fi scan takes it for well over a second, which a
+         * link cannot spare, so nothing is listened for while the exchange
+         * screen is open. The pet eats again when it is closed.
+         */
+        if (period_s != 0 && !exchange_busy()) {
             xSemaphoreTake(s_lock, portMAX_DELAY);
             hearing_begin(s_hearing);
             s_scan_ok = false;
@@ -385,7 +390,7 @@ static void sensing_task(void *arg)
             if (wifi_on) {
                 wifi_scan_once(records);
             }
-            if (ble_ok && !exchange_busy()) {    /* an exchange has the radio: listen again after it */
+            if (ble_ok && !exchange_busy()) {    /* the screen was opened during the Wi-Fi scan */
                 ble_scan_once();
             }
 

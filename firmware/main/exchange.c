@@ -2,8 +2,10 @@
 
 #include <string.h>
 
+#include "esp_bt.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_pm.h"
 #include "esp_random.h"
 #include "esp_timer.h"
 #include "host/ble_hs.h"
@@ -46,6 +48,36 @@ static bool s_over;                 /* this session has had its exchange: no mor
 static uint8_t s_piece[PIECE_MAX];
 static uint16_t s_piece_len;
 static int s_idle_ticks;
+
+/*
+ * Between scans the Bluetooth controller dozes, and times its doze by the
+ * chip's rough internal clock. That is good enough for listening and not
+ * for a link, which must answer on the beat: with the doze on, a caller
+ * hears nothing for five seconds and gives up. So for as long as the
+ * exchange has the radio the controller, and the chip, stay awake.
+ */
+static esp_pm_lock_handle_t s_awake_lock;
+static bool s_awake;
+
+static void stay_awake(bool on)
+{
+    if (on == s_awake) {
+        return;
+    }
+    s_awake = on;
+    if (on) {
+        if (s_awake_lock) {
+            esp_pm_lock_acquire(s_awake_lock);
+        }
+        esp_bt_sleep_disable();
+        esp_bt_controller_wakeup_request();
+    } else {
+        esp_bt_sleep_enable();
+        if (s_awake_lock) {
+            esp_pm_lock_release(s_awake_lock);
+        }
+    }
+}
 
 static void tell(pet_exchange_step_t step, uint32_t code)
 {
@@ -136,6 +168,9 @@ static void link_dropped(void)
     s_conn = NO_CONN;
     s_secure = s_listening = false;
     ble_gap_unpair(&s_peer);    /* nothing of the pairing is kept */
+    if (!s_want) {
+        stay_awake(false);      /* the screen was closed first, and the hanging up is now done */
+    }
 }
 
 static int gap_event(struct ble_gap_event *event, void *arg)
@@ -325,11 +360,15 @@ void exchange_init(void)
 
     /*
      * Pairing: the watch shows a code and the caller types it, which
-     * proves the caller is looking at this screen. No bond: the keys are
-     * for this one link and are forgotten with it.
+     * proves the caller is looking at this screen. It is called a bond so
+     * that the caller's system reports the pairing as done, but only the
+     * link's own key is exchanged (nothing that names either device), it
+     * is held in memory only, and it is forgotten when the link ends.
      */
     ble_hs_cfg.sm_io_cap = BLE_SM_IO_CAP_DISP_ONLY;
-    ble_hs_cfg.sm_bonding = 0;
+    ble_hs_cfg.sm_bonding = 1;
+    ble_hs_cfg.sm_our_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
+    ble_hs_cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
     ble_hs_cfg.sm_mitm = 1;
     ble_hs_cfg.sm_sc = 1;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
@@ -345,6 +384,8 @@ void exchange_init(void)
         ESP_LOGE(TAG, "service not registered: %d", rc);
     }
     ble_store_config_init();
+
+    esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "exchange", &s_awake_lock);
 
     const esp_timer_create_args_t args = {.callback = tick, .name = "exchange"};
     esp_timer_create(&args, &s_timer);
@@ -369,13 +410,15 @@ bool exchange_ask(int what)
         heap_caps_free(s_link);
         s_link = NULL;
         /* Hanging up and going quiet take no lock of ours, so they are safe from here. */
-        if (s_conn != NO_CONN) {
-            ble_gap_terminate(s_conn, BLE_ERR_REM_USER_CONN_TERM);
-        }
+        bool hanging_up = s_conn != NO_CONN &&
+                          ble_gap_terminate(s_conn, BLE_ERR_REM_USER_CONN_TERM) == 0;
         if (ble_gap_adv_active()) {
             ble_gap_adv_stop();
         }
         s_adv = false;
+        if (!hanging_up) {
+            stay_awake(false);  /* otherwise when the link has gone: see link_dropped() */
+        }
         return true;
     }
     if (s_want) {
@@ -390,8 +433,10 @@ bool exchange_ask(int what)
     s_over = s_running = s_secure = s_listening = false;
     s_piece_len = 0;
     s_want = true;
+    stay_awake(true);
     if (esp_timer_start_periodic(s_timer, TICK_US) != ESP_OK) {
         s_want = false;
+        stay_awake(false);
         heap_caps_free(s_link);
         s_link = NULL;
         return false;
