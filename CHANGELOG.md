@@ -4,6 +4,38 @@ All notable changes to Baandwidth Farms (a virtual pet that eats the Wi-Fi and B
 hears nearby, by LowPopLabs). The version is the firmware's, in `firmware/version.txt`; the
 simulator, the site and the release zip carry the same number.
 
+## 0.4.18 - 2026-11-27
+
+The exchange in 0.4.17 did not work against a phone: it had only been tested against
+itself. These are the fixes from the first calls a phone made to the watch. With a test
+build of each, a visit and a move in both directions now go through. The Android app that
+does the calling is still not released.
+
+### Fixed
+- **The link dropped within seconds.** Between radio events the watch's Bluetooth dozes,
+  timed by a clock that is good enough for listening and not for a link. The watch now
+  stays awake while the exchange screen is open, and dozes again when it is closed.
+- **"That was not a Baandwidth Farms exchange."** The watch spoke as soon as the code was
+  right, before the calling device was listening. The waiting side now never speaks first.
+- **"Hold to send" went to the home screen,** which ended the wait: a pet could not be
+  sent from the watch at all. It now stays on the waiting screen.
+- **A pet arriving restarted the watch.** Taking the pet in is now done where there is
+  room for it. Nothing was lost when it happened: the sender keeps the pet until the other
+  side has it saved.
+
+### Changed
+- **Nothing is listened for while the exchange screen is open,** so the pet does not eat
+  for that minute or two. The one radio is kept for the link.
+- **The pairing is called a bond** so the calling device reports it as done. Only the
+  link's own key is exchanged, it is held in memory, and it is forgotten when the link
+  ends, as before.
+
+### For developers
+- `firmware\build.ps1 -Board watch -Test` makes a test build: it trades only with other
+  test builds and keeps a pet of its own, so it can be flashed over a release build
+  without touching the real pet.
+- `pet_pasture_clear()` is declared in `pet_core.h`.
+
 ## 0.4.17 - 2026-11-27
 
 The watch's half of moving a pet between devices. The other half, which does the calling,
