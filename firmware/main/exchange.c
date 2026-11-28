@@ -137,12 +137,15 @@ static void advertise(void)
     tell(PET_EXCHANGE_WAITING, 0);
 }
 
-/* The code was right and the caller is listening: the exchange itself begins. */
-static void maybe_start(void)
+/*
+ * The exchange itself begins with the caller's first bytes, and not
+ * before: the waiting side never speaks first. A caller may still be
+ * making sure of the pairing when its link is ready to carry bytes, and
+ * anything said to it then goes unheard. The code must have been right
+ * and the caller must be listening. Called with the screen's lock held.
+ */
+static void start_if_ready(void)
 {
-    if (!board_lvgl_lock(1000)) {
-        return;
-    }
     if (s_link && s_secure && s_listening && !s_running && !s_over) {
         s_running = pet_app_link_start(s_link, s_give, false);
         s_piece_len = 0;
@@ -151,7 +154,6 @@ static void maybe_start(void)
             pet_app_exchange_told(PET_EXCHANGE_MOVING, 0, s_link);
         }
     }
-    board_lvgl_unlock();
 }
 
 static void link_dropped(void)
@@ -218,7 +220,6 @@ static int gap_event(struct ble_gap_event *event, void *arg)
         if (event->enc_change.status == 0 && ble_gap_conn_find(event->enc_change.conn_handle, &desc) == 0 &&
             desc.sec_state.encrypted && desc.sec_state.authenticated) {
             s_secure = true;
-            maybe_start();
         } else {
             ble_gap_terminate(event->enc_change.conn_handle, BLE_ERR_REM_USER_CONN_TERM);
         }
@@ -227,7 +228,6 @@ static int gap_event(struct ble_gap_event *event, void *arg)
     case BLE_GAP_EVENT_SUBSCRIBE:
         if (event->subscribe.attr_handle == s_tx_handle) {
             s_listening = event->subscribe.cur_notify;
-            maybe_start();
         }
         return 0;
 
@@ -257,7 +257,11 @@ static int on_write(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_
     if (!board_lvgl_lock(2000)) {
         return BLE_ATT_ERR_UNLIKELY;
     }
-    bool ok = s_link && s_running && conn_handle == s_conn;
+    bool ok = s_link && conn_handle == s_conn;
+    if (ok) {
+        start_if_ready();
+        ok = s_running;
+    }
     if (ok) {
         pet_app_link_in(s_link, buf, n);
         s_idle_ticks = 0;

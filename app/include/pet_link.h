@@ -35,6 +35,11 @@ extern "C" {
  * The side that calls writes its bytes to TO_WAITER, and is notified of
  * the other's on FROM_WAITER. Each write or notification is one piece of
  * the stream, of whatever size the link allows.
+ *
+ * The side that waits never speaks first: it starts its pet_link when the
+ * caller's first bytes arrive. A caller may have things to make sure of
+ * (the pairing) after the link can already carry bytes, and would miss
+ * anything said to it before it has begun.
  */
 #define PET_LINK_SERVICE_UUID     "9a12f1ff-962b-4b4e-8d2d-95a00aa282a8"
 #define PET_LINK_TO_WAITER_UUID   "9d983c30-98a5-4053-8cea-1360584b291a"

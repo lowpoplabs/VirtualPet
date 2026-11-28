@@ -1011,6 +1011,8 @@ static void hold_stop(void)
     }
 }
 
+static void move_give(void);
+
 static void hold_tick(lv_timer_t *t)
 {
     LV_UNUSED(t);
@@ -1020,10 +1022,14 @@ static void hold_tick(lv_timer_t *t)
         return;
     }
     hold_stop();
-    if (s_hold_done) {
-        s_hold_done();
+    void (*done)(void) = s_hold_done;
+    if (done) {
+        done();
     }
-    pet_pages_open(PAGE_HOME);
+    /* Sending the pet opens the waiting page; everything else held for is over, and goes home. */
+    if (done != move_give) {
+        pet_pages_open(PAGE_HOME);
+    }
 }
 
 /* Only a finger kept on the button for the whole time counts; letting go early undoes it. */
